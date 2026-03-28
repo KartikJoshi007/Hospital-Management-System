@@ -9,6 +9,9 @@ const connectDB = require("./config/db");
 const doctorRoutes = require("./routes/doctorRoutes");
 const billingRoutes = require("./routes/billingRoutes");
 const medicineRoutes = require("./routes/medicineRoutes");
+const authRoutes = require("./routes/authRoutes");
+const patientRoutes = require("./routes/patientRoutes");
+const appointmentRoutes = require("./routes/appointmentRoutes");
 const errorHandler = require("./middleware/errorMiddleware");
 
 const app = express();
@@ -23,6 +26,9 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 // Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/patients", patientRoutes);
+app.use("/api/appointments", appointmentRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/bills", billingRoutes);
 app.use("/api/medicines", medicineRoutes);
