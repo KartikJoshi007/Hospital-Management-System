@@ -1,67 +1,106 @@
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useState } from "react";
+import { getBills, createBill, deleteBill } from "./billingApi";
+
 
 const Billing = () => {
-  const bills = [
-    { id: 1, patient: "Rajesh", amount: 5000, status: "Paid", date: "12 Mar" },
-    { id: 2, patient: "Moses", amount: 3000, status: "Pending", date: "13 Mar" },
-    { id: 3, patient: "Vijay Kumar", amount: 7000, status: "Paid", date: "14 Mar" },
-  ];
+  const [bills, setBills] = useState([]);
+  const [form, setForm] = useState({
+    patientId: "",
+    amount: "",
+  });
+
+  useEffect(() => {
+    fetchBills();
+  }, []);
+
+  const fetchBills = async () => {
+    const data = await getBills();
+    setBills(data);
+  };
+
+  // CREATE
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    await createBill({
+      patientId: form.patientId,
+      amount: Number(form.amount),
+    });
+
+    setForm({ patientId: "", amount: "" });
+    fetchBills();
+  };
+
+  // DELETE
+  const handleDelete = async (id) => {
+    await deleteBill(id);
+    fetchBills();
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl shadow-lg overflow-hidden"
-    >
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white p-4">
-        <h2 className="text-xl font-semibold">💰 Billing Management</h2>
-        <p className="text-sm opacity-80">Manage patient bills & payments</p>
-      </div>
+    <div className="bg-blue-200 p-6 rounded-xl shadow-lg">
+
+      {/* Form */}
+      <h2 className="text-xl font-bold mb-3">Generate Bill</h2>
+
+      <form onSubmit={handleSubmit} className="flex gap-2 mb-4 flex-wrap">
+        <input
+          type="text"
+          placeholder="Patient ID"
+          value={form.patientId}
+          onChange={(e) =>
+            setForm({ ...form, patientId: e.target.value })
+          }
+          className="border p-2 rounded"
+        />
+
+        <input
+          type="number"
+          placeholder="Amount"
+          value={form.amount}
+          onChange={(e) =>
+            setForm({ ...form, amount: e.target.value })
+          }
+          className="border p-2 rounded"
+        />
+
+        <button className="bg-blue-500 text-white px-4 py-2 rounded">
+          Add
+        </button>
+      </form>
 
       {/* Table */}
-      <div className="p-4">
-        <table className="w-full">
-          <thead>
-            <tr className="text-gray-500 text-sm text-left">
-              <th className="pb-2">Patient</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Date</th>
+      <table className="w-full">
+        <thead>
+          <tr className="text-left text-gray-500">
+            <th>Patient</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {bills.map((bill) => (
+            <tr key={bill._id} className="border-t">
+              <td>{bill.patientId?.name}</td>
+              <td>₹{bill.amount}</td>
+              <td>{bill.paymentStatus}</td>
+
+              <td>
+                <button
+                  onClick={() => handleDelete(bill._id)}
+                  className="bg-red-500 text-white px-2 py-1 rounded"
+                >
+                  Delete
+                </button>
+              </td>
             </tr>
-          </thead>
+          ))}
+        </tbody>
+      </table>
 
-          <tbody>
-            {bills.map((bill) => (
-              <tr
-                key={bill.id}
-                className="border-t hover:bg-gray-50 transition"
-              >
-                <td className="py-3 font-medium">{bill.patient}</td>
-                <td className="font-semibold text-gray-700">
-                  ₹{bill.amount}
-                </td>
-
-                <td>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      bill.status === "Paid"
-                        ? "bg-green-100 text-green-600"
-                        : "bg-yellow-100 text-yellow-600"
-                    }`}
-                  >
-                    {bill.status}
-                  </span>
-                </td>
-
-                <td className="text-gray-500">{bill.date}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </motion.div>
+    </div>
   );
 };
 
