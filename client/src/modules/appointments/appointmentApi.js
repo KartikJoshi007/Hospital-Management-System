@@ -1,5 +1,5 @@
-import axios from "../api/axios";
-
+// import axios from "../api/axios";
+import axios from "../../api/axios";
 // Create appointment
 export const createAppointment = async (appointmentData) => {
   try {

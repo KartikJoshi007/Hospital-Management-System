@@ -1,5 +1,6 @@
-import axios from "../api/axios";
 
+// import axios from "../api/axios";
+import axios from "../../api/axios";
 // Create patient
 export const createPatient = async (patientData) => {
   try {
