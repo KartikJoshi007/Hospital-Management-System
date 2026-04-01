@@ -12,6 +12,8 @@ const medicineRoutes = require("./routes/medicineRoutes");
 const authRoutes = require("./routes/authRoutes");
 const patientRoutes = require("./routes/patientRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
+const queueRoutes = require("./routes/queueRoutes");
 const errorHandler = require("./middleware/errorMiddleware");
 
 const app = express();
@@ -32,6 +34,8 @@ app.use("/api/appointments", appointmentRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/bills", billingRoutes);
 app.use("/api/medicines", medicineRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/queue", queueRoutes);
 
 // Root/Health Check
 app.get("/", (req, res) => {

@@ -25,5 +25,7 @@ router.put("/deactivate", protect, authController.deactivateAccount);
 // Admin routes
 router.get("/users", protect, authorize("admin"), authController.getAllUsers);
 router.get("/users/:id", protect, authorize("admin"), userIdParamValidator, validate, authController.getUserById);
+router.put("/users/:id/role", protect, authorize("admin"), userIdParamValidator, validate, authController.updateRole);
+router.put("/users/:id/toggle-active", protect, authorize("admin"), userIdParamValidator, validate, authController.toggleActive);
 
 module.exports = router;

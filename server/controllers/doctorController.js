@@ -23,8 +23,18 @@ exports.createDoctor = asyncHandler(async (req, res) => {
 // @desc    Get all doctors
 // @route   GET /api/doctors
 exports.getAllDoctors = asyncHandler(async (req, res) => {
-  const doctors = await Doctor.find();
-  
+  const { search, specialization } = req.query;
+
+  let query = {};
+  if (search) {
+    query.name = { $regex: search, $options: "i" };
+  }
+  if (specialization && specialization !== "All") {
+    query.specialization = specialization;
+  }
+
+  const doctors = await Doctor.find(query);
+
   return res
     .status(200)
     .json(new ApiResponse(200, doctors, "Doctors fetched successfully"));
