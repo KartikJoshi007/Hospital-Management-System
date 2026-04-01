@@ -93,21 +93,21 @@ function MyAppointments() {
             <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
             Go Back
           </button>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 italic">My Appointments</h1>
-          <p className="text-slate-500 font-bold text-sm tracking-wide">Manage and book your clinic visits.</p>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">My Appointments</h1>
+          <p className="text-slate-500 font-bold text-sm tracking-tight text-emerald-500/80 uppercase tracking-widest text-[10px] mt-1">Status: Active Consultation Link</p>
         </div>
-        <div className="flex p-1 bg-white border border-slate-100 rounded-2xl shadow-sm">
+        <div className="flex p-1.5 bg-white border border-slate-100 rounded-2xl shadow-sm h-fit">
           <button
             onClick={() => setView('list')}
-            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${view === 'list' ? 'bg-[#0F172A] text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${view === 'list' ? 'bg-[#0F172A] text-white shadow-lg shadow-slate-900/20' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
           >
-            All Lists
+            All Appointments
           </button>
           <button
             onClick={() => setView('book')}
-            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${view === 'book' ? 'bg-[#0F172A] text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${view === 'book' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
           >
-            Book New
+            New Request
           </button>
         </div>
       </div>

@@ -35,9 +35,9 @@ function DashboardLayout() {
           }`}
       >
         {isPatientPath ? (
-           <PatientSidebar collapsed={collapsed} />
+           <PatientSidebar collapsed={collapsed} onToggle={() => setCollapsed(prev => !prev)} />
         ) : (
-           <Sidebar collapsed={collapsed} />
+           <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(prev => !prev)} />
         )}
       </aside>
 

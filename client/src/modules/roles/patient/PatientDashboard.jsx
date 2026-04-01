@@ -47,8 +47,8 @@ function PatientDashboard() {
             <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
             Go Back
           </button>
-          <h1 className="text-3xl font-black tracking-tight text-slate-900 italic">Hello, {user?.name || 'Patient'}!</h1>
-          <p className="text-slate-500 font-bold text-sm tracking-wide">We are here to help you get better. Here is your health update.</p>
+          <h1 className="text-3xl font-black tracking-tight text-slate-900">Hello, {user?.name?.split(' ')[0] || 'Patient'}!</h1>
+          <p className="text-slate-500 font-bold text-sm tracking-tight">We are here to help you get better. Here is your health update.</p>
         </div>
         <Link
           to="/patient/appointments"
@@ -79,8 +79,8 @@ function PatientDashboard() {
         >
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-lg font-black text-slate-900 border-l-4 border-emerald-500 pl-4 uppercase tracking-widest leading-none">Upcoming Visits</h3>
-              <p className="text-[10px] font-black text-slate-400 pl-5 mt-1">Don't forget your next appointment</p>
+              <h3 className="text-sm font-black text-slate-900 border-l-4 border-emerald-500 pl-3 uppercase tracking-widest leading-none">Upcoming Visits</h3>
+              <p className="text-[10px] font-black text-slate-400 pl-4 mt-1.5">Don't forget your next appointment</p>
             </div>
             <Link to="/patient/appointments" className="text-[10px] font-black text-emerald-600 hover:underline uppercase tracking-widest">
               View All →
@@ -106,8 +106,8 @@ function PatientDashboard() {
         >
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h3 className="text-lg font-black text-slate-900 border-l-4 border-emerald-500 pl-4 uppercase tracking-widest leading-none">Past Visits</h3>
-              <p className="text-[10px] font-black text-slate-400 pl-5 mt-1">Details of your previous checkups</p>
+              <h3 className="text-sm font-black text-slate-900 border-l-4 border-emerald-500 pl-3 uppercase tracking-widest leading-none">Past Visits</h3>
+              <p className="text-[10px] font-black text-slate-400 pl-4 mt-1.5">Details of your previous checkups</p>
             </div>
             <Link to="/patient/records" className="text-[10px] font-black text-emerald-600 hover:underline uppercase tracking-widest">
               Full History →

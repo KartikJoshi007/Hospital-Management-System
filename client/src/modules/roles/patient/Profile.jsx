@@ -82,8 +82,8 @@ function Profile() {
           <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
           Go Back
         </button>
-        <h1 className="text-3xl font-black tracking-tight text-slate-900 italic">My Profile</h1>
-        <p className="text-slate-500 font-bold text-sm tracking-wide">Manage your personal and health information.</p>
+        <h1 className="text-3xl font-black tracking-tight text-slate-900">Health Profile</h1>
+        <p className="text-slate-500 font-bold text-sm tracking-tight text-emerald-500/80 uppercase tracking-widest text-[10px] mt-1">Identity: Secure Personal Records</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -53,23 +53,12 @@ function Navbar({ title, onToggle }) {
 
   const isPatientPath = pathname === '/patient' || pathname.startsWith('/patient/')
   const userProfile = isPatientPath
-    ? { name: 'Kartik', role: 'Patient', color: '01b9a9', initials: 'KJ' }
-    : { name: 'Admin', role: 'Admin', color: '10b981', initials: 'AD' }
+    ? { name: 'Kartik', role: 'Patient', color: '01b9a9', initials: 'KJ', profilePath: '/patient/profile' }
+    : { name: 'Admin', role: 'Admin', color: '10b981', initials: 'AD', profilePath: '/admin/profile' }
 
   return (
     <header className="flex h-16 w-full items-center justify-between px-8 bg-white border-b border-slate-200 sticky top-0 z-50">
-      <div className="flex items-center gap-4 flex-1">
-        {/* Hamburger Toggle */}
-        <button
-          onClick={onToggle}
-          className="flex flex-col justify-center gap-1.5 w-8 h-8 shrink-0 group"
-          aria-label="Toggle sidebar"
-        >
-          <span className="block h-0.5 w-5 bg-slate-400 group-hover:bg-emerald-500 transition-colors rounded-full"></span>
-          <span className="block h-0.5 w-5 bg-slate-400 group-hover:bg-emerald-500 transition-colors rounded-full"></span>
-          <span className="block h-0.5 w-5 bg-slate-400 group-hover:bg-emerald-500 transition-colors rounded-full"></span>
-        </button>
-
+      <div className="flex items-center gap-8 flex-1">
         <div className="flex flex-col">
           <h1 className="text-sm font-black text-slate-900 tracking-tight uppercase leading-none">{title}</h1>
           <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{userProfile.role} Account</p>
@@ -173,7 +162,10 @@ function Navbar({ title, onToggle }) {
         </div>
 
         {/* Profile Card */}
-        <div className="flex items-center gap-4 pl-8 border-l border-slate-100 group cursor-pointer">
+        <div 
+          onClick={() => navigate(userProfile.profilePath)}
+          className="flex items-center gap-4 pl-8 border-l border-slate-100 group cursor-pointer active:scale-95 transition-transform"
+        >
           <div className="flex flex-col text-right">
             <span className="text-xs font-black text-[#0F172A] tracking-tight group-hover:text-emerald-500 transition-colors">{userProfile.name}</span>
             <span className="text-[9px] font-bold text-slate-400 uppercase">{userProfile.role} User</span>

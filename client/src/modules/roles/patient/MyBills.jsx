@@ -44,8 +44,8 @@ function MyBills() {
                   <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
                   Go Back
                </button>
-               <h1 className="text-3xl font-black tracking-tight text-slate-900 italic">My Bills & Invoices</h1>
-               <p className="text-slate-500 font-bold text-sm tracking-wide">You have {bills.length} total bills and invoices.</p>
+               <h1 className="text-3xl font-black tracking-tight text-slate-900">Bills & Invoices</h1>
+               <p className="text-slate-500 font-bold text-sm tracking-tight text-emerald-500/80 uppercase tracking-widest text-[10px] mt-1">Ledger: Payment History & Balance</p>
             </div>
 
             <button className="flex items-center gap-3 px-8 py-4 bg-[#0F172A] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-xl active:scale-95 group">
@@ -58,7 +58,7 @@ function MyBills() {
          {/* Billing Ledger */}
          <div className="p-8 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm">
             <div className="flex items-center justify-between mb-10 px-2">
-               <h3 className="text-lg font-black text-slate-900 uppercase tracking-widest border-l-4 border-emerald-500 pl-4">Bill History</h3>
+               <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest border-l-4 border-emerald-500 pl-3 leading-none">Bill History</h3>
                <div className="flex gap-2">
                   <button className="p-2.5 rounded-xl border border-slate-200 text-slate-400 hover:text-emerald-500 transition-colors">
                      <Clock size={16} />
