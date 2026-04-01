@@ -1,8 +1,12 @@
-<<<<<<< HEAD
-=======
 import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './ProtectedRoute'
 import RoleRoutes from './RoleRoutes'
+
+import PatientDashboard from '../modules/roles/patient/PatientDashboard'
+import PatientProfile from '../modules/roles/patient/Profile'
+import MyAppointments from '../modules/roles/patient/MyAppointments'
+import MyRecords from '../modules/roles/patient/MyRecords'
+import MyBills from '../modules/roles/patient/MyBills'
 
 import Login from '../modules/auth/Login'
 import SignUp from '../modules/auth/SignUp'
@@ -63,9 +67,6 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/sign-up" element={<SignUp />} />
 
-      {/* ── Root → role redirect ── */}
-      <Route path="/" element={<RoleRoutes />} />
-
       {/* ── Unauthorized ── */}
       <Route
         path="/unauthorized"
@@ -98,29 +99,44 @@ function AppRoutes() {
         </Route>
       </Route>
 
-     <Route element={<ProtectedRoute allowedRoles={['reception']} />}>
-  <Route element={<ReceptionLayout />}>
+      <Route element={<ProtectedRoute allowedRoles={['reception']} />}>
+        <Route element={<ReceptionLayout />}>
 
-    <Route path="/reception" element={<Navigate to="/reception/dashboard" replace />} />
+          <Route path="/reception" element={<Navigate to="/reception/dashboard" replace />} />
 
-    <Route path="/reception/dashboard" element={<ReceptionDashboard />} />
+          <Route path="/reception/dashboard" element={<ReceptionDashboard />} />
 
-    {/* ✅ UPDATED COMPONENTS */}
-    <Route path="/reception/patients" element={<PatientHandler />} />
-    <Route path="/reception/patients/add" element={<PatientHandler />} />
+          {/* ✅ UPDATED COMPONENTS */}
+          <Route path="/reception/patients" element={<PatientHandler />} />
+          <Route path="/reception/patients/add" element={<PatientHandler />} />
 
-    <Route path="/reception/appointments" element={<AppointmentHandler />} />
-    <Route path="/reception/appointments/book" element={<AppointmentHandler />} />
+          <Route path="/reception/appointments" element={<AppointmentHandler />} />
+          <Route path="/reception/appointments/book" element={<AppointmentHandler />} />
 
-    <Route path="/reception/queue" element={<QueueManagement />} />
+          <Route path="/reception/queue" element={<QueueManagement />} />
 
-    <Route path="/reception/billing" element={<BillingSupport />} />
+          <Route path="/reception/billing" element={<BillingSupport />} />
 
-  </Route>
-</Route>
+        </Route>
+      </Route>
+      
+      {/* ── Patient routes ── */}
+      <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/patient" element={<Navigate to="/patient/dashboard" replace />} />
+          <Route path="/patient/dashboard" element={<PatientDashboard />} />
+          <Route path="/patient/profile" element={<PatientProfile />} />
+          <Route path="/patient/appointments" element={<MyAppointments />} />
+          <Route path="/patient/records" element={<MyRecords />} />
+          <Route path="/patient/billing" element={<MyBills />} />
+        </Route>
+      </Route>
+
+      {/* ── Root → role redirect ── */}
+      <Route path="/*" element={<RoleRoutes />} />
 
       ── Doctor routes ──
-      {/* <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
+      {/* {<Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
         <Route element={<DoctorLayout />}>
           <Route path="/doctor" element={<Navigate to="/doctor/dashboard" replace />} />
           <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
@@ -129,7 +145,7 @@ function AppRoutes() {
           <Route path="/doctor/records" element={<MedicalRecords />} />
           <Route path="/doctor/schedule" element={<Schedule />} />
         </Route>
-      </Route> */}
+      </Route>} */}
 
       {/* ── Legacy shared dashboard (any authenticated role) ── */}
       <Route element={<ProtectedRoute />}>
@@ -162,4 +178,3 @@ function AppRoutes() {
 }
 
 export default AppRoutes
->>>>>>> 789d4f79a549a5051fcbdb565e4bf8c7a85ee151
