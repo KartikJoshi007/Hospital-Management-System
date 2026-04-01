@@ -1,4 +1,11 @@
-import axios from "../api/axios";
+import axios from "../../api/axios";
+
+const extractError = (error) => {
+  const data = error.response?.data
+  if (data?.message) throw new Error(data.message)
+  if (data?.errors?.length) throw new Error(data.errors[0].msg || data.errors[0].message)
+  throw new Error(error.message || 'Something went wrong')
+}
 
 // Register user
 export const registerUser = async (userData) => {
@@ -6,7 +13,7 @@ export const registerUser = async (userData) => {
     const response = await axios.post("/auth/register", userData);
     return response.data;
   } catch (error) {
-    throw error.response?.data || error.message;
+    extractError(error)
   }
 };
 
@@ -20,7 +27,7 @@ export const loginUser = async (credentials) => {
     }
     return response.data;
   } catch (error) {
-    throw error.response?.data || error.message;
+    extractError(error)
   }
 };
 

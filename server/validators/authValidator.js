@@ -13,18 +13,14 @@ exports.registerValidator = [
     .toLowerCase(),
   body("password")
     .isLength({ min: 6 })
-    .withMessage("Password must be at least 6 characters")
-    .matches(/[A-Z]/)
-    .withMessage("Password must contain at least one uppercase letter")
-    .matches(/[0-9]/)
-    .withMessage("Password must contain at least one number"),
+    .withMessage("Password must be at least 6 characters"),
   body("phone")
     .notEmpty()
     .withMessage("Phone number is required")
     .matches(/^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/)
     .withMessage("Invalid phone number format"),
   body("role")
-    .isIn(["admin", "doctor", "patient", "staff"])
+    .isIn(["admin", "doctor", "patient", "reception"])
     .withMessage("Invalid role"),
 ];
 

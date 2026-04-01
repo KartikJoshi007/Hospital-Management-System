@@ -23,7 +23,7 @@ router.get("/user/:userId", protect, userIdParamValidator, validate, patientCont
 router
   .route("/")
   .post(protect, authorize("admin", "doctor", "patient"), patientValidator, validate, patientController.createPatient)
-  .get(protect, authorize("admin", "doctor"), patientController.getAllPatients);
+  .get(protect, authorize("admin", "doctor", "reception"), patientController.getAllPatients);
 
 // ID-specific routes
 router
