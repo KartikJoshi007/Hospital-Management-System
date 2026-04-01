@@ -2,8 +2,17 @@ import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
+import PatientSidebar from './patientcomponents/PatientSidebar'
 
 const getPageTitle = (path) => {
+  if (path.startsWith('/patient')) {
+    if (path.includes('dashboard')) return 'Patient Home'
+    if (path.includes('appointments')) return 'My Appointments'
+    if (path.includes('records')) return 'My Medical Records'
+    if (path.includes('billing')) return 'My Bills'
+    if (path.includes('profile')) return 'My Profile'
+    return 'Patient Portal'
+  }
   if (path.startsWith('/dashboard')) return 'Hospital Dashboard'
   if (path.startsWith('/patients')) return 'Patient Management'
   if (path.startsWith('/appointments')) return 'Appointment Management'
@@ -16,6 +25,7 @@ const getPageTitle = (path) => {
 function DashboardLayout() {
   const { pathname } = useLocation()
   const [collapsed, setCollapsed] = useState(false)
+  const isPatientPath = pathname === '/patient' || pathname.startsWith('/patient/')
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#F8FAFC]">
@@ -24,7 +34,11 @@ function DashboardLayout() {
         className={`shrink-0 border-r border-slate-200 bg-white hidden lg:block transition-all duration-300 ${collapsed ? 'w-16' : 'w-72'
           }`}
       >
-        <Sidebar collapsed={collapsed} />
+        {isPatientPath ? (
+           <PatientSidebar collapsed={collapsed} />
+        ) : (
+           <Sidebar collapsed={collapsed} />
+        )}
       </aside>
 
       {/* Center + Right Section */}
