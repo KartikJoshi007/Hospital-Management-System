@@ -200,7 +200,49 @@ exports.getUserById = asyncHandler(async (req, res) => {
   );
 });
 
-// @desc    Deactivate user account
+// @desc    Update user role (Admin only)
+// @route   PUT /api/auth/users/:id/role
+exports.updateRole = asyncHandler(async (req, res) => {
+  const { role } = req.body;
+
+  if (!role) {
+    throw new ApiError(400, "Role is required");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { role },
+    { new: true, runValidators: true }
+  ).select("-password");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, user, `User role updated to ${role}`)
+  );
+});
+
+// @desc    Toggle user active status (Admin only)
+// @route   PUT /api/auth/users/:id/toggle-active
+exports.toggleActive = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id);
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  user.isActive = !user.isActive;
+  await user.save();
+
+  const status = user.isActive ? "activated" : "deactivated";
+  return res.status(200).json(
+    new ApiResponse(200, user, `User account ${status} successfully`)
+  );
+});
+
+// @desc    Deactivate user account (Self)
 // @route   PUT /api/auth/deactivate
 exports.deactivateAccount = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(
