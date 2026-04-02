@@ -2,24 +2,20 @@ import { useState } from 'react'
 import {
    Search,
    Filter,
-   FileDown,
    ArrowLeft,
-   ArrowRight,
    ShieldCheck,
-   Stethoscope,
-   Activity,
-   History,
-   FileText
+   FileText,
+   Download,
+   ExternalLink
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import MedicalRecordRow from '../../../components/patientcomponents/MedicalRecordRow'
 
 const medicalRecords = [
    {
       id: 1,
       title: 'Post-Surgery Prescription',
       type: 'Prescription',
-      date: 'Oct 12, 2023',
+      date: '2023-10-12',
       doctor: 'Dr. Rahul Patil',
       dept: 'Orthopedics',
       status: 'Ready',
@@ -29,7 +25,7 @@ const medicalRecords = [
       id: 4,
       title: 'Cardiac Follow-up Prescription',
       type: 'Prescription',
-      date: 'Sep 15, 2023',
+      date: '2023-09-15',
       doctor: 'Dr. Aryan Mehta',
       dept: 'Cardiology',
       status: 'Ready',
@@ -52,92 +48,136 @@ function MyRecords() {
    })
 
    return (
-      <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700 pb-10">
-         {/* Header */}
-         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-            <div className="flex flex-col gap-1">
-               <button 
-                  onClick={() => navigate(-1)} 
-                  className="flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-emerald-500 transition-colors uppercase tracking-widest mb-2 group w-fit"
-               >
-                  <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-                  Go Back
+      <div className="space-y-8 pb-10 animate-in fade-in duration-500 w-full px-4">
+         
+         {/* Header Section */}
+         <div className="p-8 bg-white rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+               <h1 className="text-3xl font-black tracking-tight text-slate-900 border-l-4 border-emerald-500 pl-4 uppercase leading-none">Medical Records</h1>
+               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 pl-5">Access your health history, prescriptions, and diagnostic reports</p>
+            </div>
+            <div className="flex items-center gap-3">
+               <button className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-xl active:scale-95">
+                  <Download size={14} strokeWidth={3} />
+                  Download All
                </button>
-               <h1 className="text-3xl font-black tracking-tight text-slate-900">Medical Records</h1>
-               <p className="text-slate-500 font-bold text-sm tracking-tight text-emerald-500/80 uppercase tracking-widest text-[10px] mt-1">Vault: Secure Medical Storage</p>
+               <button
+                  onClick={() => navigate(-1)}
+                  className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors"
+               >
+                  <ArrowLeft size={14} strokeWidth={3} />
+                  Back
+               </button>
             </div>
          </div>
 
-         {/* Records Archive & Controls - Full Width Focus */}
-         <div className="p-4 md:p-8 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm overflow-hidden">
-            {/* Table Controls Header */}
-            <div className="flex flex-col gap-8 mb-10 px-2">
-               <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest border-l-4 border-emerald-500 pl-3 leading-none">Record Archive</h3>
-                    <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-widest pl-4">Digital documentation of your health history</p>
-                  </div>
-                  <button className="flex items-center gap-2 px-8 py-4 bg-[#0F172A] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg active:scale-95">
-                     <FileDown size={18} />
-                     Download Complete Dossier
+         {/* Filters & Search */}
+         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50 p-5 rounded-[2rem] border border-slate-100 shadow-sm">
+            <div className="flex p-1 bg-white rounded-xl border border-slate-100">
+               {categories.map(cat => (
+                  <button
+                     key={cat}
+                     onClick={() => setActiveCategory(cat)}
+                     className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeCategory === cat ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-700'}`}
+                  >
+                     {cat}
                   </button>
-               </div>
-
-               <div className="flex flex-col md:flex-row items-center gap-4">
-                  <div className="relative group flex-1 w-full">
-                     <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
-                     <input
-                        type="text"
-                        placeholder="Search diagnosis, reports, or doctors..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-14 pr-6 py-4 bg-slate-100/50 border border-transparent rounded-2xl focus:outline-none focus:bg-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-xs font-bold text-slate-900"
-                     />
-                  </div>
-                  <div className="flex p-1.5 bg-slate-100/50 border border-slate-100 rounded-2xl overflow-x-auto scroller-hide w-full md:w-auto shadow-inner">
-                     {categories.map(cat => (
-                        <button
-                           key={cat}
-                           onClick={() => setActiveCategory(cat)}
-                           className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeCategory === cat ? 'bg-white text-emerald-600 shadow-md border border-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
-                        >
-                           {cat === 'All' ? 'Full Archive' : cat}
-                        </button>
-                     ))}
-                  </div>
-               </div>
+               ))}
             </div>
 
-            <div className="overflow-x-auto scroller-hide px-2">
-               <table className="w-full min-w-[800px]">
+            <div className="flex items-center gap-3 flex-1 md:max-w-md">
+               <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} strokeWidth={3} />
+                  <input
+                     type="text"
+                     placeholder="Search records, doctors..."
+                     value={searchTerm}
+                     onChange={(e) => setSearchTerm(e.target.value)}
+                     className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all text-xs font-bold text-slate-900 placeholder:text-slate-400 outline-none shadow-sm"
+                  />
+               </div>
+               <button className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-colors shadow-sm">
+                  <Filter size={16} strokeWidth={3} />
+               </button>
+            </div>
+         </div>
+
+         {/* Records Table Card */}
+         <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden min-h-[400px]">
+            <div className="overflow-x-auto">
+               <table className="w-full text-left border-collapse">
                   <thead>
-                     <tr className="border-b-2 border-slate-50 text-[11px] font-black text-slate-400 uppercase tracking-[0.15em]">
-                        <th className="text-left py-6 px-4 font-black">Document Details & Metadata</th>
-                        <th className="text-left py-6 px-4 font-black">Dept</th>
-                        <th className="text-left py-6 px-4 font-black">Date Listed</th>
-                        <th className="text-left py-6 px-4 font-black">Volume</th>
-                        <th className="text-right py-6 px-4 font-black">Control</th>
+                     <tr className="bg-slate-50/50 border-b border-slate-100">
+                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Document Name</th>
+                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Category</th>
+                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Department</th>
+                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</th>
+                        <th className="px-8 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                      </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100/50">
-                     {filteredRecords.map((record) => (
-                        <MedicalRecordRow key={record.id} {...record} />
-                     ))}
+                  <tbody className="divide-y divide-slate-50">
+                     {filteredRecords.length > 0 ? (
+                        filteredRecords.map((record) => (
+                           <tr key={record.id} className="hover:bg-slate-50/50 transition-all group">
+                              <td className="px-8 py-6">
+                                 <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-slate-100 text-slate-400 rounded-2xl group-hover:bg-emerald-500 group-hover:text-white transition-all border border-slate-200 group-hover:border-emerald-400">
+                                       <FileText size={18} strokeWidth={3} />
+                                    </div>
+                                    <div>
+                                       <p className="text-sm font-black text-slate-900 leading-tight">{record.title}</p>
+                                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{record.size}</p>
+                                    </div>
+                                 </div>
+                              </td>
+                              <td className="px-8 py-6">
+                                 <span className="inline-flex px-3 py-1 rounded-full text-[9px] font-black bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-widest">
+                                    {record.type}
+                                 </span>
+                              </td>
+                              <td className="px-8 py-6">
+                                 <div>
+                                    <p className="text-sm font-black text-slate-700 leading-tight">{record.dept}</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{record.doctor}</p>
+                                 </div>
+                              </td>
+                              <td className="px-8 py-6 text-xs font-black text-slate-600 whitespace-nowrap">
+                                 {new Date(record.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </td>
+                              <td className="px-8 py-6 text-right">
+                                 <div className="flex justify-end gap-2">
+                                    <button className="p-2.5 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all">
+                                       <Download size={16} strokeWidth={3} />
+                                    </button>
+                                    <button className="p-2.5 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all">
+                                       <ExternalLink size={16} strokeWidth={3} />
+                                    </button>
+                                 </div>
+                              </td>
+                           </tr>
+                        ))
+                     ) : (
+                        <tr>
+                           <td colSpan={5} className="py-24 text-center">
+                              <div className="inline-flex items-center justify-center w-20 h-20 rounded-[2rem] bg-slate-50 text-slate-200 mb-6 border border-slate-100">
+                                 <FileText size={32} strokeWidth={1} />
+                              </div>
+                              <h3 className="text-slate-900 font-black text-sm uppercase tracking-widest">No entries found</h3>
+                              <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-2">Try adjusting your filters</p>
+                           </td>
+                        </tr>
+                     )}
                   </tbody>
                </table>
             </div>
+         </div>
 
-            {filteredRecords.length === 0 && (
-               <div className="py-32 text-center space-y-6">
-                  <div className="mx-auto w-24 h-24 rounded-[2rem] bg-slate-50 flex items-center justify-center text-slate-200 shadow-inner">
-                     <Search size={48} />
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-slate-600 font-black text-xs uppercase tracking-widest">No matching records indexed.</p>
-                    <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">Try adjusting your filters or search keywords.</p>
-                  </div>
-               </div>
-            )}
+         {/* Footer Note */}
+         <div className="bg-blue-50/50 border border-blue-100 p-6 rounded-[2rem] flex gap-4 items-start shadow-sm shadow-blue-50">
+            <ShieldCheck className="text-blue-500 shrink-0" size={20} strokeWidth={3} />
+            <p className="text-[10px] text-blue-700 uppercase tracking-widest font-bold leading-relaxed">
+               All medical records are encrypted and stored securely. Only authorized healthcare professionals attending to you can access these documents.
+            </p>
          </div>
       </div>
    )
