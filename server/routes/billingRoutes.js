@@ -28,5 +28,7 @@ router
 
 // Mark as paid
 router.put("/:id/mark-paid", protect, authorize("admin", "reception"), billingController.markBillPaid);
+router.patch("/:id/pay", protect, authorize("admin", "reception"), billingController.markBillPaid);
+router.put("/:id/pay", protect, authorize("admin", "reception"), billingController.markBillPaid);
 
 module.exports = router;

@@ -31,6 +31,7 @@ router
   .route("/:id")
   .get(protect, appointmentIdValidator, validate, appointmentController.getAppointmentById)
   .put(protect, appointmentIdValidator, appointmentUpdateValidator, validate, appointmentController.updateAppointment)
+  .patch(protect, appointmentIdValidator, appointmentUpdateValidator, validate, appointmentController.updateAppointment)
   .delete(protect, authorize("admin", "doctor"), appointmentIdValidator, validate, appointmentController.deleteAppointment);
 
 // Cancel route

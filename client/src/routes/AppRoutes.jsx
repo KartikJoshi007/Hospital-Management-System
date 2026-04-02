@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './ProtectedRoute'
 import RoleRoutes from './RoleRoutes'
@@ -98,28 +96,22 @@ function AppRoutes() {
         </Route>
       </Route>
 
-     <Route element={<ProtectedRoute allowedRoles={['reception']} />}>
-  <Route element={<ReceptionLayout />}>
+      <Route element={<ProtectedRoute allowedRoles={['reception']} />}>
+        <Route element={<ReceptionLayout />}>
+          <Route path="/reception" element={<Navigate to="/reception/dashboard" replace />} />
+          <Route path="/reception/dashboard" element={<ReceptionDashboard />} />
 
-    <Route path="/reception" element={<Navigate to="/reception/dashboard" replace />} />
+          {/* Updated components */}
+          <Route path="/reception/patients" element={<PatientHandler />} />
+          <Route path="/reception/patients/add" element={<PatientHandler />} />
+          <Route path="/reception/appointments" element={<AppointmentHandler />} />
+          <Route path="/reception/appointments/book" element={<AppointmentHandler />} />
+          <Route path="/reception/queue" element={<QueueManagement />} />
+          <Route path="/reception/billing" element={<BillingSupport />} />
+        </Route>
+      </Route>
 
-    <Route path="/reception/dashboard" element={<ReceptionDashboard />} />
-
-    {/* ✅ UPDATED COMPONENTS */}
-    <Route path="/reception/patients" element={<PatientHandler />} />
-    <Route path="/reception/patients/add" element={<PatientHandler />} />
-
-    <Route path="/reception/appointments" element={<AppointmentHandler />} />
-    <Route path="/reception/appointments/book" element={<AppointmentHandler />} />
-
-    <Route path="/reception/queue" element={<QueueManagement />} />
-
-    <Route path="/reception/billing" element={<BillingSupport />} />
-
-  </Route>
-</Route>
-
-      ── Doctor routes ──
+      {/* ── Doctor routes ── */}
       {/* <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
         <Route element={<DoctorLayout />}>
           <Route path="/doctor" element={<Navigate to="/doctor/dashboard" replace />} />
@@ -162,4 +154,3 @@ function AppRoutes() {
 }
 
 export default AppRoutes
->>>>>>> 789d4f79a549a5051fcbdb565e4bf8c7a85ee151

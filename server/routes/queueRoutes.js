@@ -11,6 +11,7 @@ router
 router
   .route("/:id")
   .put(protect, authorize("admin", "reception"), queueController.updateQueueStatus)
+  .patch(protect, authorize("admin", "reception"), queueController.updateQueueStatus)
   .delete(protect, authorize("admin", "reception"), queueController.removeFromQueue);
 
 module.exports = router;

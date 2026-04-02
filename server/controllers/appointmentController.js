@@ -26,7 +26,7 @@ exports.createAppointment = asyncHandler(async (req, res) => {
     doctorId,
     appointmentDate: new Date(appointmentDate),
     appointmentTime,
-    status: { $ne: "cancelled" },
+    status: { $nin: ["cancelled", "Cancelled"] },
   });
 
   if (existingAppointment) {
@@ -140,7 +140,7 @@ exports.updateAppointment = asyncHandler(async (req, res) => {
       doctorId: appointment.doctorId,
       appointmentDate: new Date(checkDate),
       appointmentTime: checkTime,
-      status: { $ne: "cancelled" },
+      status: { $nin: ["cancelled", "Cancelled"] },
     });
 
     if (existingAppointment) {
@@ -173,7 +173,7 @@ exports.updateAppointment = asyncHandler(async (req, res) => {
 exports.cancelAppointment = asyncHandler(async (req, res) => {
   const appointment = await Appointment.findByIdAndUpdate(
     req.params.id,
-    { status: "cancelled" },
+    { status: "Cancelled" },
     { new: true }
   ).populate([
     { path: "patientId", populate: { path: "userId", select: "fullName email phone" } },
@@ -288,9 +288,9 @@ exports.getDoctorAppointments = asyncHandler(async (req, res) => {
 // @route   GET /api/appointments/stats
 exports.getAppointmentStats = asyncHandler(async (req, res) => {
   const totalAppointments = await Appointment.countDocuments();
-  const scheduledAppointments = await Appointment.countDocuments({ status: "scheduled" });
-  const completedAppointments = await Appointment.countDocuments({ status: "completed" });
-  const cancelledAppointments = await Appointment.countDocuments({ status: "cancelled" });
+  const scheduledAppointments = await Appointment.countDocuments({ status: { $in: ["scheduled", "Pending", "Confirmed"] } });
+  const completedAppointments = await Appointment.countDocuments({ status: { $in: ["completed", "Completed"] } });
+  const cancelledAppointments = await Appointment.countDocuments({ status: { $in: ["cancelled", "Cancelled"] } });
   const noShowAppointments = await Appointment.countDocuments({ status: "no-show" });
 
   const appointmentsByDoctor = await Appointment.aggregate([

@@ -1,34 +1,27 @@
-import { Route, Routes, Navigate } from 'react-router-dom'
-import PatientDashboard from '../modules/roles/patient/PatientDashboard'
-import Profile from '../modules/roles/patient/Profile'
-import MyAppointments from '../modules/roles/patient/MyAppointments'
-import MyRecords from '../modules/roles/patient/MyRecords'
-import MyBills from '../modules/roles/patient/MyBills'
-import DashboardLayout from '../components/DashboardLayout'
+import { Navigate } from 'react-router-dom'
 import useAuth from '../hooks/useAuth'
 
 function RoleRoutes() {
-  const { role } = useAuth()
-  const user = { role } // Keep the user variable name if preferred, or use role directly
+  const { role, isAuthenticated } = useAuth()
 
-  return (
-    <Routes>
-      {/* Patient Specific Routes */}
-      {user.role === 'patient' && (
-        <Route element={<DashboardLayout />}>
-          <Route path="/" element={<Navigate to="/patient/dashboard" replace />} />
-          <Route path="/dashboard" element={<PatientDashboard />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/appointments" element={<MyAppointments />} />
-          <Route path="/records" element={<MyRecords />} />
-          <Route path="/billing" element={<MyBills />} />
-        </Route>
-      )}
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
 
-      {/* Fallback for unauthorized or non-existent routes */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  )
+  if (role === 'admin') {
+    return <Navigate to="/admin/dashboard" replace />
+  }
+
+  if (role === 'reception') {
+    return <Navigate to="/reception/dashboard" replace />
+  }
+
+  // Doctor-specific routes are currently disabled; send doctors to legacy dashboard.
+  if (role === 'doctor' || role === 'patient') {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <Navigate to="/unauthorized" replace />
 }
 
 export default RoleRoutes

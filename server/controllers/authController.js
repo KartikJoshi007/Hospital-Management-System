@@ -242,6 +242,35 @@ exports.toggleActive = asyncHandler(async (req, res) => {
   );
 });
 
+// @desc    Update user active status explicitly (Admin only)
+// @route   PATCH /api/users/:id/status
+exports.updateStatus = asyncHandler(async (req, res) => {
+  const { status } = req.body;
+
+  if (!status) {
+    throw new ApiError(400, "Status is required");
+  }
+
+  const normalizedStatus = String(status).toLowerCase();
+  if (!["active", "inactive"].includes(normalizedStatus)) {
+    throw new ApiError(400, "Status must be either Active or Inactive");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { isActive: normalizedStatus === "active" },
+    { new: true, runValidators: true }
+  ).select("-password");
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, user, `User status updated to ${normalizedStatus}`)
+  );
+});
+
 // @desc    Deactivate user account (Self)
 // @route   PUT /api/auth/deactivate
 exports.deactivateAccount = asyncHandler(async (req, res) => {

@@ -3,14 +3,30 @@ const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 
+const normalizeBill = (billDoc) => {
+  const bill = billDoc.toObject ? billDoc.toObject() : billDoc;
+  const patientFullName = bill?.patientId?.userId?.fullName;
+
+  return {
+    ...bill,
+    status: bill.paymentStatus,
+    patientName: bill.patientName || patientFullName || null,
+  };
+};
+
 // @desc    Create new bill
 // @route   POST /api/bills
 exports.createBill = asyncHandler(async (req, res) => {
-  const bill = await Billing.create(req.body);
+  const payload = {
+    ...req.body,
+    paymentStatus: req.body.paymentStatus || req.body.status,
+  };
+
+  const bill = await Billing.create(payload);
 
   return res
     .status(201)
-    .json(new ApiResponse(201, bill, "Bill created successfully"));
+    .json(new ApiResponse(201, normalizeBill(bill), "Bill created successfully"));
 });
 
 // @desc    Get all bills
@@ -25,7 +41,7 @@ exports.getAllBills = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const bills = await Billing.find(query)
-    .populate("patientId", "userId")
+    .populate({ path: "patientId", populate: { path: "userId", select: "fullName" } })
     .populate("doctorId", "name specialization")
     .skip(skip)
     .limit(parseInt(limit))
@@ -39,7 +55,7 @@ exports.getAllBills = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         {
-          bills,
+          bills: bills.map(normalizeBill),
           pagination: {
             total,
             pages: Math.ceil(total / limit),
@@ -56,7 +72,7 @@ exports.getAllBills = asyncHandler(async (req, res) => {
 // @route   GET /api/bills/:id
 exports.getBillById = asyncHandler(async (req, res) => {
   const bill = await Billing.findById(req.params.id)
-    .populate("patientId")
+    .populate({ path: "patientId", populate: { path: "userId", select: "fullName" } })
     .populate("doctorId", "name specialization");
 
   if (!bill) {
@@ -65,7 +81,7 @@ exports.getBillById = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, bill, "Bill fetched successfully"));
+    .json(new ApiResponse(200, normalizeBill(bill), "Bill fetched successfully"));
 });
 
 // @desc    Get bills by patient ID
@@ -77,7 +93,7 @@ exports.getBillsByPatient = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, bills, "Patient bills fetched successfully"));
+    .json(new ApiResponse(200, bills.map(normalizeBill), "Patient bills fetched successfully"));
 });
 
 // @desc    Get revenue report (grouped by paymentStatus)
@@ -190,7 +206,7 @@ exports.markBillPaid = asyncHandler(async (req, res) => {
       paymentMethod: req.body.paymentMethod || "cash",
     },
     { new: true }
-  );
+  ).populate({ path: "patientId", populate: { path: "userId", select: "fullName" } });
 
   if (!bill) {
     throw new ApiError(404, "Bill not found");
@@ -198,13 +214,18 @@ exports.markBillPaid = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, bill, "Bill marked as paid successfully"));
+    .json(new ApiResponse(200, normalizeBill(bill), "Bill marked as paid successfully"));
 });
 
 // @desc    Update bill
 // @route   PUT /api/bills/:id
 exports.updateBill = asyncHandler(async (req, res) => {
-  const bill = await Billing.findByIdAndUpdate(req.params.id, req.body, {
+  const payload = {
+    ...req.body,
+    paymentStatus: req.body.paymentStatus || req.body.status,
+  };
+
+  const bill = await Billing.findByIdAndUpdate(req.params.id, payload, {
     new: true,
     runValidators: true,
   });
@@ -215,7 +236,7 @@ exports.updateBill = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, bill, "Bill updated successfully"));
+    .json(new ApiResponse(200, normalizeBill(bill), "Bill updated successfully"));
 });
 
 // @desc    Delete bill

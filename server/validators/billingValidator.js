@@ -29,4 +29,9 @@ exports.billingValidator = [
     .optional()
     .isIn(["Paid", "Pending", "Overdue"])
     .withMessage("Payment status must be Paid, Pending, or Overdue"),
+
+  body("status")
+    .optional()
+    .isIn(["Paid", "Pending", "Overdue"])
+    .withMessage("Status must be Paid, Pending, or Overdue"),
 ];
