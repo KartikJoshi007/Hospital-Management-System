@@ -64,9 +64,10 @@ function AdminProfile() {
   ]
 
   return (
-    <div className="space-y-6 pb-10 animate-in fade-in duration-500 max-w-4xl">
+    <div className="space-y-6 pb-10 animate-in fade-in duration-500 w-full">
 
       {/* Toast */}
+      <div>
       <AnimatePresence>
         {message.text && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
@@ -75,57 +76,53 @@ function AdminProfile() {
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
 
       {/* Profile Hero Card */}
+      <div>
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
         {/* Banner */}
-        <div className="h-28 bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-900 relative">
-          <div className="absolute inset-0 opacity-10"
-            style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, #10b981 0%, transparent 50%), radial-gradient(circle at 80% 20%, #3b82f6 0%, transparent 40%)' }} />
+        <div className="h-28 bg-gradient-to-r from-emerald-500 to-emerald-700 relative flex items-center justify-between px-8">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <img
+                src={`https://ui-avatars.com/api/?name=Admin&background=ffffff&color=10b981&bold=true&size=80`}
+                alt="Admin"
+                className="h-16 w-16 rounded-2xl object-cover border-4 border-white/30 shadow-xl"
+              />
+              <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-white border-2 border-emerald-500 flex items-center justify-center">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-white leading-tight">Admin</h2>
+              <p className="text-xs font-bold text-emerald-100 uppercase tracking-widest">System Administrator</p>
+              <p className="text-xs font-bold text-emerald-100 mt-0.5">{user?.email || 'admin@hospital.com'}</p>
+            </div>
+          </div>
+          {!editMode ? (
+            <button
+              onClick={() => setEditMode(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/20 text-white text-xs font-black uppercase tracking-widest hover:bg-white/30 transition-all"
+            >
+              <Edit2 size={13} /> Edit Profile
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button onClick={handleProfileCancel}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/20 text-white text-xs font-black uppercase tracking-widest hover:bg-white/30 transition-all">
+                <X size={13} /> Cancel
+              </button>
+              <button form="profile-form" type="submit"
+                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-white text-emerald-600 text-xs font-black uppercase tracking-widest hover:bg-emerald-50 transition-all shadow-lg">
+                <Check size={13} /> Save
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Avatar + Info */}
-        <div className="px-8 pb-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-10 mb-6">
-            <div className="flex items-end gap-4">
-              <div className="relative">
-                <img
-                  src={`https://ui-avatars.com/api/?name=Admin&background=10b981&color=fff&bold=true&size=80`}
-                  alt="Admin"
-                  className="h-20 w-20 rounded-2xl object-cover border-4 border-white shadow-xl"
-                />
-                <span className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center">
-                  <span className="h-2 w-2 rounded-full bg-white" />
-                </span>
-              </div>
-              <div className="mb-1">
-                <h2 className="text-xl font-black text-slate-900 leading-tight">Admin</h2>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">System Administrator</p>
-              </div>
-            </div>
-
-            {!editMode ? (
-              <button
-                onClick={() => setEditMode(true)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg"
-              >
-                <Edit2 size={13} /> Edit Profile
-              </button>
-            ) : (
-              <div className="flex gap-2">
-                <button onClick={handleProfileCancel}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all">
-                  <X size={13} /> Cancel
-                </button>
-                <button form="profile-form" type="submit"
-                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-500 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg">
-                  <Check size={13} /> Save
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Stats row */}
+        {/* Stats + Form */}
+        <div className="px-8 py-6">
           <div className="grid grid-cols-3 gap-4 mb-6">
             {stats.map((s, i) => (
               <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
@@ -206,8 +203,86 @@ function AdminProfile() {
           </form>
         </div>
       </div>
+      </div>
+
+      {/* Change Email Card */}
+      <div>
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-8 py-6 border-b border-slate-50">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-slate-100 text-slate-600">
+              <Mail size={16} />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Change Email</h3>
+              <p className="text-[10px] font-bold text-slate-400 mt-0.5">Update your account email address</p>
+            </div>
+          </div>
+        </div>
+        <form onSubmit={(e) => {
+          e.preventDefault()
+          if (e.target.email.value !== e.target.confirmEmail.value) {
+            notify('Emails do not match', 'error')
+            return
+          }
+          const updated = { ...user, email: e.target.email.value }
+          localStorage.setItem('user', JSON.stringify(updated))
+          login(updated)
+          notify('Email updated successfully')
+          e.target.reset()
+        }} className="px-8 py-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Current Email</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400 h-4 w-4" />
+                <input
+                  type="email"
+                  value={user?.email || 'admin@hospital.com'}
+                  disabled
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border bg-emerald-50 border-emerald-100 text-sm font-black text-emerald-700 cursor-default"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">New Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  placeholder={user?.email || 'admin@hospital.com'}
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Confirm New Email</label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
+                <input
+                  type="email"
+                  name="confirmEmail"
+                  required
+                  placeholder="Confirm new email"
+                  className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all"
+                />
+              </div>
+            </div>
+            <div className="flex items-end">
+              <button type="submit"
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg active:scale-95">
+                <Mail size={13} /> Update Email
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+      </div>
 
       {/* Change Password Card */}
+      <div>
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-8 py-6 border-b border-slate-50">
           <div className="flex items-center gap-3">
@@ -222,7 +297,7 @@ function AdminProfile() {
         </div>
 
         <form onSubmit={handlePasswordSave} className="px-8 py-6 space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {/* Current Password */}
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Current Password</label>
@@ -234,7 +309,7 @@ function AdminProfile() {
                   placeholder="••••••••"
                   value={passwordForm.currentPassword}
                   onChange={e => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                  className="w-full pl-11 pr-11 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all"
+                  className="w-full pl-11 pr-11 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all [&::-ms-reveal]:hidden [&::-webkit-contacts-auto-fill-button]:hidden"
                 />
                 <button type="button" onClick={() => setShowCurrent(!showCurrent)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors">
@@ -254,7 +329,7 @@ function AdminProfile() {
                   placeholder="••••••••"
                   value={passwordForm.newPassword}
                   onChange={e => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                  className="w-full pl-11 pr-11 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all"
+                  className="w-full pl-11 pr-11 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all [&::-ms-reveal]:hidden [&::-webkit-contacts-auto-fill-button]:hidden"
                 />
                 <button type="button" onClick={() => setShowNew(!showNew)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 transition-colors">
@@ -274,7 +349,7 @@ function AdminProfile() {
                   placeholder="••••••••"
                   value={passwordForm.confirmPassword}
                   onChange={e => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                  className={`w-full pl-11 pr-11 py-3 rounded-xl border bg-white text-sm font-bold text-slate-900 outline-none focus:ring-4 transition-all ${
+                  className={`w-full pl-11 pr-11 py-3 rounded-xl border bg-white text-sm font-bold text-slate-900 outline-none focus:ring-4 transition-all [&::-ms-reveal]:hidden [&::-webkit-contacts-auto-fill-button]:hidden ${
                     passwordForm.confirmPassword && passwordForm.newPassword !== passwordForm.confirmPassword
                       ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-50'
                       : 'border-slate-200 focus:border-emerald-400 focus:ring-emerald-50'
@@ -289,34 +364,19 @@ function AdminProfile() {
                 <p className="text-[10px] font-bold text-rose-500 mt-1.5 ml-1">Passwords do not match</p>
               )}
             </div>
-          </div>
 
-          <div className="flex justify-end pt-2">
-            <button type="submit"
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg active:scale-95">
-              <Lock size={13} /> Update Password
-            </button>
+            <div className="flex items-end">
+              <button type="submit"
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg active:scale-95">
+                <Lock size={13} /> Update Password
+              </button>
+            </div>
           </div>
         </form>
       </div>
-
-      {/* Account Info Card */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
-        <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest mb-5 border-l-4 border-emerald-500 pl-3">Account Information</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { label: 'Account ID',   value: user?.id || 'demo-admin' },
-            { label: 'Role',         value: 'Admin' },
-            { label: 'Account Type', value: 'Full Access' },
-            { label: 'Member Since', value: '2024' },
-          ].map((item, i) => (
-            <div key={i} className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
-              <p className="text-xs font-black text-slate-900 truncate">{item.value}</p>
-            </div>
-          ))}
-        </div>
       </div>
+
+
 
     </div>
   )

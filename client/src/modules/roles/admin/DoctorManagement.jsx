@@ -1,62 +1,56 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Plus, Edit, Trash2, X, Phone, Mail, Clock, Star, AlertCircle } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, X, Clock, Star, AlertCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import DoctorProfileModal from './DoctorProfileModal'
 
 const SPECIALIZATIONS = ['Cardiology', 'Neurology', 'Orthopedics', 'Dermatology', 'Pediatrics', 'General Medicine']
 
 const initialDoctors = [
-  { id: 'D-001', name: 'Dr. Aryan Mehta', specialization: 'Cardiology', experience: '12 Years', availability: 'Mon, Wed, Fri (10AM–2PM)', contact: '+91 98765 43210', email: 'aryan@hms.com', status: 'Active' },
-  { id: 'D-002', name: 'Dr. Sneha Verma', specialization: 'Neurology', experience: '8 Years', availability: 'Tue, Thu, Sat (9AM–1PM)', contact: '+91 87654 32109', email: 'sneha@hms.com', status: 'Active' },
-  { id: 'D-003', name: 'Dr. Rahul Patil', specialization: 'Orthopedics', experience: '15 Years', availability: 'Mon–Fri (2PM–6PM)', contact: '+91 76543 21098', email: 'rahul@hms.com', status: 'On Leave' },
-  { id: 'D-004', name: 'Dr. Nisha Iyer', specialization: 'Dermatology', experience: '5 Years', availability: 'Wed, Fri, Sun (11AM–4PM)', contact: '+91 65432 10987', email: 'nisha@hms.com', status: 'Active' },
+  { id: 'D-001', name: 'Dr. Aryan Mehta', specialization: 'Cardiology',      experience: '12 Years', availability: 'Mon, Wed, Fri (10AM–2PM)', contact: '+91 98765 43210', email: 'aryan@hms.com',  status: 'Active',   patients: 24 },
+  { id: 'D-002', name: 'Dr. Sneha Verma', specialization: 'Neurology',        experience: '8 Years',  availability: 'Tue, Thu, Sat (9AM–1PM)',  contact: '+91 87654 32109', email: 'sneha@hms.com',  status: 'Active',   patients: 18 },
+  { id: 'D-003', name: 'Dr. Rahul Patil', specialization: 'Orthopedics',      experience: '15 Years', availability: 'Mon–Fri (2PM–6PM)',         contact: '+91 76543 21098', email: 'rahul@hms.com',  status: 'On Leave', patients: 0  },
+  { id: 'D-004', name: 'Dr. Nisha Iyer',  specialization: 'Dermatology',      experience: '5 Years',  availability: 'Wed, Fri, Sun (11AM–4PM)', contact: '+91 65432 10987', email: 'nisha@hms.com',  status: 'Active',   patients: 12 },
 ]
 
 const emptyForm = { name: '', specialization: '', experience: '', availability: '', contact: '', email: '', status: 'Active' }
 
 function DoctorManagement({ view }) {
   const navigate = useNavigate()
-  const [doctors, setDoctors] = useState(initialDoctors)
-  const [search, setSearch] = useState('')
-  const [specFilter, setSpecFilter] = useState('All')
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingDoc, setEditingDoc] = useState(null)
+  const [doctors, setDoctors]               = useState(initialDoctors)
+  const [search, setSearch]                 = useState('')
+  const [specFilter, setSpecFilter]         = useState('All')
+  const [isFormOpen, setIsFormOpen]         = useState(false)
+  const [editingDoc, setEditingDoc]         = useState(null)
   const [deleteCandidate, setDeleteCandidate] = useState(null)
-  const [formData, setFormData] = useState(emptyForm)
-  const [message, setMessage] = useState('')
+  const [selectedDoc, setSelectedDoc]       = useState(null)
+  const [formData, setFormData]             = useState(emptyForm)
+  const [message, setMessage]               = useState('')
 
-  // Open modal if view prop is 'add'
   useEffect(() => {
-    if (view === 'add') {
-      setEditingDoc(null);
-      setFormData(emptyForm);
-      setIsFormOpen(true);
-    }
-  }, [view]);
+    if (view === 'add') { setEditingDoc(null); setFormData(emptyForm); setIsFormOpen(true) }
+  }, [view])
 
-  // Navigate back when modal closes from the add route
   useEffect(() => {
-    if (!isFormOpen && view === 'add') {
-      navigate('/admin/doctors');
-    }
-  }, [isFormOpen, view, navigate]);
+    if (!isFormOpen && view === 'add') navigate('/admin/doctors')
+  }, [isFormOpen, view, navigate])
 
   const filtered = useMemo(() => doctors.filter(d => {
     const bySearch = d.name.toLowerCase().includes(search.toLowerCase()) || d.specialization.toLowerCase().includes(search.toLowerCase())
-    const bySpec = specFilter === 'All' || d.specialization === specFilter
+    const bySpec   = specFilter === 'All' || d.specialization === specFilter
     return bySearch && bySpec
   }), [doctors, search, specFilter])
 
-  const openAdd = () => { setEditingDoc(null); setFormData(emptyForm); setIsFormOpen(true) }
+  const openAdd  = () => { setEditingDoc(null); setFormData(emptyForm); setIsFormOpen(true) }
   const openEdit = (doc) => { setEditingDoc(doc); setFormData({ ...doc }); setIsFormOpen(true) }
 
   const handleSave = (e) => {
     e.preventDefault()
     if (editingDoc) {
-      setDoctors(prev => prev.map(d => d.id === editingDoc.id ? { ...formData, id: editingDoc.id } : d))
+      setDoctors(prev => prev.map(d => d.id === editingDoc.id ? { ...formData, id: editingDoc.id, patients: editingDoc.patients } : d))
       setMessage('Doctor updated successfully')
     } else {
-      setDoctors(prev => [...prev, { ...formData, id: `D-00${prev.length + 1}` }])
+      setDoctors(prev => [...prev, { ...formData, id: `D-00${prev.length + 1}`, patients: 0 }])
       setMessage('Doctor added successfully')
     }
     setIsFormOpen(false)
@@ -126,7 +120,10 @@ function DoctorManagement({ view }) {
                   className="hover:bg-emerald-50/20 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0">
+                      <div
+                        onClick={() => setSelectedDoc({ ...doc, dept: doc.specialization })}
+                        className="h-10 w-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0 cursor-pointer"
+                      >
                         {doc.name.split(' ').slice(1).map(n => n[0]).join('')}
                       </div>
                       <div>
@@ -173,6 +170,11 @@ function DoctorManagement({ view }) {
         </div>
       </div>
 
+      {/* Doctor Profile Modal */}
+      {selectedDoc && (
+        <DoctorProfileModal doctor={selectedDoc} onClose={() => setSelectedDoc(null)} />
+      )}
+
       {/* Add/Edit Modal */}
       <AnimatePresence>
         {isFormOpen && (
@@ -191,11 +193,11 @@ function DoctorManagement({ view }) {
                 </div>
                 <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    { label: 'Full Name', key: 'name', type: 'text', placeholder: 'Dr. Jane Doe' },
-                    { label: 'Experience', key: 'experience', type: 'text', placeholder: '5 Years' },
-                    { label: 'Contact', key: 'contact', type: 'tel', placeholder: '+91 98765 43210' },
-                    { label: 'Email', key: 'email', type: 'email', placeholder: 'doctor@hms.com' },
-                    { label: 'Availability', key: 'availability', type: 'text', placeholder: 'Mon–Fri (10AM–2PM)' },
+                    { label: 'Full Name',    key: 'name',         type: 'text',  placeholder: 'Dr. Jane Doe' },
+                    { label: 'Experience',   key: 'experience',   type: 'text',  placeholder: '5 Years' },
+                    { label: 'Contact',      key: 'contact',      type: 'tel',   placeholder: '+91 98765 43210' },
+                    { label: 'Email',        key: 'email',        type: 'email', placeholder: 'doctor@hms.com' },
+                    { label: 'Availability', key: 'availability', type: 'text',  placeholder: 'Mon–Fri (10AM–2PM)' },
                   ].map(f => (
                     <div key={f.key}>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{f.label}</label>

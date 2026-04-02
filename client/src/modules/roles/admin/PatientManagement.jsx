@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Search, Edit, Trash2, Eye, X, AlertCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import PatientProfileModal from './PatientProfileModal'
 
 const initialPatients = [
   { id: 'P-001', name: 'Rohan Sharma', age: 34, gender: 'Male', contact: '9876543210', bloodGroup: 'B+', status: 'Active', address: 'Mumbai, MH', medicalHistory: 'Diabetes Type 2' },
@@ -21,7 +22,7 @@ function PatientManagement() {
   const [search, setSearch] = useState('')
   const [genderFilter, setGenderFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [viewPatient, setViewPatient] = useState(null)
+  const [viewPatient, setViewPatient]       = useState(null)
   const [editPatient, setEditPatient] = useState(null)
   const [deleteCandidate, setDeleteCandidate] = useState(null)
   const [formData, setFormData] = useState({})
@@ -108,9 +109,12 @@ function PatientManagement() {
                   className="hover:bg-slate-50/50 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0">
-                        {p.name.charAt(0)}
-                      </div>
+                      <div
+                          onClick={() => setViewPatient(p)}
+                          className="h-9 w-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0 cursor-pointer"
+                        >
+                          {p.name.charAt(0)}
+                        </div>
                       <div>
                         <p className="text-xs font-black text-slate-900">{p.name}</p>
                         <p className="text-[9px] font-bold text-slate-400">{p.id}</p>
@@ -139,37 +143,9 @@ function PatientManagement() {
         </div>
       </div>
 
-      {/* View Modal */}
-      <AnimatePresence>
-        {viewPatient && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-6 pb-6 border-b border-slate-100">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center text-xl font-black">{viewPatient.name.charAt(0)}</div>
-                    <div>
-                      <h3 className="text-xl font-black text-slate-900">{viewPatient.name}</h3>
-                      <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">{viewPatient.id}</p>
-                    </div>
-                  </div>
-                  <button onClick={() => setViewPatient(null)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all border border-slate-100"><X size={18} /></button>
-                </div>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 p-4 rounded-2xl"><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Age / Gender</p><p className="text-sm font-bold text-slate-900">{viewPatient.age} yrs • {viewPatient.gender}</p></div>
-                    <div className="bg-slate-50 p-4 rounded-2xl"><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Blood Group</p><p className="text-sm font-bold text-rose-500">{viewPatient.bloodGroup}</p></div>
-                  </div>
-                  <div className="bg-slate-50 p-4 rounded-2xl"><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Contact</p><p className="text-sm font-bold text-slate-900">{viewPatient.contact}</p></div>
-                  <div className="bg-slate-50 p-4 rounded-2xl"><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Address</p><p className="text-sm font-bold text-slate-900">{viewPatient.address}</p></div>
-                  <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100"><p className="text-[9px] font-black text-amber-500 uppercase tracking-widest mb-1">Medical History</p><p className="text-sm font-bold text-amber-900">{viewPatient.medicalHistory}</p></div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {viewPatient && (
+        <PatientProfileModal patient={viewPatient} onClose={() => setViewPatient(null)} />
+      )}
 
       {/* Edit Modal */}
       <AnimatePresence>
