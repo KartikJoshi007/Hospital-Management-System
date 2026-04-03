@@ -37,6 +37,15 @@ const ReceptionDashboard = ({ patients = [], appointments = [], queue = [], bill
     ];
   }, [patients, appointments, queue, bills]);
 
+
+  const handleLogout = () => {
+  const confirmLogout = window.confirm("Are you sure you want to logout?");
+  if (!confirmLogout) return;
+
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  navigate("/login", { replace: true });
+};
   return (
     <div className="space-y-6 p-6 bg-gray-50 min-h-screen">
 
@@ -49,9 +58,18 @@ const ReceptionDashboard = ({ patients = [], appointments = [], queue = [], bill
           </p>
         </div>
 
-        <div className="text-sm text-gray-500">
-          Welcome, Reception 👋
-        </div>
+        <div className="flex items-center gap-4">
+  <span className="text-sm text-gray-500">
+    Welcome, Reception 👋
+  </span>
+
+  <button
+    onClick={handleLogout}
+    className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600 transition"
+  >
+    Logout
+  </button>
+</div>
       </div>
 
       {/* Stats Cards */}
