@@ -1,160 +1,151 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import API from "../../../api/axios";
 
 const AppointmentHandler = () => {
   const [form, setForm] = useState({
-    patientName: "",
-    doctorName: "",
-    date: "",
-    time: "",
-    status: "Scheduled",
+    patientId: "",
+    doctorId: "",
+    appointmentDate: "",
+    appointmentTime: "",
+    reason: "",
   });
 
   const [appointments, setAppointments] = useState([]);
-  const [editIndex, setEditIndex] = useState(null);
 
-  // Handle input change
+  // 🔄 Fetch appointments
+  const fetchAppointments = async () => {
+    try {
+      const res = await API.get("/appointments");
+      setAppointments(res.data.data.appointments);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
+
+  // ✏️ Handle input
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Add / Update appointment
-  const handleSubmit = () => {
-    const { patientName, doctorName, date, time } = form;
+  // ➕ Create appointment
+  const handleSubmit = async () => {
+    try {
+      await API.post("/appointments", form);
+      fetchAppointments();
+      alert("Appointment created ✅");
 
-    if (!patientName || !doctorName || !date || !time) {
-      alert("All fields are required!");
-      return;
+      setForm({
+        patientId: "",
+        doctorId: "",
+        appointmentDate: "",
+        appointmentTime: "",
+        reason: "",
+      });
+    } catch (err) {
+      alert(err.response?.data?.message || "Error");
     }
-
-    if (editIndex !== null) {
-      const updated = [...appointments];
-      updated[editIndex] = form;
-      setAppointments(updated);
-      setEditIndex(null);
-    } else {
-      setAppointments([...appointments, form]);
-    }
-
-    // Reset form
-    setForm({
-      patientName: "",
-      doctorName: "",
-      date: "",
-      time: "",
-      status: "Scheduled",
-    });
   };
 
-  // Edit
-  const handleEdit = (index) => {
-    setForm(appointments[index]);
-    setEditIndex(index);
-  };
-
-  // Delete
-  const handleDelete = (index) => {
-    const updated = appointments.filter((_, i) => i !== index);
-    setAppointments(updated);
+  // ❌ Delete
+  const handleDelete = async (id) => {
+    try {
+      await API.delete(`/appointments/${id}`);
+      fetchAppointments();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
     <div className="p-6 bg-white rounded-xl shadow">
       <h2 className="font-bold mb-4">Appointment Management</h2>
 
-      {/* Form */}
+      {/* FORM */}
       <div className="grid gap-3 mb-5">
         <input
           type="text"
-          name="patientName"
-          placeholder="Patient Name"
-          value={form.patientName}
+          name="patientId"
+          placeholder="Patient ID"
+          value={form.patientId}
           onChange={handleChange}
           className="border p-2 rounded"
         />
 
         <input
           type="text"
-          name="doctorName"
-          placeholder="Doctor Name"
-          value={form.doctorName}
+          name="doctorId"
+          placeholder="Doctor ID"
+          value={form.doctorId}
           onChange={handleChange}
           className="border p-2 rounded"
         />
 
         <input
           type="date"
-          name="date"
-          value={form.date}
+          name="appointmentDate"
+          value={form.appointmentDate}
           onChange={handleChange}
           className="border p-2 rounded"
         />
 
         <input
           type="time"
-          name="time"
-          value={form.time}
+          name="appointmentTime"
+          value={form.appointmentTime}
           onChange={handleChange}
           className="border p-2 rounded"
         />
 
-        <select
-          name="status"
-          value={form.status}
+        <input
+          type="text"
+          name="reason"
+          placeholder="Reason"
+          value={form.reason}
           onChange={handleChange}
           className="border p-2 rounded"
-        >
-          <option value="Scheduled">Scheduled</option>
-          <option value="Completed">Completed</option>
-          <option value="Cancelled">Cancelled</option>
-        </select>
+        />
 
         <button
           onClick={handleSubmit}
           className="bg-green-500 text-white px-4 py-2 rounded"
         >
-          {editIndex !== null ? "Update Appointment" : "Book Appointment"}
+          Book Appointment
         </button>
       </div>
 
-      {/* Appointment List */}
+      {/* LIST */}
       <div>
         {appointments.length === 0 ? (
-          <p className="text-gray-500 text-sm">
-            No appointments booked yet.
-          </p>
+          <p>No appointments</p>
         ) : (
-          appointments.map((appt, index) => (
+          appointments.map((a) => (
             <div
-              key={index}
-              className="flex justify-between items-center border p-3 mb-2 rounded"
+              key={a._id}
+              className="flex justify-between border p-3 mb-2 rounded"
             >
               <div>
                 <p className="font-semibold">
-                  {appt.patientName} (Dr. {appt.doctorName})
+                  {a.patientId?.userId?.fullName}
                 </p>
-                <p className="text-sm text-gray-600">
-                  {appt.date} | {appt.time}
+                <p className="text-sm">
+                  Dr. {a.doctorId?.name}
                 </p>
-                <p className="text-sm text-green-600">
-                  {appt.status}
+                <p className="text-sm text-gray-500">
+                  {a.appointmentDate?.slice(0, 10)} | {a.appointmentTime}
                 </p>
+                <p className="text-green-600">{a.status}</p>
               </div>
 
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(index)}
-                  className="bg-blue-500 text-white px-3 py-1 rounded"
-                >
-                  Edit
-                </button>
-
-                <button
-                  onClick={() => handleDelete(index)}
-                  className="bg-red-500 text-white px-3 py-1 rounded"
-                >
-                  Delete
-                </button>
-              </div>
+              <button
+                onClick={() => handleDelete(a._id)}
+                className="bg-red-500 text-white px-3 py-1 rounded"
+              >
+                Delete
+              </button>
             </div>
           ))
         )}
