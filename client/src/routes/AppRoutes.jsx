@@ -33,6 +33,15 @@ import AppointmentManagement from '../modules/roles/admin/AppointmentManagement'
 import RevenueDashboard from '../modules/roles/admin/RevenueDashboard'
 import AdminProfile from '../modules/roles/admin/AdminProfile'
 
+// Doctor
+import DoctorLayout from '../modules/roles/doctor/DoctorLayout'
+import DoctorDashboard from '../modules/roles/doctor/DoctorDashboard'
+import DoctorAppointments from '../modules/roles/doctor/DoctorAppointments'
+import PatientDetails from '../modules/roles/doctor/PatientDetails'
+import Schedule from '../modules/roles/doctor/Schedule'
+import DoctorProfile from '../modules/roles/doctor/DoctorProfile'
+import MedicalRecords from '../modules/roles/doctor/MedicalRecords'
+
 // Reception
 import ReceptionLayout from '../modules/roles/reception/ReceptionLayout'
 import ReceptionDashboard from '../modules/roles/reception/ReceptionDashboard'
@@ -79,6 +88,19 @@ function AppRoutes() {
           <Route path="/admin/appointments" element={<AppointmentManagement />} />
           <Route path="/admin/billing" element={<RevenueDashboard />} />
           <Route path="/admin/profile" element={<AdminProfile />} />
+        </Route>
+      </Route>
+
+      {/* Doctor */}
+      <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
+        <Route element={<DoctorLayout />}>
+          <Route path="/doctor" element={<Navigate to="/doctor/dashboard" replace />} />
+          <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
+          <Route path="/doctor/appointments" element={<DoctorAppointments />} />
+          <Route path="/doctor/patients" element={<PatientDetails />} />
+          <Route path="/doctor/schedule" element={<Schedule />} />
+          <Route path="/doctor/profile" element={<DoctorProfile />} />
+          <Route path="/doctor/medical-records" element={<MedicalRecords />} />
         </Route>
       </Route>
 

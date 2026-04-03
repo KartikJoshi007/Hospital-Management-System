@@ -7,8 +7,9 @@ const PAGE_TITLES = {
   '/doctor/dashboard': 'Doctor Dashboard',
   '/doctor/appointments': 'My Appointments',
   '/doctor/patients': 'My Patients',
-  '/doctor/records': 'Medical Records',
   '/doctor/schedule': 'My Schedule',
+  '/doctor/profile':   'My Profile',
+  '/doctor/medical-records': 'Medical Records',
 }
 
 const getTitle = (pathname) => {
@@ -24,7 +25,7 @@ function DoctorLayout() {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#F8FAFC]">
       <aside className={`shrink-0 border-r border-slate-200 bg-white hidden lg:block transition-all duration-300 ${collapsed ? 'w-16' : 'w-72'}`}>
-        <DoctorSidebar collapsed={collapsed} />
+        <DoctorSidebar collapsed={collapsed} onToggle={() => setCollapsed(p => !p)} />
       </aside>
       <div className="flex flex-1 flex-col overflow-hidden">
         <DoctorNavbar title={getTitle(pathname)} onToggle={() => setCollapsed(p => !p)} />

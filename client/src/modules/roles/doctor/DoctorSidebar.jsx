@@ -1,26 +1,30 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { LayoutDashboard, CalendarCheck, Users, FileText, Clock, LogOut } from 'lucide-react'
+import { LayoutDashboard, CalendarCheck, Users, Clock, LogOut, FileText } from 'lucide-react'
 import useAuth from '../../../hooks/useAuth'
 
 const navigation = [
-  { to: '/doctor/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
-  { to: '/doctor/appointments', label: 'My Appointments', icon: <CalendarCheck className="h-4 w-4" /> },
-  { to: '/doctor/patients', label: 'My Patients', icon: <Users className="h-4 w-4" /> },
-  { to: '/doctor/records', label: 'Medical Records', icon: <FileText className="h-4 w-4" /> },
-  { to: '/doctor/schedule', label: 'My Schedule', icon: <Clock className="h-4 w-4" /> },
+  { to: '/doctor/dashboard',      label: 'Dashboard',       icon: <LayoutDashboard className="h-4 w-4" /> },
+  { to: '/doctor/appointments',    label: 'My Appointments', icon: <CalendarCheck className="h-4 w-4" /> },
+  { to: '/doctor/patients',        label: 'My Patients',     icon: <Users className="h-4 w-4" /> },
+  { to: '/doctor/medical-records', label: 'Medical Records', icon: <FileText className="h-4 w-4" /> },
+  { to: '/doctor/schedule',        label: 'My Schedule',     icon: <Clock className="h-4 w-4" /> },
 ]
 
-function DoctorSidebar({ collapsed }) {
+function DoctorSidebar({ collapsed, onToggle }) {
   const { logout, user } = useAuth()
 
   if (collapsed) {
     return (
       <div className="flex h-full flex-col items-center py-6 gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500 text-white shadow-lg shadow-blue-200 mb-6">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-        </div>
+        <button
+          onClick={onToggle}
+          className="flex flex-col justify-center gap-1.5 w-8 h-8 shrink-0 group mb-4"
+          aria-label="Toggle sidebar"
+        >
+          <span className="block h-0.5 w-5 bg-slate-400 group-hover:bg-blue-500 transition-colors rounded-full" />
+          <span className="block h-0.5 w-5 bg-slate-400 group-hover:bg-blue-500 transition-colors rounded-full" />
+          <span className="block h-0.5 w-5 bg-slate-400 group-hover:bg-blue-500 transition-colors rounded-full" />
+        </button>
         {navigation.map((item) => (
           <div key={item.to} className="relative group">
             <NavLink to={item.to} className={({ isActive }) => `flex h-10 w-10 items-center justify-center rounded-xl transition-all ${isActive ? 'bg-blue-50 text-blue-500 border border-blue-100' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900'}`}>
@@ -45,25 +49,18 @@ function DoctorSidebar({ collapsed }) {
 
   return (
     <div className="flex h-full flex-col p-6">
-      <div className="flex items-center gap-3 mb-8 px-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500 text-white shadow-lg shadow-blue-200 shrink-0">
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-        </div>
-        <div>
-          <span className="text-xl font-black uppercase tracking-widest text-[#0F172A]">HMS</span>
-          <p className="text-[9px] font-black uppercase tracking-widest text-blue-500 leading-none mt-0.5">Doctor Portal</p>
-        </div>
+      <div className="flex items-center mb-8">
+        <button
+          onClick={onToggle}
+          className="flex flex-col justify-center gap-1.5 w-8 h-8 shrink-0 group"
+          aria-label="Toggle sidebar"
+        >
+          <span className="block h-0.5 w-5 bg-slate-400 group-hover:bg-blue-500 transition-colors rounded-full" />
+          <span className="block h-0.5 w-5 bg-slate-400 group-hover:bg-blue-500 transition-colors rounded-full" />
+          <span className="block h-0.5 w-5 bg-slate-400 group-hover:bg-blue-500 transition-colors rounded-full" />
+        </button>
       </div>
 
-      <div className="mb-6 px-3 py-3 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3">
-        <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || 'Doctor')}&background=3b82f6&color=fff&bold=true`} alt="doctor" className="h-9 w-9 rounded-xl object-cover shrink-0" />
-        <div className="min-w-0">
-          <p className="text-xs font-black text-slate-900 truncate">{user?.fullName || 'Doctor'}</p>
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest truncate">{user?.email || ''}</p>
-        </div>
-      </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto pr-1">
         {navigation.map((item) => (
