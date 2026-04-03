@@ -4,19 +4,21 @@ const doctorController = require("../controllers/doctorController");
 const { doctorValidator } = require("../validators/doctorValidator");
 const validate = require("../middleware/validatorMiddleware");
 
+const { protect, authorize } = require("../middleware/authMiddleware");
+
 // Base route
 router
   .route("/")
-  .post(doctorValidator, validate, doctorController.createDoctor)
-  .get(doctorController.getAllDoctors);
+  .post(protect, authorize("admin"), doctorValidator, validate, doctorController.createDoctor)
+  .get(protect, doctorController.getAllDoctors);
 
-router.get("/stats", doctorController.getDoctorStats);
+router.get("/stats", protect, authorize("admin", "doctor"), doctorController.getDoctorStats);
 
 // ID routes
 router
   .route("/:id")
-  .get(doctorController.getDoctorById)
-  .put(doctorValidator, validate, doctorController.updateDoctor)
-  .delete(doctorController.deleteDoctor);
+  .get(protect, doctorController.getDoctorById)
+  .put(protect, authorize("admin"), doctorValidator, validate, doctorController.updateDoctor)
+  .delete(protect, authorize("admin"), doctorController.deleteDoctor);
 
 module.exports = router;

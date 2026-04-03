@@ -71,29 +71,22 @@ function Login() {
       u => u.email === formData.email.toLowerCase()
     )
     if (pendingMatch) {
-      if (pendingMatch.status === 'pending') {
-        setError('Your account is pending admin approval. Please wait.')
-        setLoading(false)
-        return
-      }
       if (pendingMatch.status === 'rejected') {
         setError('Your access request was rejected. Contact the administrator.')
         setLoading(false)
         return
       }
-      // approved — log them in with assigned role
-      if (pendingMatch.status === 'approved' && pendingMatch.password === formData.password) {
+      if ((pendingMatch.status === 'approved' || pendingMatch.status === 'active') && pendingMatch.password === formData.password) {
         const user = {
-          id: pendingMatch.id,
+          id:       pendingMatch.id,
           fullName: pendingMatch.fullName,
-          email: pendingMatch.email,
-          role: pendingMatch.assignedRole,
-          phone: pendingMatch.phone,
+          email:    pendingMatch.email,
+          role:     pendingMatch.assignedRole,
+          phone:    pendingMatch.phone,
         }
-        localStorage.setItem('token', 'approved-token-' + pendingMatch.id)
+        localStorage.setItem('token', 'token-' + pendingMatch.id)
         localStorage.setItem('user', JSON.stringify(user))
-        const path = ROLE_HOME[user.role] || '/login'
-        navigate(path, { replace: true })
+        navigate(ROLE_HOME[user.role] || '/login', { replace: true })
         return
       }
       setError('Invalid credentials. Please try again.')
@@ -262,7 +255,7 @@ function Login() {
             <p className="text-xs font-bold text-slate-500">
               Don't have an account?{' '}
               <Link to="/sign-up" className="text-emerald-500 hover:text-emerald-600 transition-colors uppercase tracking-wider ml-1">
-                Request Access
+                Sign Up
               </Link>
             </p>
           </div>

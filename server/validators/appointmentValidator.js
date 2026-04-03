@@ -39,7 +39,17 @@ exports.appointmentUpdateValidator = [
     .withMessage("Invalid time format (use HH:MM)"),
   body("status")
     .optional()
-    .isIn(["scheduled", "completed", "cancelled", "no-show", "rescheduled"])
+    .isIn([
+      "Pending",
+      "Confirmed",
+      "Cancelled",
+      "Completed",
+      "scheduled",
+      "completed",
+      "cancelled",
+      "no-show",
+      "rescheduled",
+    ])
     .withMessage("Invalid status"),
   body("reason")
     .optional()

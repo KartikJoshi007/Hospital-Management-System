@@ -1,63 +1,40 @@
-import { useState, useEffect } from 'react'
-import { ShieldCheck, Check, X } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState } from 'react'
+import { Stethoscope, Star, Search } from 'lucide-react'
+import { motion } from 'framer-motion'
 
-const ROLE_COLORS = {
-  admin:     'bg-emerald-50 text-emerald-700 border-emerald-200',
-  doctor:    'bg-blue-50 text-blue-700 border-blue-200',
-  patient:   'bg-orange-50 text-orange-700 border-orange-200',
-  reception: 'bg-purple-50 text-purple-700 border-purple-200',
+const DOCTOR_LEVELS = ['Senior Doctor', 'Junior Doctor', 'Resident Doctor', 'Consultant', 'Intern', 'Other']
+
+const LEVEL_COLORS = {
+  'Senior Doctor':   'bg-blue-50 text-blue-700 border-blue-200',
+  'Junior Doctor':   'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'Resident Doctor': 'bg-purple-50 text-purple-700 border-purple-200',
+  'Consultant':      'bg-amber-50 text-amber-700 border-amber-200',
+  'Intern':          'bg-pink-50 text-pink-700 border-pink-200',
+  'Other':           'bg-slate-50 text-slate-600 border-slate-200',
 }
 
-const STATUS_COLORS = {
-  pending:  'bg-orange-50 text-orange-600 border-orange-100',
-  approved: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-  rejected: 'bg-rose-50 text-rose-500 border-rose-100',
-}
-
-const ROLES = ['patient', 'doctor', 'reception', 'admin']
+const initialDoctors = [
+  { id: 'D-001', name: 'Dr. Aryan Mehta',  specialization: 'Cardiology',       experience: '12 Years', email: 'aryan@hms.com',  level: 'Senior Doctor' },
+  { id: 'D-002', name: 'Dr. Sneha Verma',  specialization: 'Neurology',         experience: '8 Years',  email: 'sneha@hms.com',  level: 'Junior Doctor' },
+  { id: 'D-003', name: 'Dr. Rahul Patil',  specialization: 'Orthopedics',       experience: '15 Years', email: 'rahul@hms.com',  level: 'Senior Doctor' },
+  { id: 'D-004', name: 'Dr. Nisha Iyer',   specialization: 'Dermatology',       experience: '5 Years',  email: 'nisha@hms.com',  level: 'Junior Doctor' },
+]
 
 function RoleAssign() {
-  const [requests, setRequests]     = useState([])
-  const [selectedRoles, setSelectedRoles] = useState({})
-  const [message, setMessage]       = useState({ text: '', type: '' })
-  const [activeTab, setActiveTab]   = useState('pending')
+  const [doctors, setDoctors] = useState(initialDoctors)
+  const [search, setSearch]   = useState('')
+  const [saved, setSaved]     = useState({})
 
-  useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem('pendingUsers') || '[]')
-    setRequests(stored)
-    const defaults = {}
-    stored.forEach(r => { defaults[r.id] = 'patient' })
-    setSelectedRoles(defaults)
-  }, [])
+  const filtered = doctors.filter(d =>
+    d.name.toLowerCase().includes(search.toLowerCase()) ||
+    d.specialization.toLowerCase().includes(search.toLowerCase())
+  )
 
-  const save = (updated) => {
-    setRequests(updated)
-    localStorage.setItem('pendingUsers', JSON.stringify(updated))
+  const updateLevel = (id, level) => {
+    setDoctors(prev => prev.map(d => d.id === id ? { ...d, level } : d))
+    setSaved(prev => ({ ...prev, [id]: true }))
+    setTimeout(() => setSaved(prev => ({ ...prev, [id]: false })), 2000)
   }
-
-  const notify = (text, type = 'success') => {
-    setMessage({ text, type })
-    setTimeout(() => setMessage({ text: '', type: '' }), 4000)
-  }
-
-  const handleApprove = (id) => {
-    const role = selectedRoles[id] || 'patient'
-    const req  = requests.find(r => r.id === id)
-    save(requests.map(r => r.id === id ? { ...r, status: 'approved', assignedRole: role } : r))
-    notify(`${req.fullName} approved as ${role}`, 'success')
-  }
-
-  const handleReject = (id) => {
-    const req = requests.find(r => r.id === id)
-    save(requests.map(r => r.id === id ? { ...r, status: 'rejected', assignedRole: null } : r))
-    notify(`${req.fullName}'s request rejected`, 'error')
-  }
-
-  const pending  = requests.filter(r => r.status === 'pending')
-  const approved = requests.filter(r => r.status === 'approved')
-  const rejected = requests.filter(r => r.status === 'rejected')
-  const displayed = activeTab === 'pending' ? pending : requests
 
   return (
     <div className="space-y-6 pb-10 animate-in fade-in duration-500">
@@ -66,183 +43,105 @@ function RoleAssign() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 border-l-4 border-emerald-500 pl-4">Role Management</h1>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 pl-5">Review signup requests & assign roles</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 pl-5">Assign role levels to doctors</p>
         </div>
-        {pending.length > 0 && (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-50 border border-orange-100">
-            <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
-            <span className="text-xs font-black text-orange-700">{pending.length} Pending</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-100">
+          <Stethoscope size={14} className="text-emerald-500" />
+          <span className="text-xs font-black text-emerald-700">{doctors.length} Doctors</span>
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: 'Pending',  count: pending.length,  bg: 'bg-orange-50',  text: 'text-orange-500',  border: 'border-orange-100' },
-          { label: 'Approved', count: approved.length, bg: 'bg-emerald-50', text: 'text-emerald-500', border: 'border-emerald-100' },
-          { label: 'Rejected', count: rejected.length, bg: 'bg-rose-50',    text: 'text-rose-500',    border: 'border-rose-100' },
-        ].map(s => (
-          <div key={s.label} className={`p-5 rounded-2xl border ${s.bg} ${s.border} text-center`}>
-            <h3 className={`text-3xl font-black ${s.text}`}>{s.count}</h3>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Toast */}
-      <AnimatePresence>
-        {message.text && (
-          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className={`px-5 py-3 rounded-2xl text-xs font-black border ${message.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-rose-50 border-rose-100 text-rose-600'}`}>
-            {message.type === 'success' ? '✓' : '✗'} {message.text}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Tabs */}
-      <div className="flex gap-2">
-        {[
-          { key: 'pending', label: `Pending (${pending.length})` },
-          { key: 'all',     label: `All Requests (${requests.length})` },
-        ].map(tab => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-            className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === tab.key ? 'bg-slate-900 text-white shadow-lg' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-            {tab.label}
-          </button>
-        ))}
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+        <input
+          type="text"
+          placeholder="Search by name or specialization..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all placeholder:text-slate-400"
+        />
       </div>
 
       {/* Table */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-
-        {/* Table header bar */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
-          <div>
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">
-              {activeTab === 'pending' ? 'Pending Signup Requests' : 'All Signup Requests'}
-            </h3>
-            <p className="text-[10px] font-bold text-slate-400 mt-0.5">
-              {displayed.length} {displayed.length === 1 ? 'request' : 'requests'}
-            </p>
-          </div>
-        </div>
-
-        {displayed.length === 0 ? (
-          <div className="py-20 text-center">
-            <div className="h-14 w-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center mx-auto mb-4">
-              <ShieldCheck size={24} className="text-slate-300" />
-            </div>
-            <p className="text-sm font-black text-slate-400">No requests found</p>
-            <p className="text-[10px] font-bold text-slate-300 mt-1 uppercase tracking-widest">
-              New signups from /sign-up will appear here
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50/60 border-b border-slate-100">
-                  <th className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">User</th>
-                  <th className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Contact</th>
-                  <th className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Requested On</th>
-                  <th className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
-                  <th className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Assign Role</th>
-                  <th className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {displayed.map((req, idx) => (
-                  <motion.tr
-                    key={req.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.04 }}
-                    className="hover:bg-slate-50/40 transition-colors group"
-                  >
-                    {/* User */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(req.fullName)}&background=0f172a&color=fff&bold=true&size=36`}
-                          alt={req.fullName}
-                          className="h-10 w-10 rounded-xl object-cover shrink-0 group-hover:ring-2 group-hover:ring-emerald-200 transition-all"
-                        />
-                        <div>
-                          <p className="text-sm font-black text-slate-900 leading-tight">{req.fullName}</p>
-                          <p className="text-[10px] font-bold text-slate-400 mt-0.5">{req.email}</p>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Contact */}
-                    <td className="px-6 py-4">
-                      <p className="text-xs font-bold text-slate-600">{req.phone}</p>
-                    </td>
-
-                    {/* Date */}
-                    <td className="px-6 py-4">
-                      <p className="text-xs font-bold text-slate-500">{req.requestedAt}</p>
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${STATUS_COLORS[req.status]}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${req.status === 'pending' ? 'bg-orange-500 animate-pulse' : req.status === 'approved' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-                        {req.status}
-                      </span>
-                    </td>
-
-                    {/* Assign Role */}
-                    <td className="px-6 py-4">
-                      {req.status === 'pending' ? (
-                        <select
-                          value={selectedRoles[req.id] || 'patient'}
-                          onChange={e => setSelectedRoles(prev => ({ ...prev, [req.id]: e.target.value }))}
-                          className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all appearance-none cursor-pointer min-w-[120px]"
-                        >
-                          {ROLES.map(r => (
-                            <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
-                          ))}
-                        </select>
-                      ) : req.status === 'approved' ? (
-                        <span className={`inline-flex px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${ROLE_COLORS[req.assignedRole]}`}>
-                          {req.assignedRole}
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-bold text-slate-300">—</span>
-                      )}
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-6 py-4">
-                      {req.status === 'pending' ? (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleApprove(req.id)}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-emerald-100 transition-all active:scale-95"
-                          >
-                            <Check size={12} /> Approve
-                          </button>
-                          <button
-                            onClick={() => handleReject(req.id)}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white text-[10px] font-black uppercase tracking-widest border border-rose-100 transition-all active:scale-95"
-                          >
-                            <X size={12} /> Reject
-                          </button>
-                        </div>
-                      ) : (
-                        <span className={`text-[10px] font-black uppercase tracking-widest ${req.status === 'approved' ? 'text-emerald-500' : 'text-rose-400'}`}>
-                          {req.status === 'approved' ? '✓ Approved' : '✗ Rejected'}
-                        </span>
-                      )}
-                    </td>
-                  </motion.tr>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50/50">
+                {['Doctor', 'Specialization', 'Experience', 'Current Level', 'Assign Role'].map(h => (
+                  <th key={h} className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">{h}</th>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filtered.length === 0 ? (
+                <tr><td colSpan={5} className="px-6 py-12 text-center text-xs font-bold text-slate-400">No doctors found</td></tr>
+              ) : filtered.map((doc, idx) => (
+                <motion.tr
+                  key={doc.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.04 }}
+                  className="hover:bg-slate-50/40 transition-colors group"
+                >
+                  {/* Doctor */}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0">
+                        {doc.name.split(' ').slice(1).map(n => n[0]).join('')}
+                      </div>
+                      <div>
+                        <p className="text-sm font-black text-slate-900">{doc.name}</p>
+                        <p className="text-[10px] font-bold text-slate-400">{doc.email}</p>
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* Specialization */}
+                  <td className="px-6 py-4">
+                    <span className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider border border-emerald-100">
+                      {doc.specialization}
+                    </span>
+                  </td>
+
+                  {/* Experience */}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-1.5">
+                      <Star size={11} className="text-amber-400 fill-current" />
+                      <span className="text-xs font-bold text-slate-700">{doc.experience}</span>
+                    </div>
+                  </td>
+
+                  {/* Current Level */}
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${LEVEL_COLORS[doc.level]}`}>
+                      {doc.level}
+                    </span>
+                  </td>
+
+                  {/* Assign Role */}
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={doc.level}
+                        onChange={e => updateLevel(doc.id, e.target.value)}
+                        className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all appearance-none cursor-pointer"
+                      >
+                        {DOCTOR_LEVELS.map(l => (
+                          <option key={l} value={l}>{l}</option>
+                        ))}
+                      </select>
+                      {saved[doc.id] && (
+                        <span className="text-[10px] font-black text-emerald-500">✓ Saved</span>
+                      )}
+                    </div>
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

@@ -20,17 +20,29 @@ const appointmentSchema = new mongoose.Schema(
       type: String,
       required: [true, "Appointment time is required"],
     },
+    // UI uses: Pending, Confirmed, Cancelled, Completed
+    // Legacy values also kept: scheduled, completed, no-show, rescheduled
     status: {
       type: String,
-      enum: ["scheduled", "completed", "cancelled", "no-show", "rescheduled"],
-      default: "scheduled",
+      enum: [
+        "Pending",
+        "Confirmed",
+        "Cancelled",
+        "Completed",
+        "scheduled",
+        "completed",
+        "cancelled",
+        "no-show",
+        "rescheduled",
+      ],
+      default: "Pending",
     },
     reason: {
       type: String,
       required: [true, "Reason for appointment is required"],
     },
-    symptoms: String, // Description of symptoms
-    notes: String, // Doctor's notes after appointment
+    symptoms: String,   // Description of symptoms
+    notes: String,      // Doctor's notes after appointment
     prescription: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Prescription",

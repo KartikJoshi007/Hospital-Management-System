@@ -2,10 +2,18 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './ProtectedRoute'
 import RoleRoutes from './RoleRoutes'
 
+// Patient
+import PatientDashboard from '../modules/roles/patient/PatientDashboard'
+import PatientProfile from '../modules/roles/patient/Profile'
+import MyAppointments from '../modules/roles/patient/MyAppointments'
+import MyRecords from '../modules/roles/patient/MyRecords'
+import MyBills from '../modules/roles/patient/MyBills'
+
+// Auth
 import Login from '../modules/auth/Login'
 import SignUp from '../modules/auth/SignUp'
 
-// Shared layout (legacy)
+// Shared layout
 import DashboardLayout from '../components/DashboardLayout'
 import Dashboard from '../modules/dashboard/Dashboard'
 import Patients from '../modules/patients/Patients'
@@ -26,13 +34,15 @@ import RevenueDashboard from '../modules/roles/admin/RevenueDashboard'
 import AdminProfile from '../modules/roles/admin/AdminProfile'
 
 // Doctor
-// import DoctorLayout from '../modules/roles/doctor/DoctorLayout'
-// import DoctorDashboard from '../modules/roles/doctor/DoctorDashboard'
-// import DoctorAppointments from '../modules/roles/doctor/DoctorAppointments'
-// import PatientDetails from '../modules/roles/doctor/PatientDetails'
-// import MedicalRecords from '../modules/roles/doctor/MedicalRecords'
-// import Schedule from '../modules/roles/doctor/Schedule'
+import DoctorLayout from '../modules/roles/doctor/DoctorLayout'
+import DoctorDashboard from '../modules/roles/doctor/DoctorDashboard'
+import DoctorAppointments from '../modules/roles/doctor/DoctorAppointments'
+import PatientDetails from '../modules/roles/doctor/PatientDetails'
+import Schedule from '../modules/roles/doctor/Schedule'
+import DoctorProfile from '../modules/roles/doctor/DoctorProfile'
+import MedicalRecords from '../modules/roles/doctor/MedicalRecords'
 
+// Reception
 import ReceptionLayout from '../modules/roles/reception/ReceptionLayout'
 import ReceptionDashboard from '../modules/roles/reception/ReceptionDashboard'
 import PatientHandler from '../modules/roles/reception/PatientHandler'
@@ -40,38 +50,23 @@ import AppointmentHandler from '../modules/roles/reception/AppointmentHandler'
 import QueueManagement from '../modules/roles/reception/QueueManagement'
 import BillingSupport from '../modules/roles/reception/BillingSupport'
 
-function ComingSoon({ label }) {
-  return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="text-center">
-        <div className="h-16 w-16 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto mb-4 text-2xl font-black border border-emerald-100">
-          🚧
-        </div>
-        <h2 className="text-xl font-black text-slate-900 mb-1">{label}</h2>
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Coming soon — under construction</p>
-      </div>
-    </div>
-  )
-}
-
 function AppRoutes() {
   return (
     <Routes>
-      {/* ── Auth ── */}
+      {/* Auth */}
       <Route path="/login" element={<Login />} />
       <Route path="/sign-up" element={<SignUp />} />
 
-      {/* ── Root → role redirect ── */}
-      <Route path="/" element={<RoleRoutes />} />
-
-      {/* ── Unauthorized ── */}
+      {/* Unauthorized */}
       <Route
         path="/unauthorized"
         element={
           <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
             <div className="text-center">
               <h1 className="text-4xl font-black text-slate-900 mb-2">403</h1>
-              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Access Denied</p>
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">
+                Access Denied
+              </p>
               <a href="/login" className="text-xs font-black text-emerald-500 uppercase tracking-widest hover:underline">
                 Back to Login
               </a>
@@ -80,7 +75,7 @@ function AppRoutes() {
         }
       />
 
-      {/* ── Admin routes ── */}
+      {/* Admin */}
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
@@ -96,40 +91,49 @@ function AppRoutes() {
         </Route>
       </Route>
 
-     <Route element={<ProtectedRoute allowedRoles={['reception']} />}>
-  <Route element={<ReceptionLayout />}>
-
-    <Route path="/reception" element={<Navigate to="/reception/dashboard" replace />} />
-
-    <Route path="/reception/dashboard" element={<ReceptionDashboard />} />
-
-    {/* ✅ UPDATED COMPONENTS */}
-    <Route path="/reception/patients" element={<PatientHandler />} />
-    <Route path="/reception/patients/add" element={<PatientHandler />} />
-
-    <Route path="/reception/appointments" element={<AppointmentHandler />} />
-    <Route path="/reception/appointments/book" element={<AppointmentHandler />} />
-
-    <Route path="/reception/queue" element={<QueueManagement />} />
-
-    <Route path="/reception/billing" element={<BillingSupport />} />
-
-  </Route>
-</Route>
-
-      ── Doctor routes ──
-      {/* <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
+      {/* Doctor */}
+      <Route element={<ProtectedRoute allowedRoles={['doctor']} />}>
         <Route element={<DoctorLayout />}>
           <Route path="/doctor" element={<Navigate to="/doctor/dashboard" replace />} />
           <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
           <Route path="/doctor/appointments" element={<DoctorAppointments />} />
           <Route path="/doctor/patients" element={<PatientDetails />} />
-          <Route path="/doctor/records" element={<MedicalRecords />} />
           <Route path="/doctor/schedule" element={<Schedule />} />
+          <Route path="/doctor/profile" element={<DoctorProfile />} />
+          <Route path="/doctor/medical-records" element={<MedicalRecords />} />
         </Route>
-      </Route> */}
+      </Route>
 
-      {/* ── Legacy shared dashboard (any authenticated role) ── */}
+      {/* Reception */}
+      <Route element={<ProtectedRoute allowedRoles={['reception']} />}>
+        <Route element={<ReceptionLayout />}>
+          <Route path="/reception" element={<Navigate to="/reception/dashboard" replace />} />
+          <Route path="/reception/dashboard" element={<ReceptionDashboard />} />
+          <Route path="/reception/patients" element={<PatientHandler />} />
+          <Route path="/reception/patients/add" element={<PatientHandler />} />
+          <Route path="/reception/appointments" element={<AppointmentHandler />} />
+          <Route path="/reception/appointments/book" element={<AppointmentHandler />} />
+          <Route path="/reception/queue" element={<QueueManagement />} />
+          <Route path="/reception/billing" element={<BillingSupport />} />
+        </Route>
+      </Route>
+
+      {/* Patient */}
+      <Route element={<ProtectedRoute allowedRoles={['patient']} />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/patient" element={<Navigate to="/patient/dashboard" replace />} />
+          <Route path="/patient/dashboard" element={<PatientDashboard />} />
+          <Route path="/patient/profile" element={<PatientProfile />} />
+          <Route path="/patient/appointments" element={<MyAppointments />} />
+          <Route path="/patient/records" element={<MyRecords />} />
+          <Route path="/patient/billing" element={<MyBills />} />
+        </Route>
+      </Route>
+
+      {/* Root redirect */}
+      <Route path="/*" element={<RoleRoutes />} />
+
+      {/* Shared Dashboard */}
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
@@ -153,7 +157,7 @@ function AppRoutes() {
         </Route>
       </Route>
 
-      {/* ── Catch-all ── */}
+      {/* Catch all */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

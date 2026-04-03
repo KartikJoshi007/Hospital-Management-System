@@ -4,60 +4,65 @@ const doctorSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: [true, "Doctor name is required"],
       trim: true,
     },
 
     specialization: {
       type: String,
-      required: true,
+      required: [true, "Specialization is required"],
     },
 
+    // Optional – not sent by DoctorManagement UI form
     qualification: {
       type: String, // MBBS, MD, etc.
-      required: true,
+      default: null,
     },
 
+    // Accept either a number (years) or a string like "5 Years" from the UI
     experience: {
-      type: Number, // in years
-      required: true,
+      type: String,
+      default: null,
     },
 
     contact: {
       type: String,
-      required: true,
+      required: [true, "Contact number is required"],
     },
 
     email: {
       type: String,
       unique: true,
       lowercase: true,
+      sparse: true,   // Allows multiple null values
     },
 
-    availability: [
-      {
-        day: String, // Monday, Tuesday
-        startTime: String, // 09:00 AM
-        endTime: String, // 02:00 PM
-      },
-    ],
+    // Accept plain-text availability (UI sends "Mon–Fri (10AM–2PM)")
+    // OR structured array – both supported
+    availability: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
 
+    // Optional – not sent by DoctorManagement UI form
     fees: {
       type: Number,
-      required: true,
+      default: null,
     },
 
     department: {
       type: String, // Cardiology, Orthopedics
+      default: null,
     },
 
+    // Match the UI status values exactly
     status: {
       type: String,
-      enum: ["active", "inactive"],
-      default: "active",
+      enum: ["Active", "On Leave", "Inactive"],
+      default: "Active",
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Doctor", doctorSchema);

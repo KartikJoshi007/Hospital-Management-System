@@ -3,6 +3,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 import { motion } from 'framer-motion'
 import { Users, Stethoscope, CalendarCheck, CreditCard, TrendingUp, TrendingDown, ArrowUpRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import PatientProfileModal from './PatientProfileModal'
+import DoctorProfileModal from './DoctorProfileModal'
 
 const stats = [
   { label: 'Total Patients', value: '12,842', change: '+12.5%', trend: 'up', icon: Users, color: 'emerald', path: '/admin/patients' },
@@ -11,14 +13,53 @@ const stats = [
   { label: 'Total Revenue', value: '₹14.2L', change: '-2.4%', trend: 'down', icon: CreditCard, color: 'purple', path: '/admin/billing' },
 ]
 
-const appointmentData = [
-  { day: 'Mon', appointments: 42 },
-  { day: 'Tue', appointments: 58 },
-  { day: 'Wed', appointments: 35 },
-  { day: 'Thu', appointments: 71 },
-  { day: 'Fri', appointments: 63 },
-  { day: 'Sat', appointments: 29 },
-  { day: 'Sun', appointments: 18 },
+const chartData = {
+  day:   [
+    { label: '12AM', appointments: 4  },
+    { label: '3AM',  appointments: 2  },
+    { label: '6AM',  appointments: 8  },
+    { label: '9AM',  appointments: 31 },
+    { label: '12PM', appointments: 47 },
+    { label: '3PM',  appointments: 38 },
+    { label: '6PM',  appointments: 22 },
+    { label: '9PM',  appointments: 11 },
+  ],
+  week:  [
+    { label: 'Mon', appointments: 42 },
+    { label: 'Tue', appointments: 58 },
+    { label: 'Wed', appointments: 35 },
+    { label: 'Thu', appointments: 71 },
+    { label: 'Fri', appointments: 63 },
+    { label: 'Sat', appointments: 29 },
+    { label: 'Sun', appointments: 18 },
+  ],
+  month: [
+    { label: 'W1', appointments: 210 },
+    { label: 'W2', appointments: 185 },
+    { label: 'W3', appointments: 240 },
+    { label: 'W4', appointments: 198 },
+  ],
+  year:  [
+    { label: 'Jan', appointments: 520  },
+    { label: 'Feb', appointments: 480  },
+    { label: 'Mar', appointments: 610  },
+    { label: 'Apr', appointments: 570  },
+    { label: 'May', appointments: 690  },
+    { label: 'Jun', appointments: 640  },
+    { label: 'Jul', appointments: 710  },
+    { label: 'Aug', appointments: 680  },
+    { label: 'Sep', appointments: 590  },
+    { label: 'Oct', appointments: 630  },
+    { label: 'Nov', appointments: 550  },
+    { label: 'Dec', appointments: 500  },
+  ],
+}
+
+const CHART_TABS = [
+  { key: 'day',   label: 'Day'   },
+  { key: 'week',  label: 'Week'  },
+  { key: 'month', label: 'Month' },
+  { key: 'year',  label: 'Year'  },
 ]
 
 const revenueData = [
@@ -52,8 +93,11 @@ const STATUS_COLORS = {
 
 function AdminDashboard() {
   const navigate = useNavigate()
-  const [dateFilter, setDateFilter] = useState('')
+  const [dateFilter, setDateFilter]     = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [chartTab, setChartTab]         = useState('week')
+  const [selectedPatient, setSelectedPatient] = useState(null)
+  const [selectedDoctor, setSelectedDoctor]   = useState(null)
 
   const filteredPatients = useMemo(() => {
     return allPatients.filter(p => {
@@ -105,21 +149,31 @@ function AdminDashboard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="lg:col-span-2 p-8 rounded-3xl bg-white border border-slate-100 shadow-sm"
+          className="lg:col-span-2 p-8 rounded-3xl bg-white border border-slate-100 shadow-sm flex flex-col"
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-black text-slate-900 border-l-4 border-emerald-500 pl-3 uppercase tracking-widest">Appointments / Week</h3>
-              <p className="text-xs font-bold text-slate-400 pl-4 mt-0.5">Daily appointment volume</p>
+              <h3 className="text-sm font-black text-slate-900 border-l-4 border-emerald-500 pl-3 uppercase tracking-widest">Appointments</h3>
+              <p className="text-xs font-bold text-slate-400 pl-4 mt-0.5">Appointment volume over time</p>
             </div>
             <button onClick={() => navigate('/admin/appointments')} className="p-2 hover:bg-emerald-50 rounded-lg transition-colors group">
               <ArrowUpRight size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
             </button>
           </div>
+          <div className="flex gap-1 mb-5">
+            {CHART_TABS.map(t => (
+              <button key={t.key} onClick={() => setChartTab(t.key)}
+                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                  chartTab === t.key ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+                }`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={appointmentData} barSize={28}>
-                <XAxis dataKey="day" tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+              <BarChart data={chartData[chartTab]} barSize={28}>
+                <XAxis dataKey="label" tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                 <Tooltip
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)', fontSize: '11px', fontWeight: 700 }}
@@ -142,7 +196,7 @@ function AdminDashboard() {
             <h3 className="text-sm font-black text-slate-900 border-l-4 border-emerald-500 pl-3 uppercase tracking-widest">Revenue Split</h3>
             <p className="text-xs font-bold text-slate-400 pl-4 mt-0.5">By department</p>
           </div>
-          <div className="h-44">
+          <div className="h-44 flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={revenueData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={6} dataKey="value">
@@ -175,7 +229,7 @@ function AdminDashboard() {
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
-          className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-emerald-400 transition-all appearance-none min-w-[140px]"
+          className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-emerald-400 transition-all appearance-none min-w-32"
         >
           <option value="">All Status</option>
           <option value="Active">Active</option>
@@ -223,7 +277,10 @@ function AdminDashboard() {
                   <tr key={p.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0">
+                        <div
+                          onClick={() => setSelectedPatient(p)}
+                          className="h-8 w-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0 cursor-pointer"
+                        >
                           {p.name.charAt(0)}
                         </div>
                         <div>
@@ -272,7 +329,10 @@ function AdminDashboard() {
                   <tr key={d.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0">
+                        <div
+                          onClick={() => setSelectedDoctor(d)}
+                          className="h-8 w-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-colors shrink-0 cursor-pointer"
+                        >
                           {d.name.split(' ').slice(1).map(n => n[0]).join('')}
                         </div>
                         <div>
@@ -299,6 +359,14 @@ function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {selectedPatient && (
+        <PatientProfileModal patient={selectedPatient} onClose={() => setSelectedPatient(null)} />
+      )}
+
+      {selectedDoctor && (
+        <DoctorProfileModal doctor={selectedDoctor} onClose={() => setSelectedDoctor(null)} />
+      )}
     </div>
   )
 }
