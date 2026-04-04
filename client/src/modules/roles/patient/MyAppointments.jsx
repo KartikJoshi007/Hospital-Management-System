@@ -45,8 +45,8 @@ function MyAppointments() {
 
   const filteredAppointments = appointments.filter(apt => {
     const matchesTab = activeTab === 'upcoming'
-      ? ['Confirmed', 'Pending'].includes(apt.status)
-      : ['Completed', 'Cancelled'].includes(apt.status)
+      ? ['Confirmed', 'Pending', 'Rescheduled'].includes(apt.status)
+      : ['Completed', 'Cancelled', 'No-show'].includes(apt.status)
     const matchesSearch = apt.doctor.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesDept = selectedDept === 'All' || apt.dept === selectedDept
     return matchesTab && matchesSearch && matchesDept
@@ -151,6 +151,8 @@ function MyAppointments() {
       'Pending': { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100', icon: Clock3 },
       'Completed': { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100', icon: CheckCircle2 },
       'Cancelled': { bg: 'bg-rose-50', text: 'text-rose-500', border: 'border-rose-100', icon: XCircle },
+      'No-show': { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', icon: XCircle },
+      'Rescheduled': { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', icon: Clock3 },
     }
     const { bg, text, border, icon: Icon } = config[status] || config['Pending']
     return (

@@ -30,9 +30,16 @@ function SignUp() {
       const payload = {
         fullName: formData.fullName,
         email: formData.email.toLowerCase(),
-        phone: formData.phone,
+        phone: formData.phone.trim(),
         password: formData.password,
         role: 'patient'
+      }
+
+      // 🛡️ FRONTEND VALIDATION: Prevent email in phone field
+      if (payload.phone.includes('@')) {
+        setError('Double check: You have entered an email in the "Phone Number" field.')
+        setLoading(false)
+        return
       }
 
       await registerUser(payload)

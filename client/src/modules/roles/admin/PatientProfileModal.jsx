@@ -3,15 +3,15 @@ import { X, User, Phone, MapPin, Droplets, Calendar, FileText, Activity, Clipboa
 import { motion, AnimatePresence } from 'framer-motion'
 
 const TABS = [
-  { key: 'overview',     label: 'Overview',     icon: User },
+  { key: 'overview', label: 'Overview', icon: User },
   { key: 'appointments', label: 'Appointments', icon: Calendar },
-  { key: 'reports',      label: 'Reports',      icon: FileText },
-  { key: 'vitals',       label: 'Vitals',       icon: Activity },
+  { key: 'reports', label: 'Reports', icon: FileText },
+  { key: 'vitals', label: 'Vitals', icon: Activity },
 ]
 
 const STATUS_COLORS = {
-  Active:     'bg-emerald-50 text-emerald-600 border-emerald-100',
-  Admitted:   'bg-blue-50 text-blue-600 border-blue-100',
+  Active: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  Admitted: 'bg-blue-50 text-blue-600 border-blue-100',
   Discharged: 'bg-slate-50 text-slate-500 border-slate-100',
 }
 
@@ -22,79 +22,79 @@ const APPT_COLORS = {
 }
 
 const RESULT_COLORS = {
-  Normal:   'bg-emerald-50 text-emerald-600 border-emerald-100',
-  Clear:    'bg-blue-50 text-blue-600 border-blue-100',
+  Normal: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  Clear: 'bg-blue-50 text-blue-600 border-blue-100',
   Abnormal: 'bg-rose-50 text-rose-500 border-rose-100',
 }
 
 const getMockData = () => ({
   appointments: [
-    { id: 'A-001', date: '2024-06-10', time: '10:30 AM', doctor: 'Dr. Aryan Mehta', dept: 'Cardiology',  status: 'Confirmed' },
-    { id: 'A-002', date: '2024-05-22', time: '11:00 AM', doctor: 'Dr. Sneha Verma',  dept: 'Neurology',  status: 'Completed' },
-    { id: 'A-003', date: '2024-04-15', time: '02:00 PM', doctor: 'Dr. Nisha Iyer',   dept: 'Dermatology', status: 'Completed' },
+    { id: 'A-001', date: '2024-06-10', time: '10:30 AM', doctor: 'Dr. Aryan Mehta', dept: 'Cardiology', status: 'Confirmed' },
+    { id: 'A-002', date: '2024-05-22', time: '11:00 AM', doctor: 'Dr. Sneha Verma', dept: 'Neurology', status: 'Completed' },
+    { id: 'A-003', date: '2024-04-15', time: '02:00 PM', doctor: 'Dr. Nisha Iyer', dept: 'Dermatology', status: 'Completed' },
   ],
   reports: [
-    { id: 'R-001', name: 'Blood Test Report', date: '2024-06-08', type: 'Lab',        result: 'Normal' },
-    { id: 'R-002', name: 'X-Ray Chest',       date: '2024-05-20', type: 'Radiology',  result: 'Clear'  },
-    { id: 'R-003', name: 'ECG Report',        date: '2024-04-10', type: 'Cardiology', result: 'Normal' },
-    { id: 'R-004', name: 'Urine Analysis',    date: '2024-03-18', type: 'Lab',        result: 'Normal' },
+    { id: 'R-001', name: 'Blood Test Report', date: '2024-06-08', type: 'Lab', result: 'Normal' },
+    { id: 'R-002', name: 'X-Ray Chest', date: '2024-05-20', type: 'Radiology', result: 'Clear' },
+    { id: 'R-003', name: 'ECG Report', date: '2024-04-10', type: 'Cardiology', result: 'Normal' },
+    { id: 'R-004', name: 'Urine Analysis', date: '2024-03-18', type: 'Lab', result: 'Normal' },
   ],
   vitals: {
     bloodPressure: '120/80 mmHg',
-    heartRate:     '72 bpm',
-    temperature:   '98.6°F',
-    weight:        '70 kg',
-    height:        '175 cm',
-    bmi:           '22.9',
-    oxygenSat:     '98%',
-    lastUpdated:   '2024-06-10',
+    heartRate: '72 bpm',
+    temperature: '98.6°F',
+    weight: '70 kg',
+    height: '175 cm',
+    bmi: '22.9',
+    oxygenSat: '98%',
+    lastUpdated: '2024-06-10',
   },
 })
 
 const REPORT_DETAILS = {
   'R-001': {
-    summary:  'Complete Blood Count (CBC) performed. All parameters within normal range.',
+    summary: 'Complete Blood Count (CBC) performed. All parameters within normal range.',
     findings: [
-      { label: 'Hemoglobin',     value: '14.2 g/dL', status: 'Normal' },
-      { label: 'WBC Count',      value: '7,200 /µL', status: 'Normal' },
+      { label: 'Hemoglobin', value: '14.2 g/dL', status: 'Normal' },
+      { label: 'WBC Count', value: '7,200 /µL', status: 'Normal' },
       { label: 'Platelet Count', value: '2.5 L /µL', status: 'Normal' },
-      { label: 'RBC Count',      value: '5.1 M/µL',  status: 'Normal' },
+      { label: 'RBC Count', value: '5.1 M/µL', status: 'Normal' },
     ],
     doctor: 'Dr. Aryan Mehta',
-    lab:    'Central Lab',
+    lab: 'Central Lab',
   },
   'R-002': {
-    summary:  'Chest X-Ray PA view. Lungs are clear. No consolidation or pleural effusion noted.',
+    summary: 'Chest X-Ray PA view. Lungs are clear. No consolidation or pleural effusion noted.',
     findings: [
-      { label: 'Lung Fields', value: 'Clear',       status: 'Normal' },
-      { label: 'Heart Size',  value: 'Normal',      status: 'Normal' },
-      { label: 'Pleura',      value: 'No effusion', status: 'Normal' },
-      { label: 'Bones',       value: 'Intact',      status: 'Normal' },
+      { label: 'Lung Fields', value: 'Clear', status: 'Normal' },
+      { label: 'Heart Size', value: 'Normal', status: 'Normal' },
+      { label: 'Pleura', value: 'No effusion', status: 'Normal' },
+      { label: 'Bones', value: 'Intact', status: 'Normal' },
     ],
     doctor: 'Dr. Rahul Patil',
-    lab:    'Radiology Dept',
+    lab: 'Radiology Dept',
   },
   'R-003': {
-    summary:  'ECG shows normal sinus rhythm. No ST changes or arrhythmia detected.',
+    summary: 'ECG shows normal sinus rhythm. No ST changes or arrhythmia detected.',
     findings: [
-      { label: 'Heart Rate',   value: '72 bpm',     status: 'Normal' },
-      { label: 'Rhythm',       value: 'Sinus',      status: 'Normal' },
-      { label: 'ST Segment',   value: 'No changes', status: 'Normal' },
-      { label: 'QT Interval',  value: '400 ms',     status: 'Normal' },
+      { label: 'Heart Rate', value: '72 bpm', status: 'Normal' },
+      { label: 'Rhythm', value: 'Sinus', status: 'Normal' },
+      { label: 'ST Segment', value: 'No changes', status: 'Normal' },
+      { label: 'QT Interval', value: '400 ms', status: 'Normal' },
     ],
     doctor: 'Dr. Sneha Verma',
-    lab:    'Cardiology Dept',
+    lab: 'Cardiology Dept',
   },
   'R-004': {
-    summary:  'Urine routine examination. No abnormal findings. No proteinuria or hematuria.',
+    summary: 'Urine routine examination. No abnormal findings. No proteinuria or hematuria.',
     findings: [
-      { label: 'Color',   value: 'Pale Yellow', status: 'Normal' },
-      { label: 'Protein', value: 'Nil',         status: 'Normal' },
-      { label: 'Glucose', value: 'Nil',         status: 'Normal' },
-      { label: 'RBC',     value: 'Nil',         status: 'Normal' },
+      { label: 'Color', value: 'Pale Yellow', status: 'Normal' },
+      { label: 'Protein', value: 'Nil', status: 'Normal' },
+      { label: 'Glucose', value: 'Nil', status: 'Normal' },
+      { label: 'RBC', value: 'Nil', status: 'Normal' },
     ],
     doctor: 'Dr. Nisha Iyer',
-    lab:    'Central Lab',
+    lab: 'Central Lab',
   },
 }
 
@@ -140,11 +140,10 @@ function PatientProfileModal({ patient, onClose }) {
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-1.5 px-4 py-3 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all ${
-                    activeTab === tab.key
+                  className={`flex items-center gap-1.5 px-4 py-3 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all ${activeTab === tab.key
                       ? 'border-emerald-500 text-emerald-600'
                       : 'border-transparent text-slate-400 hover:text-slate-600'
-                  }`}
+                    }`}
                 >
                   <tab.icon size={12} />
                   {tab.label}
@@ -161,10 +160,10 @@ function PatientProfileModal({ patient, onClose }) {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { label: 'Age',         value: `${patient.age} yrs` },
-                    { label: 'Gender',      value: patient.gender },
+                    { label: 'Age', value: `${patient.age} yrs` },
+                    { label: 'Gender', value: patient.gender },
                     { label: 'Blood Group', value: patient.bloodGroup || 'N/A' },
-                    { label: 'Status',      value: patient.status },
+                    { label: 'Status', value: patient.status },
                   ].map((item, i) => (
                     <div key={i} className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
@@ -268,12 +267,12 @@ function PatientProfileModal({ patient, onClose }) {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
                     { label: 'Blood Pressure', value: data.vitals.bloodPressure },
-                    { label: 'Heart Rate',     value: data.vitals.heartRate     },
-                    { label: 'Temperature',    value: data.vitals.temperature   },
-                    { label: 'Oxygen Sat.',    value: data.vitals.oxygenSat     },
-                    { label: 'Weight',         value: data.vitals.weight        },
-                    { label: 'Height',         value: data.vitals.height        },
-                    { label: 'BMI',            value: data.vitals.bmi           },
+                    { label: 'Heart Rate', value: data.vitals.heartRate },
+                    { label: 'Temperature', value: data.vitals.temperature },
+                    { label: 'Oxygen Sat.', value: data.vitals.oxygenSat },
+                    { label: 'Weight', value: data.vitals.weight },
+                    { label: 'Height', value: data.vitals.height },
+                    { label: 'BMI', value: data.vitals.bmi },
                   ].map((v, i) => (
                     <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                       className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">

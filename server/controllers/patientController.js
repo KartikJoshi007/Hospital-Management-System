@@ -80,7 +80,7 @@ exports.getPatientByUserId = asyncHandler(async (req, res) => {
   // ✅ Lazy Creation: If no profile found, create a default one for the user
   if (!patient) {
     const user = await User.findById(req.params.userId);
-    
+
     if (user && user.role === "patient") {
       patient = await Patient.create({
         userId: user._id,

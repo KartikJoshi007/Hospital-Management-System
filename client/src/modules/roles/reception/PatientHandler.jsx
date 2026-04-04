@@ -75,6 +75,9 @@ const PatientHandler = () => {
         <input
           type="number"
           name="age"
+          min="1"
+          max="130"
+          step="1"
           placeholder="Age"
           value={form.age}
           onChange={handleChange}

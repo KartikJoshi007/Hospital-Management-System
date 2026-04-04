@@ -30,6 +30,7 @@ function PatientProfile() {
     chronicConditions: '',
     height: '',
     weight: '',
+    admissionDate: '',
   })
 
   useEffect(() => {
@@ -51,6 +52,7 @@ function PatientProfile() {
           chronicConditions: p.medicalHistory || '',
           height: p.height || '',
           weight: p.weight || '',
+          admissionDate: p.admissionDate || '',
         })
       } catch (err) {
         console.error('Profile fetch failed:', err)
@@ -94,16 +96,16 @@ function PatientProfile() {
       await updatePatient(patientId, patientPayload)
 
       await updatePatient(patientId, patientPayload)
- 
-       const updatedUserObj = {
-         ...user,
-         id: user._id || user.id,
-         fullName: userRes.data.fullName,
-         email: userRes.data.email,
-         phone: userRes.data.phone
-       }
-       localStorage.setItem('user', JSON.stringify(updatedUserObj))
-       login(updatedUserObj)
+
+      const updatedUserObj = {
+        ...user,
+        id: user._id || user.id,
+        fullName: userRes.data.fullName,
+        email: userRes.data.email,
+        phone: userRes.data.phone
+      }
+      localStorage.setItem('user', JSON.stringify(updatedUserObj))
+      login(updatedUserObj)
 
       setEditMode(false)
       notify('Profile updated successfully')
@@ -141,6 +143,7 @@ function PatientProfile() {
   const stats = [
     { label: 'Height', value: profileForm.height ? `${profileForm.height} cm` : 'N/A', icon: User, color: 'blue' },
     { label: 'Weight', value: profileForm.weight ? `${profileForm.weight} kg` : 'N/A', icon: Activity, color: 'orange' },
+    { label: 'Admission Date', value: profileForm.admissionDate ? new Date(profileForm.admissionDate).toLocaleDateString() : 'None', icon: MapPin, color: 'emerald' },
     { label: 'Blood Group', value: profileForm.bloodGroup, icon: Droplet, color: 'emerald' },
   ]
 
@@ -268,6 +271,9 @@ function PatientProfile() {
                   <label className="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Age</label>
                   <input
                     type="number"
+                    min="1"
+                    max="130"
+                    step="1"
                     value={profileForm.age}
                     onChange={e => setProfileForm({ ...profileForm, age: e.target.value })}
                     disabled={!editMode}

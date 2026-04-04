@@ -6,8 +6,8 @@ exports.patientValidator = [
     .notEmpty()
     .withMessage("Patient name is required"),
   body("age")
-    .isNumeric()
-    .withMessage("Age must be a number"),
+    .isInt({ min: 1, max: 130 })
+    .withMessage("Age must be an integer between 1 and 130"),
   body("gender")
     .notEmpty()
     .withMessage("Gender is required"),

@@ -5,25 +5,25 @@ import PatientProfileModal from './PatientProfileModal'
 import { getAllPatients, updatePatient, deletePatient } from '../../patients/patientApi'
 
 const STATUS_COLORS = {
-  Active:     'bg-emerald-50 text-emerald-600 border-emerald-100',
-  Admitted:   'bg-blue-50 text-blue-600 border-blue-100',
+  Active: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  Admitted: 'bg-blue-50 text-blue-600 border-blue-100',
   Discharged: 'bg-slate-50 text-slate-500 border-slate-100',
 }
 
 function PatientManagement() {
-  const [patients, setPatients]             = useState([])
-  const [loading, setLoading]               = useState(true)
-  const [error, setError]                   = useState('')
-  const [search, setSearch]                 = useState('')
-  const [genderFilter, setGenderFilter]     = useState('')
-  const [statusFilter, setStatusFilter]     = useState('')
-  const [viewPatient, setViewPatient]       = useState(null)
-  const [editPatient, setEditPatient]       = useState(null)
+  const [patients, setPatients] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+  const [genderFilter, setGenderFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [viewPatient, setViewPatient] = useState(null)
+  const [editPatient, setEditPatient] = useState(null)
   const [deleteCandidate, setDeleteCandidate] = useState(null)
-  const [formData, setFormData]             = useState({})
-  const [saving, setSaving]                 = useState(false)
-  const [deleting, setDeleting]             = useState(false)
-  const [message, setMessage]               = useState('')
+  const [formData, setFormData] = useState({})
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [message, setMessage] = useState('')
 
   const showMsg = (msg) => {
     setMessage(msg)
@@ -219,11 +219,11 @@ function PatientManagement() {
                 </div>
                 <form onSubmit={handleSave} className="space-y-4">
                   {[
-                    { label: 'Full Name',        key: 'name',           type: 'text'   },
-                    { label: 'Age',              key: 'age',            type: 'number' },
-                    { label: 'Contact',          key: 'contact',        type: 'tel'    },
-                    { label: 'Address',          key: 'address',        type: 'text'   },
-                    { label: 'Medical History',  key: 'medicalHistory', type: 'text'   },
+                    { label: 'Full Name', key: 'name', type: 'text' },
+                    { label: 'Age', key: 'age', type: 'number' },
+                    { label: 'Contact', key: 'contact', type: 'tel' },
+                    { label: 'Address', key: 'address', type: 'text' },
+                    { label: 'Medical History', key: 'medicalHistory', type: 'text' },
                   ].map(f => (
                     <div key={f.key}>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{f.label}</label>
