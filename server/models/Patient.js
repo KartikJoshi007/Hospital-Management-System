@@ -43,6 +43,14 @@ const patientSchema = new mongoose.Schema(
       type: String, // UI sends a simple string or description
       default: "No known conditions",
     },
+    height: {
+      type: Number, // In cm
+      default: 0,
+    },
+    weight: {
+      type: Number, // In kg
+      default: 0,
+    },
   },
   { timestamps: true }
 );

@@ -8,7 +8,7 @@ const { body } = require("express-validator");
 // @desc    Create patient
 // @route   POST /api/patients
 exports.createPatient = asyncHandler(async (req, res) => {
-  const { userId, name, age, gender, contact, bloodGroup, status, address, medicalHistory } = req.body;
+  const { userId, name, age, gender, contact, bloodGroup, status, address, medicalHistory, height, weight } = req.body;
 
   // Check if patient profile already exists for this name (simple check for mock-like data)
   const existingPatient = await Patient.findOne({ name, contact });
@@ -26,6 +26,8 @@ exports.createPatient = asyncHandler(async (req, res) => {
     status: status || "Active",
     address,
     medicalHistory: medicalHistory || "No known conditions",
+    height: height || 0,
+    weight: weight || 0,
   });
 
   return res.status(201).json(
@@ -70,13 +72,31 @@ exports.getPatientById = asyncHandler(async (req, res) => {
   );
 });
 
-// @desc    Get patient by user ID
+// @desc    Get patient by user ID (with Lazy Creation)
 // @route   GET /api/patients/user/:userId
 exports.getPatientByUserId = asyncHandler(async (req, res) => {
-  const patient = await Patient.findOne({ userId: req.params.userId });
+  let patient = await Patient.findOne({ userId: req.params.userId });
 
+  // ✅ Lazy Creation: If no profile found, create a default one for the user
   if (!patient) {
-    throw new ApiError(404, "Patient profile not found for this user");
+    const user = await User.findById(req.params.userId);
+    
+    if (user && user.role === "patient") {
+      patient = await Patient.create({
+        userId: user._id,
+        name: user.fullName || "New Patient",
+        age: 0,
+        gender: "Other",
+        contact: user.phone || "Not Provided",
+        bloodGroup: "O+",
+        address: "Not Provided",
+        status: "Active",
+        height: 0,
+        weight: 0,
+      });
+    } else {
+      throw new ApiError(404, "Patient profile not found for this user");
+    }
   }
 
   return res.status(200).json(
@@ -87,7 +107,7 @@ exports.getPatientByUserId = asyncHandler(async (req, res) => {
 // @desc    Update patient
 // @route   PUT /api/patients/:id
 exports.updatePatient = asyncHandler(async (req, res) => {
-  const { name, age, gender, contact, bloodGroup, status, address, medicalHistory } = req.body;
+  const { name, age, gender, contact, bloodGroup, status, address, medicalHistory, height, weight } = req.body;
 
   let patient = await Patient.findById(req.params.id);
 
@@ -104,6 +124,8 @@ exports.updatePatient = asyncHandler(async (req, res) => {
   if (status) patient.status = status;
   if (address) patient.address = address;
   if (medicalHistory) patient.medicalHistory = medicalHistory;
+  if (height !== undefined) patient.height = height;
+  if (weight !== undefined) patient.weight = weight;
 
   patient = await patient.save();
 

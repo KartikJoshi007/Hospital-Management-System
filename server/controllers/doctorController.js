@@ -1,4 +1,5 @@
 const Doctor = require("../models/Doctor");
+const User = require("../models/User"); // ✅ Added
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
@@ -121,5 +122,34 @@ exports.getDoctorStats = asyncHandler(async (req, res) => {
       active: activeDoctors,
       specializations: specializationBreakdown
     }, "Doctor stats fetched successfully")
+  );
+});
+// @desc    Get doctor by user ID (with Lazy Creation)
+// @route   GET /api/doctors/user/:userId
+exports.getDoctorByUserId = asyncHandler(async (req, res) => {
+  let doctor = await Doctor.findOne({ userId: req.params.userId });
+
+  // ✅ Lazy Creation
+  if (!doctor) {
+    const user = await User.findById(req.params.userId);
+
+    if (user && user.role === "doctor") {
+      doctor = await Doctor.create({
+        userId: user._id,
+        name: user.fullName || "New Physician",
+        email: user.email,
+        specialization: "General",
+        experience: "0 Years",
+        availability: "TBD",
+        contact: user.phone || "Not Provided",
+        status: "Active",
+      });
+    } else {
+      throw new ApiError(404, "Doctor profile not found for this user");
+    }
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, doctor, "Doctor profile fetched successfully")
   );
 });

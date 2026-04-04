@@ -13,6 +13,7 @@ router
   .get(protect, doctorController.getAllDoctors);
 
 router.get("/stats", protect, authorize("admin", "doctor"), doctorController.getDoctorStats);
+router.get("/user/:userId", protect, doctorController.getDoctorByUserId); // ✅ Added
 
 // ID routes
 router

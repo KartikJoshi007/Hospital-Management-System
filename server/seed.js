@@ -10,7 +10,7 @@ const Medicine = require("./models/Medicine");
 
 const connectDB = require("./config/db");
 
-const users = [
+const usersData = [
   { fullName: "System Admin", email: "admin@hms.com", password: "admin123", role: "admin", phone: "9876543210" },
   { fullName: "Dr. Aryan Mehta", email: "doctor@hms.com", password: "doctor123", role: "doctor", phone: "9123456789" },
   { fullName: "Suresh Raina", email: "patient@hms.com", password: "patient123", role: "patient", phone: "8765432109" },
@@ -25,9 +25,10 @@ const initialDoctors = [
 ];
 
 const initialPatients = [
-  { name: 'Rohan Sharma', age: 34, gender: 'Male', contact: '9876543210', bloodGroup: 'B+', status: 'Active', address: 'Mumbai, MH', medicalHistory: 'Diabetes Type 2' },
-  { name: 'Priya Verma', age: 28, gender: 'Female', contact: '8765432109', bloodGroup: 'O+', status: 'Admitted', address: 'Pune, MH', medicalHistory: 'Asthma (mild)' },
-  { name: 'Amit Patel', age: 45, gender: 'Male', contact: '9123456789', bloodGroup: 'A+', status: 'Discharged', address: 'Ahmedabad, GJ', medicalHistory: 'Hypertension' },
+  { name: 'Suresh Raina', age: 34, gender: 'Male', contact: '8765432109', bloodGroup: 'B+', status: 'Active', address: 'Mumbai, MH', medicalHistory: 'Diabetes Type 2', height: 175, weight: 75 }, // Matched to seed user
+  { name: 'Rohan Sharma', age: 34, gender: 'Male', contact: '9876543210', bloodGroup: 'B+', status: 'Active', address: 'Mumbai, MH', medicalHistory: 'Diabetes Type 2', height: 168, weight: 70 },
+  { name: 'Priya Verma', age: 28, gender: 'Female', contact: '8765432109', bloodGroup: 'O+', status: 'Admitted', address: 'Pune, MH', medicalHistory: 'Asthma (mild)', height: 162, weight: 58 },
+  { name: 'Amit Patel', age: 45, gender: 'Male', contact: '9123456789', bloodGroup: 'A+', status: 'Discharged', address: 'Ahmedabad, GJ', medicalHistory: 'Hypertension', height: 180, weight: 82 },
 ];
 
 const initialAppointments = [
@@ -63,32 +64,42 @@ const seedDB = async () => {
     console.log("🗑️ Cleared existing database records.");
 
     // 1. Seed Users
-    for (const u of users) {
-      await User.create(u);
+    const createdUsers = [];
+    for (const u of usersData) {
+      const user = await User.create(u);
+      createdUsers.push(user);
     }
-    console.log(`✅ Seeded ${users.length} Base Users.`);
+    console.log(`✅ Seeded ${createdUsers.length} Base Users.`);
 
-    // 2. Seed Doctors
+    // 2. Link Doctors
+    const doctorUser = createdUsers.find(u => u.email === "doctor@hms.com");
+    if (doctorUser) {
+      const mainDoctor = initialDoctors.find(d => d.email === "aryan@hms.com");
+      if (mainDoctor) mainDoctor.userId = doctorUser._id;
+    }
+
+    // 3. Link Patients
+    const patientUser = createdUsers.find(u => u.email === "patient@hms.com");
+    if (patientUser) {
+      const mainPatient = initialPatients.find(p => p.contact === "8765432109"); // Suresh Raina
+      if (mainPatient) mainPatient.userId = patientUser._id;
+    }
+
+    // 4. Insert Profiles
     await Doctor.insertMany(initialDoctors);
-    console.log(`✅ Seeded ${initialDoctors.length} Doctors (matched to frontend).`);
+    console.log(`✅ Seeded ${initialDoctors.length} Doctors (linked to users).`);
 
-    // 3. Seed Patients
     await Patient.insertMany(initialPatients);
-    console.log(`✅ Seeded ${initialPatients.length} Patients (matched to frontend).`);
+    console.log(`✅ Seeded ${initialPatients.length} Patients (linked to users).`);
 
-    // 4. Seed Appointments
+    // 5. Seed Others
     await Appointment.insertMany(initialAppointments);
-    console.log(`✅ Seeded ${initialAppointments.length} Appointments (matched to frontend).`);
-
-    // 5. Seed Expenses
     await Expense.insertMany(initialExpenses);
-    console.log(`✅ Seeded ${initialExpenses.length} Expenses (matched to Revenue Dashboard).`);
-
-    // 6. Seed Medicines
     await Medicine.insertMany(initialMedicines);
-    console.log(`✅ Seeded ${initialMedicines.length} Medicines (matched to Pharmacy).`);
 
-    console.log("\n🎉 DATABASE SYNC COMPLETE! Your backend now matches your frontend 1:1.\n");
+    console.log(`✅ Seeded remaining modules (Appointments, Expenses, Medicines).`);
+
+    console.log("\n🎉 DATABASE SYNC COMPLETE! All users are now correctly linked to their profiles.\n");
     process.exit();
   } catch (err) {
     console.error("❌ Seeding failed:", err);

@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const Patient = require("../models/Patient");
+const Doctor = require("../models/Doctor"); // ✅ Added
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
@@ -38,19 +39,28 @@ exports.register = asyncHandler(async (req, res) => {
   if (role === "patient") {
     await Patient.create({
       userId: user._id,
-      dateOfBirth: new Date(),
-      gender: "other",
+      name: user.fullName,
+      age: 0, // Default, can be updated later
+      gender: "Other",
+      contact: user.phone || "Not Provided",
       bloodGroup: "O+",
+      address: "Not Provided",
+      status: "Active",
+      height: 0,
+      weight: 0,
     });
   }
 
   // ✅ Create doctor profile if role = doctor
   if (role === "doctor") {
     await Doctor.create({
+      userId: user._id,
       name: user.fullName,
       email: user.email,
       specialization: "General",
-      contact: user.phone,
+      experience: "0 Years",
+      availability: "TBD",
+      contact: user.phone || "Not Provided",
       status: "Active",
     });
   }
