@@ -1,11 +1,21 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import usePatients from '../hooks/usePatients'
+import useAuth from '../hooks/useAuth'
+
+// Always calls usePatients (hooks rules), but only returns data for staff roles.
+// The actual API fetch is guarded inside usePatients via the `enabled` flag.
+function useStaffPatients() {
+  const { role } = useAuth()
+  const isStaff = ['admin', 'doctor', 'reception'].includes(role)
+  const { patients } = usePatients(isStaff)
+  return isStaff ? patients : []
+}
 
 function Navbar({ title, onToggle }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [isOpen, setIsOpen] = useState(false)
-  const { patients } = usePatients()
+  const patients = useStaffPatients()
   const searchRef = useRef(null)
   const navigate = useNavigate()
   const { pathname } = useLocation()

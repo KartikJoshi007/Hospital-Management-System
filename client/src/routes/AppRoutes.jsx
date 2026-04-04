@@ -133,8 +133,8 @@ function AppRoutes() {
       {/* Root redirect */}
       <Route path="/*" element={<RoleRoutes />} />
 
-      {/* Shared Dashboard */}
-      <Route element={<ProtectedRoute />}>
+      {/* Shared Dashboard — staff only (admin, doctor, reception) */}
+      <Route element={<ProtectedRoute allowedRoles={['admin', 'doctor', 'reception']} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
 

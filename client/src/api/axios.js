@@ -20,7 +20,7 @@ instance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor — handle 401 by clearing session and redirecting
+// Response interceptor — handle auth errors and redirect appropriately
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -28,6 +28,9 @@ instance.interceptors.response.use(
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "/login";
+    }
+    if (error.response?.status === 403) {
+      window.location.href = "/unauthorized";
     }
     return Promise.reject(error);
   }
