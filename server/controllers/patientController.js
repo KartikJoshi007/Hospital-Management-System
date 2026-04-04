@@ -26,8 +26,10 @@ exports.createPatient = asyncHandler(async (req, res) => {
     status: status || "Active",
     address,
     medicalHistory: medicalHistory || "No known conditions",
-    height: height || 0,
-    weight: weight || 0,
+    vitals: {
+      height: height || 0,
+      weight: weight || 0,
+    }
   });
 
   return res.status(201).json(
@@ -91,8 +93,10 @@ exports.getPatientByUserId = asyncHandler(async (req, res) => {
         bloodGroup: "O+",
         address: "Not Provided",
         status: "Active",
-        height: 0,
-        weight: 0,
+        vitals: {
+          height: 0,
+          weight: 0,
+        }
       });
 
       // Populate after creation
@@ -127,8 +131,14 @@ exports.updatePatient = asyncHandler(async (req, res) => {
   if (status) patient.status = status;
   if (address) patient.address = address;
   if (medicalHistory) patient.medicalHistory = medicalHistory;
-  if (height !== undefined) patient.height = height;
-  if (weight !== undefined) patient.weight = weight;
+  if (height !== undefined || weight !== undefined) {
+    if (!patient.vitals) patient.vitals = {};
+    if (height !== undefined) patient.vitals.height = height;
+    if (weight !== undefined) patient.vitals.weight = weight;
+    
+    // Explicitly tell Mongoose that the nested vitals object has changed
+    patient.markModified('vitals');
+  }
 
   patient = await patient.save();
 

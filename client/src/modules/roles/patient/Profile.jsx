@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { User, Mail, Phone, Lock, Eye, EyeOff, Edit2, Check, X, Activity, MapPin, Droplet, ShieldCheck } from 'lucide-react'
+import { User, Mail, Phone, Lock, Eye, EyeOff, Edit2, Check, X, Activity, MapPin, Droplet, ShieldCheck, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useAuth from '../../../hooks/useAuth'
 import { GENDERS, BLOOD_GROUPS } from '../../../utils/constants'
@@ -13,6 +13,7 @@ function PatientProfile() {
   const [showCurrent, setShowCurrent] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showIncompletePopup, setShowIncompletePopup] = useState(false)
   const [message, setMessage] = useState({ text: '', type: '' })
 
   const [patientId, setPatientId] = useState(null)
@@ -50,10 +51,14 @@ function PatientProfile() {
           bloodGroup: p.bloodGroup || 'O+',
           address: p.address || '',
           chronicConditions: p.medicalHistory || '',
-          height: p.height || '',
-          weight: p.weight || '',
+          height: p.vitals?.height || '',
+          weight: p.vitals?.weight || '',
           admissionDate: p.admissionDate || '',
         })
+
+        if (p && p.age === 0) {
+          setShowIncompletePopup(true)
+        }
       } catch (err) {
         console.error('Profile fetch failed:', err)
       } finally {
@@ -62,6 +67,25 @@ function PatientProfile() {
     }
     if (user?.id) fetchProfile()
   }, [user.id])
+
+  const completeness = (() => {
+    let score = 0;
+    const fields = [
+      profileForm.name,
+      profileForm.contact,
+      profileForm.age,
+      profileForm.gender,
+      profileForm.bloodGroup,
+      profileForm.address,
+      profileForm.chronicConditions,
+      profileForm.height,
+      profileForm.weight,
+    ]
+    fields.forEach(f => {
+      if (f && String(f).trim() !== '' && f !== 'Not Provided' && f !== 'No known conditions' && f !== 0 && f !== '0') score += 11.11;
+    });
+    return Math.min(Math.round(score), 100);
+  })();
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -92,8 +116,6 @@ function PatientProfile() {
 
       if (profileForm.height) patientPayload.height = Number(profileForm.height)
       if (profileForm.weight) patientPayload.weight = Number(profileForm.weight)
-
-      await updatePatient(patientId, patientPayload)
 
       await updatePatient(patientId, patientPayload)
 
@@ -179,6 +201,17 @@ function PatientProfile() {
               <h2 className="text-2xl font-black text-white leading-tight truncate">{profileForm.name}</h2>
               <p className="text-xs font-bold text-emerald-100 uppercase tracking-widest mt-1 opacity-80">Patient Portal Account</p>
               <p className="text-[11px] font-black text-emerald-100 mt-1 opacity-60">{profileForm.contact}</p>
+
+              {/* Progress Bar */}
+              <div className="mt-4 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Profile Status</span>
+                  <span className="text-[10px] font-black text-emerald-300 uppercase tracking-widest">{completeness}% Complete</span>
+                </div>
+                <div className="w-full sm:w-64 h-1.5 bg-white/20 rounded-full overflow-hidden">
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${completeness}%` }} className="h-full bg-emerald-400 rounded-full transition-all duration-1000" />
+                </div>
+              </div>
             </div>
           </div>
           <div className="shrink-0 w-full md:w-auto">
@@ -437,6 +470,35 @@ function PatientProfile() {
         </form>
       </div>
 
+      {/* Incomplete Profile Popup */}
+      <AnimatePresence>
+        {showIncompletePopup && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowIncompletePopup(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative w-full max-w-sm bg-white rounded-[2rem] shadow-2xl overflow-hidden p-8 text-center pt-10">
+              <div className="w-20 h-20 bg-rose-50 text-rose-500 rounded-[1.5rem] flex items-center justify-center mx-auto mb-6 rotate-12 shadow-inner">
+                <Activity size={32} strokeWidth={3} className="-rotate-12" />
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">Profile Incomplete</h2>
+              <p className="text-xs font-bold text-slate-500 mb-8 px-4 leading-relaxed">Your profile is missing crucial clinical data. Please take a moment to update your details to initialize your medical records.</p>
+              
+              <button 
+                onClick={() => { setShowIncompletePopup(false); setEditMode(true); }} 
+                className="w-full flex items-center justify-center gap-3 bg-slate-900 text-white rounded-2xl py-4 font-black uppercase tracking-widest text-sm hover:bg-emerald-500 transition-all shadow-xl hover:shadow-emerald-200 active:scale-95"
+              >
+                Update Now <ArrowRight size={18} strokeWidth={3} />
+              </button>
+              
+              <button 
+                onClick={() => setShowIncompletePopup(false)} 
+                className="w-full mt-3 flex items-center justify-center gap-2 bg-transparent text-slate-400 rounded-2xl py-3 font-bold uppercase tracking-widest text-xs hover:bg-slate-50 hover:text-slate-600 transition-all"
+              >
+                Remind Me Later
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
