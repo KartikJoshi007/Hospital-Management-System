@@ -38,17 +38,17 @@ function PatientProfile() {
         setLoading(true)
         const res = await getPatientByUserId(user.id)
         const p = res.data
-        setPatientId(p._id)
+        console.log('Fetched Patient Profile:', p)
+        setPatientId(p?._id)
         setProfileForm({
-          name: p.userId?.fullName || '',
-          email: p.userId?.email || '',
-          contact: p.userId?.phone || '',
-          age: p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : '',
-          gender: p.gender || 'other',
+          name: p.name || p.userId?.fullName || user?.fullName || '',
+          email: p.userId?.email || user?.email || '',
+          contact: p.contact || p.userId?.phone || user?.phone || '',
+          age: p.age || '',
+          gender: (p.gender || 'other').toLowerCase(),
           bloodGroup: p.bloodGroup || 'O+',
-          address: p.address ? `${p.address.street || ''}, ${p.address.city || ''}, ${p.address.state || ''}` : '',
-          allergies: p.allergies?.join(', ') || '',
-          chronicConditions: p.medicalHistory?.join(', ') || '',
+          address: p.address || '',
+          chronicConditions: p.medicalHistory || '',
           height: p.height || '',
           weight: p.weight || '',
         })
@@ -83,8 +83,9 @@ function PatientProfile() {
       const patientPayload = {
         bloodGroup: profileForm.bloodGroup,
         gender: profileForm.gender.toLowerCase(),
-        allergies: profileForm.allergies.split(',').map(a => a.trim()).filter(a => a),
-        medicalHistory: profileForm.chronicConditions.split(',').map(m => m.trim()).filter(m => m),
+        medicalHistory: profileForm.chronicConditions,
+        address: profileForm.address,
+        age: Number(profileForm.age)
       }
 
       if (profileForm.height) patientPayload.height = Number(profileForm.height)
@@ -319,6 +320,21 @@ function PatientProfile() {
                   >
                     {BLOOD_GROUPS.map(bg => <option key={bg} value={bg}>{bg}</option>)}
                   </select>
+                </div>
+              </div>
+
+              <div className="sm:col-span-2 space-y-3">
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Chronic Conditions / Medical History</label>
+                <div className="relative">
+                  <Activity className="absolute left-4 top-4 text-slate-300 h-5 w-5" strokeWidth={3} />
+                  <textarea
+                    rows={3}
+                    placeholder="List your existing medical conditions, surgeries, or chronic illnesses..."
+                    value={profileForm.chronicConditions}
+                    onChange={e => setProfileForm({ ...profileForm, chronicConditions: e.target.value })}
+                    disabled={!editMode}
+                    className={`w-full pl-12 pr-4 py-4 rounded-xl border text-sm font-bold text-slate-900 outline-none transition-all resize-none ${editMode ? 'bg-white border-slate-200 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50' : 'bg-slate-50 border-transparent text-slate-600'}`}
+                  />
                 </div>
               </div>
 

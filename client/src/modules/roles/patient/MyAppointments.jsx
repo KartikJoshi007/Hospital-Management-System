@@ -69,14 +69,15 @@ function MyAppointments() {
         setPatientData(patient)
 
         const aRes = await getPatientAppointments(patient._id)
-        const formatted = aRes.data.appointments.map(apt => ({
+        const apts = aRes.data.appointments || aRes.data || []
+        const formatted = apts.map(apt => ({
           id: apt._id,
-          doctor: apt.doctorId?.name || 'N/A',
-          dept: apt.doctorId?.department || 'General',
-          date: apt.appointmentDate.split('T')[0],
-          time: apt.appointmentTime,
-          status: apt.status.charAt(0).toUpperCase() + apt.status.slice(1),
-          type: apt.appointmentType,
+          doctor: apt.doctor || 'N/A',
+          dept: apt.dept || 'General',
+          date: apt.date ? apt.date.split('T')[0] : 'N/A',
+          time: apt.time || 'N/A',
+          status: apt.status ? (apt.status.charAt(0).toUpperCase() + apt.status.slice(1)) : 'Pending',
+          type: apt.type || 'In-Clinic',
           location: apt.location || 'Hospital Clinic'
         }))
         setAppointments(formatted)
@@ -115,14 +116,19 @@ function MyAppointments() {
     }
     try {
       setSubmitting(true)
+      
+      const selectedDoctor = doctorList.find(d => d._id === bookingForm.doctorId)
+      
       const payload = {
-        patientId: patientData._id,
-        doctorId: bookingForm.doctorId,
-        appointmentDate: bookingForm.date,
-        appointmentTime: bookingForm.time,
-        appointmentType: bookingForm.type,
-        reason: bookingForm.reason
+        patient: patientData.name,
+        doctor: selectedDoctor?.name || 'N/A',
+        dept: selectedDoctor?.specialization || 'General',
+        date: bookingForm.date,
+        time: bookingForm.time,
+        reason: bookingForm.reason || 'General Consultation',
+        status: 'Pending'
       }
+      
       await createAppointment(payload)
       alert('Appointment scheduled successfully!')
       setView('list')
@@ -366,7 +372,7 @@ function MyAppointments() {
                       onChange={(e) => setBookingForm({...bookingForm, doctorId: e.target.value})}
                       className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all cursor-pointer">
                       <option value="" disabled>Pick a specialist</option>
-                      {doctorList.map(d => <option key={d._id} value={d._id}>{d.name} - {d.department}</option>)}
+                      {doctorList.map(d => <option key={d._id} value={d._id}>{d.name} - {d.specialization}</option>)}
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">

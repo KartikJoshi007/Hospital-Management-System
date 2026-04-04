@@ -111,17 +111,17 @@ function MyRecords() {
          </td>
          <td className="px-6 py-6">
             <div className="flex justify-center items-center gap-3">
-               <button 
+               <button
                   onClick={() => handleDownload(record)}
                   disabled={downloadingId === record.id}
-                  className="p-2.5 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all" 
+                  className="p-2.5 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all"
                   title="Download"
                >
                   {downloadingId === record.id ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} strokeWidth={3} />}
                </button>
-               <button 
+               <button
                   onClick={() => handleViewDetail(record)}
-                  className="p-2.5 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all" 
+                  className="p-2.5 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
                   title="View Detail"
                >
                   <ExternalLink size={18} strokeWidth={3} />
@@ -141,7 +141,7 @@ function MyRecords() {
                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-3 pl-5 line-clamp-1 sm:line-clamp-none">Access health history and diagnostic reports</p>
             </div>
             <div className="flex flex-wrap items-center gap-3 shrink-0">
-               <button 
+               <button
                   onClick={handleDownloadAll}
                   disabled={isDownloadingAll || filteredRecords.length === 0}
                   className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
@@ -184,9 +184,9 @@ function MyRecords() {
                      className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-200 rounded-xl focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none shadow-sm min-w-0"
                   />
                </div>
-               
+
                <div className="relative shrink-0">
-                  <button 
+                  <button
                      onClick={() => setIsFilterOpen(!isFilterOpen)}
                      className={`p-3.5 rounded-xl transition-all shadow-sm border ${isFilterOpen ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200 hover:text-slate-900'}`}
                   >
@@ -228,10 +228,10 @@ function MyRecords() {
 
          {/* Records Table Card */}
          <div className="min-h-[400px]">
-            <ModernTable 
-               headers={tableHeaders} 
-               data={filteredRecords} 
-               renderRow={renderRecordRow} 
+            <ModernTable
+               headers={tableHeaders}
+               data={filteredRecords}
+               renderRow={renderRecordRow}
             />
          </div>
 
