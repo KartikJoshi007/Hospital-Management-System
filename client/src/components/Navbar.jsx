@@ -17,10 +17,10 @@ function Navbar({ title, onToggle }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const patients = useStaffPatients()
+  const searchRef = useRef(null)
+  const navigate = useNavigate()
   const { pathname } = useLocation()
   const isPatientPath = pathname.startsWith('/patient')
-  const navigate = useNavigate()
-  const searchRef = useRef(null)
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -70,8 +70,6 @@ function Navbar({ title, onToggle }) {
     profilePath: `/${user?.role || 'patient'}/profile`
   }
 
-
-
   return (
     <header className="flex h-16 w-full items-center justify-between px-8 bg-white border-b border-slate-200 sticky top-0 z-50">
       <div className="flex items-center gap-8 flex-1">
@@ -80,7 +78,7 @@ function Navbar({ title, onToggle }) {
           <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-widest">{userProfile.role} Account</p>
         </div>
 
-        {/* Search Bar - Hide on Patient Role to keep it simple or update it later */}
+        {/* Search Bar */}
         {!isPatientPath && (
           <div className="hidden md:flex items-center max-w-md w-full relative group ml-4" ref={searchRef}>
             <svg className="absolute left-4 h-4 w-4 text-slate-400 group-focus-within:text-emerald-500 transition-colors pointer-events-none z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -109,7 +107,6 @@ function Navbar({ title, onToggle }) {
                   </div>
                 ) : (
                   <div className="py-2">
-                    {/* Patients Section */}
                     {filteredPatients.length > 0 && (
                       <div>
                         <div className="px-4 py-2 flex items-center gap-2 bg-slate-50/50">
@@ -135,7 +132,6 @@ function Navbar({ title, onToggle }) {
                       </div>
                     )}
 
-                    {/* Doctors Section */}
                     {filteredDoctors.length > 0 && (
                       <div>
                         <div className="px-4 py-2 flex items-center gap-2 bg-slate-50/50 border-t border-slate-100">
@@ -168,16 +164,12 @@ function Navbar({ title, onToggle }) {
         )}
       </div>
 
+      {/* Profile & Date */}
       <div className="flex items-center gap-8">
-        {/* Date Time */}
         <div className="hidden lg:block text-right">
           <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{today}</p>
-          <div className="flex items-center justify-end gap-1.5">
-
-          </div>
         </div>
 
-        {/* Profile Card */}
         <div
           onClick={() => navigate(userProfile.profilePath)}
           className="flex items-center gap-4 pl-8 border-l border-slate-100 group cursor-pointer active:scale-95 transition-transform"
