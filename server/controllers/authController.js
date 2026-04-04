@@ -147,12 +147,18 @@ exports.getMe = asyncHandler(async (req, res) => {
 
 // ================= UPDATE PROFILE =================
 exports.updateProfile = asyncHandler(async (req, res) => {
-  const { fullName, phone, avatar } = req.body;
+  const { fullName, phone, avatar, email } = req.body;
 
   const updateFields = {};
   if (fullName) updateFields.fullName = fullName;
-  if (phone) updateFields.phone = phone;
-  if (avatar) updateFields.avatar = avatar;
+  if (phone)    updateFields.phone    = phone;
+  if (avatar)   updateFields.avatar   = avatar;
+
+  if (email) {
+    const exists = await User.findOne({ email, _id: { $ne: req.user.id } });
+    if (exists) throw new ApiError(400, "Email already in use by another account");
+    updateFields.email = email;
+  }
 
   const user = await User.findByIdAndUpdate(
     req.user.id,

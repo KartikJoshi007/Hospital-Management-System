@@ -1,25 +1,40 @@
-import { useState, useRef } from 'react'
-import { User, Mail, Phone, Lock, Eye, EyeOff, Edit2, X, Activity, Clock, ShieldCheck } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { User, Mail, Phone, Lock, Eye, EyeOff, Edit2, X, Activity, Clock, ShieldCheck, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useAuth from '../../../hooks/useAuth'
+import { getMe, updateProfile, changePassword } from '../../auth/authApi'
 
 function AdminProfile() {
   const { user, login } = useAuth()
 
+  const [profile,     setProfile]     = useState(null)
   const [editMode,    setEditMode]    = useState(false)
   const [showCurrent, setShowCurrent] = useState(false)
   const [showNew,     setShowNew]     = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [message,     setMessage]     = useState({ text: '', type: '' })
+  const [loadingEmail,    setLoadingEmail]    = useState(false)
+  const [loadingPhone,    setLoadingPhone]    = useState(false)
+  const [loadingPassword, setLoadingPassword] = useState(false)
   const editSectionRef = useRef(null)
 
-  const [profileForm] = useState({
-    fullName: user?.fullName || '',
-    email:    user?.email    || '',
-    phone:    user?.phone    || '',
-  })
-
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
+
+  // fetch fresh profile on mount
+  useEffect(() => {
+    getMe()
+      .then(res => {
+        const u = res?.data ?? res
+        setProfile(u)
+        // sync localStorage
+        const merged = { ...user, ...u, id: u._id || u.id }
+        localStorage.setItem('user', JSON.stringify(merged))
+        login(merged)
+      })
+      .catch(() => setProfile(user)) // fallback to localStorage user
+  }, [])
+
+  const display = profile || user
 
   const notify = (text, type = 'success') => {
     setMessage({ text, type })
@@ -31,18 +46,74 @@ function AdminProfile() {
     setTimeout(() => editSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }
 
-  const handlePasswordSave = (e) => {
+  const handleEmailSubmit = async (e) => {
+    e.preventDefault()
+    const email        = e.target.email.value.trim()
+    const confirmEmail = e.target.confirmEmail.value.trim()
+    if (email !== confirmEmail) return notify('Emails do not match', 'error')
+    setLoadingEmail(true)
+    try {
+      const res = await updateProfile({ email })
+      const u   = res?.data ?? res
+      const merged = { ...display, ...u, id: u._id || u.id }
+      setProfile(merged)
+      localStorage.setItem('user', JSON.stringify(merged))
+      login(merged)
+      notify('Email updated successfully')
+      e.target.reset()
+    } catch (err) {
+      notify(err?.message || 'Failed to update email', 'error')
+    } finally {
+      setLoadingEmail(false)
+    }
+  }
+
+  const handlePhoneSubmit = async (e) => {
+    e.preventDefault()
+    const phone        = e.target.phone.value.trim()
+    const confirmPhone = e.target.confirmPhone.value.trim()
+    if (!phone) return notify('Please enter a phone number', 'error')
+    if (phone !== confirmPhone) return notify('Phone numbers do not match', 'error')
+    setLoadingPhone(true)
+    try {
+      const res = await updateProfile({ phone })
+      const u   = res?.data ?? res
+      const merged = { ...display, ...u, id: u._id || u.id }
+      setProfile(merged)
+      localStorage.setItem('user', JSON.stringify(merged))
+      login(merged)
+      notify('Phone number updated successfully')
+      e.target.reset()
+    } catch (err) {
+      notify(err?.message || 'Failed to update phone', 'error')
+    } finally {
+      setLoadingPhone(false)
+    }
+  }
+
+  const handlePasswordSave = async (e) => {
     e.preventDefault()
     if (passwordForm.newPassword !== passwordForm.confirmPassword) return notify('New passwords do not match', 'error')
     if (passwordForm.newPassword.length < 6) return notify('Password must be at least 6 characters', 'error')
-    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
-    notify('Password changed successfully')
+    setLoadingPassword(true)
+    try {
+      await changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword:     passwordForm.newPassword,
+      })
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      notify('Password changed successfully')
+    } catch (err) {
+      notify(err?.message || 'Failed to change password', 'error')
+    } finally {
+      setLoadingPassword(false)
+    }
   }
 
   const stats = [
-    { label: 'Role',       value: 'Administrator', icon: ShieldCheck, color: 'emerald' },
-    { label: 'Status',     value: 'Active',         icon: Activity,    color: 'blue'    },
-    { label: 'Last Login', value: 'Today',          icon: Clock,       color: 'purple'  },
+    { label: 'Role',       value: display?.role ? display.role.charAt(0).toUpperCase() + display.role.slice(1) : 'Admin', icon: ShieldCheck, color: 'emerald' },
+    { label: 'Status',     value: display?.isActive === false ? 'Inactive' : 'Active', icon: Activity, color: 'blue' },
+    { label: 'Last Login', value: display?.lastLogin ? new Date(display.lastLogin).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—', icon: Clock, color: 'purple' },
   ]
 
   const inputClass = 'w-full pl-11 pr-4 py-3 rounded-xl border bg-slate-50 border-slate-100 text-sm font-bold text-slate-600 outline-none cursor-default'
@@ -62,12 +133,11 @@ function AdminProfile() {
 
       {/* Profile Hero Card */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        {/* Banner */}
         <div className="h-28 bg-gradient-to-r from-emerald-500 to-emerald-700 relative flex items-center justify-between px-8">
           <div className="flex items-center gap-4">
             <div className="relative">
               <img
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || 'Admin')}&background=ffffff&color=10b981&bold=true&size=80`}
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(display?.fullName || 'Admin')}&background=ffffff&color=10b981&bold=true&size=80`}
                 alt="Admin"
                 className="h-16 w-16 rounded-2xl object-cover border-4 border-white/30 shadow-xl"
               />
@@ -76,9 +146,9 @@ function AdminProfile() {
               </span>
             </div>
             <div>
-              <h2 className="text-xl font-black text-white leading-tight">{user?.fullName || 'Admin'}</h2>
+              <h2 className="text-xl font-black text-white leading-tight">{display?.fullName || 'Admin'}</h2>
               <p className="text-xs font-bold text-emerald-100 uppercase tracking-widest">System Administrator</p>
-              <p className="text-xs font-bold text-emerald-100 mt-0.5">{user?.email || 'admin@hospital.com'}</p>
+              <p className="text-xs font-bold text-emerald-100 mt-0.5">{display?.email || '—'}</p>
             </div>
           </div>
           {!editMode ? (
@@ -116,21 +186,21 @@ function AdminProfile() {
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Full Name</label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                <input type="text" value={profileForm.fullName} disabled className={inputClass} />
+                <input type="text" value={display?.fullName || ''} disabled className={inputClass} />
               </div>
             </div>
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                <input type="email" value={profileForm.email} disabled className={inputClass} />
+                <input type="email" value={display?.email || ''} disabled className={inputClass} />
               </div>
             </div>
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Phone Number</label>
               <div className="relative">
                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                <input type="tel" value={profileForm.phone} disabled className={inputClass} />
+                <input type="tel" value={display?.phone || ''} disabled className={inputClass} />
               </div>
             </div>
             <div>
@@ -145,7 +215,7 @@ function AdminProfile() {
         </div>
       </div>
 
-      {/* Change Cards — shown only when editMode */}
+      {/* Change Cards */}
       <AnimatePresence>
         {editMode && (
           <motion.div ref={editSectionRef} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
@@ -162,21 +232,13 @@ function AdminProfile() {
                   </div>
                 </div>
               </div>
-              <form onSubmit={(e) => {
-                e.preventDefault()
-                if (e.target.email.value !== e.target.confirmEmail.value) return notify('Emails do not match', 'error')
-                const updated = { ...user, email: e.target.email.value }
-                localStorage.setItem('user', JSON.stringify(updated))
-                login(updated)
-                notify('Email updated successfully')
-                e.target.reset()
-              }} className="px-8 py-6">
+              <form onSubmit={handleEmailSubmit} className="px-8 py-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Current Email</label>
                     <div className="relative">
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400 h-4 w-4" />
-                      <input type="email" value={user?.email || ''} disabled
+                      <input type="email" value={display?.email || ''} disabled
                         className="w-full pl-11 pr-4 py-3 rounded-xl border bg-emerald-50 border-emerald-100 text-sm font-black text-emerald-700 cursor-default" />
                     </div>
                   </div>
@@ -197,9 +259,9 @@ function AdminProfile() {
                     </div>
                   </div>
                   <div className="flex items-end">
-                    <button type="submit"
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg active:scale-95">
-                      <Mail size={13} /> Update Email
+                    <button type="submit" disabled={loadingEmail}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg active:scale-95 disabled:opacity-60">
+                      {loadingEmail ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />} Update Email
                     </button>
                   </div>
                 </div>
@@ -217,24 +279,13 @@ function AdminProfile() {
                   </div>
                 </div>
               </div>
-              <form onSubmit={(e) => {
-                e.preventDefault()
-                const newPhone     = e.target.phone.value.trim()
-                const confirmPhone = e.target.confirmPhone.value.trim()
-                if (!newPhone) return notify('Please enter a phone number', 'error')
-                if (newPhone !== confirmPhone) return notify('Phone numbers do not match', 'error')
-                const updated = { ...user, phone: newPhone }
-                localStorage.setItem('user', JSON.stringify(updated))
-                login(updated)
-                notify('Phone number updated successfully')
-                e.target.reset()
-              }} className="px-8 py-6">
+              <form onSubmit={handlePhoneSubmit} className="px-8 py-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Current Number</label>
                     <div className="relative">
                       <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-400 h-4 w-4" />
-                      <input type="tel" value={user?.phone || 'Not set'} disabled
+                      <input type="tel" value={display?.phone || 'Not set'} disabled
                         className="w-full pl-11 pr-4 py-3 rounded-xl border bg-emerald-50 border-emerald-100 text-sm font-black text-emerald-700 cursor-default" />
                     </div>
                   </div>
@@ -255,9 +306,9 @@ function AdminProfile() {
                     </div>
                   </div>
                   <div className="flex items-end">
-                    <button type="submit"
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg active:scale-95">
-                      <Phone size={13} /> Update Number
+                    <button type="submit" disabled={loadingPhone}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg active:scale-95 disabled:opacity-60">
+                      {loadingPhone ? <Loader2 size={13} className="animate-spin" /> : <Phone size={13} />} Update Number
                     </button>
                   </div>
                 </div>
@@ -305,9 +356,9 @@ function AdminProfile() {
                     </div>
                   ))}
                   <div className="flex items-end">
-                    <button type="submit"
-                      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg active:scale-95">
-                      <Lock size={13} /> Update Password
+                    <button type="submit" disabled={loadingPassword}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-lg active:scale-95 disabled:opacity-60">
+                      {loadingPassword ? <Loader2 size={13} className="animate-spin" /> : <Lock size={13} />} Update Password
                     </button>
                   </div>
                 </div>

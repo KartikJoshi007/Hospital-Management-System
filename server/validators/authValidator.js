@@ -43,6 +43,11 @@ exports.updateProfileValidator = [
     .optional()
     .matches(/^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/)
     .withMessage("Invalid phone number format"),
+  body("email")
+    .optional()
+    .isEmail()
+    .withMessage("Please enter a valid email")
+    .toLowerCase(),
 ];
 
 exports.changePasswordValidator = [
