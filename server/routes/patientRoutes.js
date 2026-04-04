@@ -29,7 +29,7 @@ router
 router
   .route("/:id")
   .get(protect, patientIdParamValidator, validate, patientController.getPatientById)
-  .put(protect, authorize("admin", "doctor"), patientIdParamValidator, patientUpdateValidator, validate, patientController.updatePatient)
+  .put(protect, authorize("admin", "doctor", "patient"), patientIdParamValidator, patientUpdateValidator, validate, patientController.updatePatient)
   .delete(protect, authorize("admin"), patientIdParamValidator, validate, patientController.deletePatient);
 
 module.exports = router;

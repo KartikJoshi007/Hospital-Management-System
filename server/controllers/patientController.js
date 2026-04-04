@@ -119,7 +119,7 @@ exports.getPatientByUserId = asyncHandler(async (req, res) => {
 // @desc    Update patient
 // @route   PUT /api/patients/:id
 exports.updatePatient = asyncHandler(async (req, res) => {
-  const { address, emergencyContact, allergies, medicalHistory, height, weight, notes, insurance } = req.body;
+  const { address, emergencyContact, allergies, medicalHistory, height, weight, notes, insurance, gender, bloodGroup } = req.body;
 
   let patient = await Patient.findById(req.params.id);
 
@@ -135,6 +135,8 @@ exports.updatePatient = asyncHandler(async (req, res) => {
   if (height) patient.height = height;
   if (weight) patient.weight = weight;
   if (notes) patient.notes = notes;
+  if (gender) patient.gender = gender;
+  if (bloodGroup) patient.bloodGroup = bloodGroup;
   if (insurance) {
     patient.insuranceProvider = insurance.provider || patient.insuranceProvider;
     patient.insuranceId = insurance.id || patient.insuranceId;

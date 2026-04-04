@@ -3,6 +3,8 @@ import { User, Mail, Phone, Lock, Eye, EyeOff, Edit2, Check, X, Activity, MapPin
 import { motion, AnimatePresence } from 'framer-motion'
 import useAuth from '../../../hooks/useAuth'
 import { GENDERS, BLOOD_GROUPS } from '../../../utils/constants'
+import { getPatientByUserId, updatePatient } from '../../patients/patientApi'
+import { updateProfile, changePassword } from '../../auth/authApi'
 
 function PatientProfile() {
   const { user, login } = useAuth()
@@ -13,36 +15,51 @@ function PatientProfile() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [message, setMessage] = useState({ text: '', type: '' })
 
+  const [patientId, setPatientId] = useState(null)
+  const [loading, setLoading] = useState(true)
+
   const [profileForm, setProfileForm] = useState({
-    name: user?.name || 'Kartik Joshi',
-    email: user?.email || 'kartik.joshi@example.com',
-    contact: user?.contact || '+91 98765 43210',
-    age: user?.age || '28',
-    gender: user?.gender || 'Male',
-    bloodGroup: user?.bloodGroup || 'O+',
-    address: user?.address || '123, Emerald City, Sector 45, Gurgaon, Haryana - 122001',
-    allergies: user?.allergies || 'Peanuts, Penicillin',
-    chronicConditions: user?.chronicConditions || 'None',
-    height: user?.height || '175',
+    name: '',
+    email: '',
+    contact: '',
+    age: '',
+    gender: 'other',
+    bloodGroup: 'O+',
+    address: '',
+    allergies: '',
+    chronicConditions: '',
+    height: '',
+    weight: '',
   })
 
   useEffect(() => {
-    if (user) {
-      setProfileForm(prev => ({
-        ...prev,
-        name: user.name || prev.name,
-        email: user.email || prev.email,
-        contact: user.contact || prev.contact,
-        age: user.age || prev.age,
-        gender: user.gender || prev.gender,
-        bloodGroup: user.bloodGroup || prev.bloodGroup,
-        address: user.address || prev.address,
-        allergies: user.allergies || prev.allergies,
-        chronicConditions: user.chronicConditions || prev.chronicConditions,
-        height: user.height || prev.height,
-      }))
+    const fetchProfile = async () => {
+      try {
+        setLoading(true)
+        const res = await getPatientByUserId(user.id)
+        const p = res.data
+        setPatientId(p._id)
+        setProfileForm({
+          name: p.userId?.fullName || '',
+          email: p.userId?.email || '',
+          contact: p.userId?.phone || '',
+          age: p.dateOfBirth ? (new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear()) : '',
+          gender: p.gender || 'other',
+          bloodGroup: p.bloodGroup || 'O+',
+          address: p.address ? `${p.address.street || ''}, ${p.address.city || ''}, ${p.address.state || ''}` : '',
+          allergies: p.allergies?.join(', ') || '',
+          chronicConditions: p.medicalHistory?.join(', ') || '',
+          height: p.height || '',
+          weight: p.weight || '',
+        })
+      } catch (err) {
+        console.error('Profile fetch failed:', err)
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [user])
+    if (user?.id) fetchProfile()
+  }, [user.id])
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -55,32 +72,50 @@ function PatientProfile() {
     setTimeout(() => setMessage({ text: '', type: '' }), 4000)
   }
 
-  const handleProfileSave = (e) => {
+  const handleProfileSave = async (e) => {
     e.preventDefault()
-    const updated = { ...user, ...profileForm }
-    localStorage.setItem('user', JSON.stringify(updated))
-    login(updated)
-    setEditMode(false)
-    notify('Profile updated successfully')
+    try {
+      const userRes = await updateProfile({
+        fullName: profileForm.name,
+        phone: profileForm.contact
+      })
+
+      const patientPayload = {
+        bloodGroup: profileForm.bloodGroup,
+        gender: profileForm.gender.toLowerCase(),
+        allergies: profileForm.allergies.split(',').map(a => a.trim()).filter(a => a),
+        medicalHistory: profileForm.chronicConditions.split(',').map(m => m.trim()).filter(m => m),
+      }
+
+      if (profileForm.height) patientPayload.height = Number(profileForm.height)
+      if (profileForm.weight) patientPayload.weight = Number(profileForm.weight)
+
+      await updatePatient(patientId, patientPayload)
+
+      await updatePatient(patientId, patientPayload)
+ 
+       const updatedUserObj = {
+         ...user,
+         id: user._id || user.id,
+         fullName: userRes.data.fullName,
+         email: userRes.data.email,
+         phone: userRes.data.phone
+       }
+       localStorage.setItem('user', JSON.stringify(updatedUserObj))
+       login(updatedUserObj)
+
+      setEditMode(false)
+      notify('Profile updated successfully')
+    } catch (err) {
+      notify(err.message || 'Update failed', 'error')
+    }
   }
 
   const handleProfileCancel = () => {
-    setProfileForm({
-      name: user?.name || 'Kartik Joshi',
-      email: user?.email || 'kartik.joshi@example.com',
-      contact: user?.contact || '+91 98765 43210',
-      age: user?.age || '28',
-      gender: user?.gender || 'Male',
-      bloodGroup: user?.bloodGroup || 'O+',
-      address: user?.address || '123, Emerald City, Sector 45, Gurgaon, Haryana - 122001',
-      allergies: user?.allergies || 'Peanuts, Penicillin',
-      chronicConditions: user?.chronicConditions || 'None',
-      height: user?.height || '175',
-    })
     setEditMode(false)
   }
 
-  const handlePasswordSave = (e) => {
+  const handlePasswordSave = async (e) => {
     e.preventDefault()
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       notify('New passwords do not match', 'error')
@@ -90,14 +125,22 @@ function PatientProfile() {
       notify('Password must be at least 6 characters', 'error')
       return
     }
-    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
-    notify('Password changed successfully')
+    try {
+      await changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      })
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+      notify('Password changed successfully')
+    } catch (err) {
+      notify(err.message || 'Password change failed', 'error')
+    }
   }
 
   const stats = [
-    { label: 'Height', value: `${profileForm.height} cm`, icon: User, color: 'blue' },
+    { label: 'Height', value: profileForm.height ? `${profileForm.height} cm` : 'N/A', icon: User, color: 'blue' },
+    { label: 'Weight', value: profileForm.weight ? `${profileForm.weight} kg` : 'N/A', icon: Activity, color: 'orange' },
     { label: 'Blood Group', value: profileForm.bloodGroup, icon: Droplet, color: 'emerald' },
-    { label: 'Patient ID', value: user?.id?.substring(0, 8) || 'P-44829', icon: Activity, color: 'blue' },
   ]
 
   return (
@@ -238,7 +281,43 @@ function PatientProfile() {
                     disabled={!editMode}
                     className={`w-full px-5 py-4 rounded-xl border text-sm font-bold text-slate-900 outline-none transition-all ${editMode ? 'bg-white border-slate-200 cursor-pointer' : 'bg-slate-50 border-transparent appearance-none'}`}
                   >
-                    {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
+                    {GENDERS.map(g => <option key={g} value={g.toLowerCase()}>{g}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-6">
+                <div className="space-y-3">
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Height (cm)</label>
+                  <input
+                    type="number"
+                    value={profileForm.height}
+                    onChange={e => setProfileForm({ ...profileForm, height: e.target.value })}
+                    disabled={!editMode}
+                    placeholder="175"
+                    className={`w-full px-5 py-4 rounded-xl border text-sm font-bold text-slate-900 outline-none transition-all ${editMode ? 'bg-white border-slate-200 focus:border-emerald-400' : 'bg-slate-50 border-transparent'}`}
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Weight (kg)</label>
+                  <input
+                    type="number"
+                    value={profileForm.weight}
+                    onChange={e => setProfileForm({ ...profileForm, weight: e.target.value })}
+                    disabled={!editMode}
+                    placeholder="70"
+                    className={`w-full px-5 py-4 rounded-xl border text-sm font-bold text-slate-900 outline-none transition-all ${editMode ? 'bg-white border-slate-200 focus:border-emerald-400' : 'bg-slate-50 border-transparent'}`}
+                  />
+                </div>
+                <div className="space-y-3">
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Blood Group</label>
+                  <select
+                    value={profileForm.bloodGroup}
+                    onChange={e => setProfileForm({ ...profileForm, bloodGroup: e.target.value })}
+                    disabled={!editMode}
+                    className={`w-full px-5 py-4 rounded-xl border text-sm font-bold text-slate-900 outline-none transition-all ${editMode ? 'bg-white border-slate-200 cursor-pointer' : 'bg-slate-50 border-transparent appearance-none'}`}
+                  >
+                    {BLOOD_GROUPS.map(bg => <option key={bg} value={bg}>{bg}</option>)}
                   </select>
                 </div>
               </div>

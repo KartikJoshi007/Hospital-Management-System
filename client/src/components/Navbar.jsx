@@ -13,12 +13,14 @@ function useStaffPatients() {
 }
 
 function Navbar({ title, onToggle }) {
+  const { user } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const patients = useStaffPatients()
-  const searchRef = useRef(null)
-  const navigate = useNavigate()
   const { pathname } = useLocation()
+  const isPatientPath = pathname.startsWith('/patient')
+  const navigate = useNavigate()
+  const searchRef = useRef(null)
 
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -61,10 +63,14 @@ function Navbar({ title, onToggle }) {
     setSearchTerm('')
   }
 
-  const isPatientPath = pathname === '/patient' || pathname.startsWith('/patient/')
-  const userProfile = isPatientPath
-    ? { name: 'Kartik', role: 'Patient', color: '01b9a9', initials: 'KJ', profilePath: '/patient/profile' }
-    : { name: 'Admin', role: 'Admin', color: '10b981', initials: 'AD', profilePath: '/admin/profile' }
+  const userProfile = {
+    name: user?.fullName || user?.name || 'User',
+    role: user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1) || 'Account',
+    color: user?.role === 'patient' ? '01b9a9' : '10b981',
+    profilePath: `/${user?.role || 'patient'}/profile`
+  }
+
+
 
   return (
     <header className="flex h-16 w-full items-center justify-between px-8 bg-white border-b border-slate-200 sticky top-0 z-50">
@@ -172,7 +178,7 @@ function Navbar({ title, onToggle }) {
         </div>
 
         {/* Profile Card */}
-        <div 
+        <div
           onClick={() => navigate(userProfile.profilePath)}
           className="flex items-center gap-4 pl-8 border-l border-slate-100 group cursor-pointer active:scale-95 transition-transform"
         >

@@ -26,7 +26,12 @@ export const loginUser = async (credentials) => {
 
     if (token) {
       localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+      const sessionUser = {
+        ...user,
+        id: user._id || user.id,
+        fullName: user.fullName || user.name || 'User'
+      };
+      localStorage.setItem("user", JSON.stringify(sessionUser));
     }
 
     return response.data;
@@ -50,7 +55,13 @@ export const updateProfile = async (profileData) => {
   try {
     const response = await axios.put("/auth/profile", profileData);
     if (response.data.data) {
-      localStorage.setItem("user", JSON.stringify(response.data.data));
+      const u = response.data.data;
+      const sessionUser = {
+        ...u,
+        id: u._id || u.id,
+        fullName: u.fullName || u.name || 'User'
+      };
+      localStorage.setItem("user", JSON.stringify(sessionUser));
     }
     return response.data;
   } catch (error) {

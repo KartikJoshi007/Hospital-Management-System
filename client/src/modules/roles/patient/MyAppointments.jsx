@@ -19,31 +19,24 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import ModernTable from './ModernTable'
-
-const initialAppointments = [
-  {
-    id: 1,
-    doctor: 'Dr. Aryan Mehta',
-    dept: 'Cardiology',
-    date: '2023-10-24',
-    time: '10:30 AM',
-    status: 'Confirmed',
-    type: 'In-Clinic',
-    location: 'Tower A - Room 302'
-  }
-]
-
-const doctors = [
-  { name: 'Dr. Aryan Mehta', dept: 'Cardiology', rating: '4.8' },
-  { name: 'Dr. Sneha Verma', dept: 'Neurology', rating: '4.9' },
-]
+import useAuth from '../../../hooks/useAuth'
+import { useEffect } from 'react'
+import { getPatientByUserId } from '../../patients/patientApi'
+import { getPatientAppointments, createAppointment, cancelAppointment } from '../../appointments/appointmentApi'
+import { getAllDoctors } from '../../doctors/doctorApi'
 
 const departments = ['All', 'Cardiology', 'Neurology', 'Orthopedics', 'Dermatology']
 
 function MyAppointments() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  
   const [view, setView] = useState('list')
-  const [appointments, setAppointments] = useState(initialAppointments)
+  const [appointments, setAppointments] = useState([])
+  const [patientData, setPatientData] = useState(null)
+  const [doctorList, setDoctorList] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState('upcoming')
   const [searchQuery, setSearchQuery] = useState('')
   const [activeMenu, setActiveMenu] = useState(null)
@@ -59,13 +52,85 @@ function MyAppointments() {
     return matchesTab && matchesSearch && matchesDept
   })
 
-  const handleCancelVisit = (id) => {
+  const [bookingForm, setBookingForm] = useState({
+    doctorId: '',
+    date: '',
+    time: '10:00',
+    reason: '',
+    type: 'In-Clinic'
+  })
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const pRes = await getPatientByUserId(user.id)
+        const patient = pRes.data
+        setPatientData(patient)
+
+        const aRes = await getPatientAppointments(patient._id)
+        const formatted = aRes.data.appointments.map(apt => ({
+          id: apt._id,
+          doctor: apt.doctorId?.name || 'N/A',
+          dept: apt.doctorId?.department || 'General',
+          date: apt.appointmentDate.split('T')[0],
+          time: apt.appointmentTime,
+          status: apt.status.charAt(0).toUpperCase() + apt.status.slice(1),
+          type: apt.appointmentType,
+          location: apt.location || 'Hospital Clinic'
+        }))
+        setAppointments(formatted)
+
+        const dRes = await getAllDoctors(1, 100)
+        setDoctorList(dRes.data?.doctors || dRes.data || [])
+      } catch (err) {
+        console.error('Data fetch failed:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (user?.id) fetchData()
+  }, [user.id])
+
+  const handleCancelVisit = async (id) => {
     if (window.confirm('Are you sure you want to cancel this appointment?')) {
-      setAppointments(prev => prev.map(apt => 
-        apt.id === id ? { ...apt, status: 'Cancelled' } : apt
-      ))
-      setActiveMenu(null)
-      alert('Appointment cancelled successfully.')
+      try {
+        await cancelAppointment(id)
+        setAppointments(prev => prev.map(apt =>
+          apt.id === id ? { ...apt, status: 'Cancelled' } : apt
+        ))
+        setActiveMenu(null)
+        alert('Appointment cancelled successfully.')
+      } catch (err) {
+        alert(err.message || 'Failed to cancel appointment')
+      }
+    }
+  }
+
+  const handleBooking = async (e) => {
+    e.preventDefault()
+    if (!bookingForm.doctorId || !bookingForm.date) {
+      alert('Please fill in required fields')
+      return
+    }
+    try {
+      setSubmitting(true)
+      const payload = {
+        patientId: patientData._id,
+        doctorId: bookingForm.doctorId,
+        appointmentDate: bookingForm.date,
+        appointmentTime: bookingForm.time,
+        appointmentType: bookingForm.type,
+        reason: bookingForm.reason
+      }
+      await createAppointment(payload)
+      alert('Appointment scheduled successfully!')
+      setView('list')
+      window.location.reload() // Or refetch appointments
+    } catch (err) {
+      alert(err.message || 'Failed to book appointment')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -127,35 +192,35 @@ function MyAppointments() {
       </td>
       <td className="px-6 py-6 text-center">
         <div className="relative inline-block">
-          <button 
+          <button
             onClick={(e) => {
               e.stopPropagation();
               setActiveMenu(activeMenu === apt.id ? null : apt.id);
-            }} 
+            }}
             className="p-2.5 rounded-xl transition-all text-slate-300 hover:text-slate-900 hover:bg-slate-100"
           >
             <MoreVertical size={20} strokeWidth={3} />
           </button>
           <AnimatePresence>
             {activeMenu === apt.id && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95, x: 10 }} 
-                animate={{ opacity: 1, scale: 1, x: 0 }} 
-                exit={{ opacity: 0, scale: 0.95, x: 10 }} 
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, x: 10 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.95, x: 10 }}
                 className="absolute right-full top-0 mr-3 w-48 bg-white rounded-2xl border border-slate-100 shadow-2xl z-[1000] py-2 origin-right"
               >
-                 <button 
+                <button
                   onClick={() => handleViewDetails(apt)}
                   className="w-full px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 hover:text-emerald-500 transition-all flex items-center gap-3">
-                    <Info size={14} strokeWidth={3} /> View Details
-                 </button>
-                 {(apt.status === 'Confirmed' || apt.status === 'Pending') ? (
-                   <button 
+                  <Info size={14} strokeWidth={3} /> View Details
+                </button>
+                {(apt.status === 'Confirmed' || apt.status === 'Pending') ? (
+                  <button
                     onClick={() => handleCancelVisit(apt.id)}
                     className="w-full px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-all flex items-center gap-3 border-t border-slate-50">
-                      <XCircle size={14} strokeWidth={3} /> Cancel Visit
-                   </button>
-                 ) : null}
+                    <XCircle size={14} strokeWidth={3} /> Cancel Visit
+                  </button>
+                ) : null}
               </motion.div>
             )}
           </AnimatePresence>
@@ -174,9 +239,9 @@ function MyAppointments() {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-3 pl-5 line-clamp-1 sm:line-clamp-none">Track and manage your visits</p>
         </div>
         <div className="flex flex-wrap items-center gap-3 shrink-0">
-          <button 
-             onClick={() => setView('book')}
-             className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-xl active:scale-95 shrink-0"
+          <button
+            onClick={() => setView('book')}
+            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-xl active:scale-95 shrink-0"
           >
             <Plus size={16} strokeWidth={3} />
             Book New
@@ -226,9 +291,9 @@ function MyAppointments() {
                   />
                 </div>
                 <div className="relative shrink-0">
-                  <button 
-                  onClick={() => setIsFilterOpen(!isFilterOpen)}
-                  className={`p-3.5 rounded-xl transition-all shadow-sm border ${isFilterOpen ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200 hover:text-slate-900'}`}>
+                  <button
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                    className={`p-3.5 rounded-xl transition-all shadow-sm border ${isFilterOpen ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200 hover:text-slate-900'}`}>
                     {isFilterOpen ? <X size={20} strokeWidth={3} /> : <Filter size={20} strokeWidth={3} />}
                   </button>
 
@@ -262,56 +327,100 @@ function MyAppointments() {
 
             {/* Using the new ModernTable layout */}
             <div className="min-h-[400px]">
-              <ModernTable 
-                headers={tableHeaders} 
-                data={filteredAppointments} 
-                renderRow={renderAptRow} 
-              />
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                  <div className="animate-spin mb-4"><Stethoscope size={32} /></div>
+                  <p className="text-xs font-black uppercase tracking-widest">Hydrating data...</p>
+                </div>
+              ) : filteredAppointments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                  <Calendar size={48} className="mb-4 opacity-20" />
+                  <p className="text-sm font-bold uppercase tracking-widest">No appointments found</p>
+                </div>
+              ) : (
+                <ModernTable
+                  headers={tableHeaders}
+                  data={filteredAppointments}
+                  renderRow={renderAptRow}
+                />
+              )}
             </div>
-            
+
           </motion.div>
         ) : (
           <motion.div key="book" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="w-full">
             <div className="bg-white border border-slate-100 rounded-[2rem] shadow-sm overflow-hidden w-full">
-               <div className="p-6 sm:p-8 border-b border-slate-50 flex items-center gap-4 bg-slate-50/50">
-                  <div className="h-12 w-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-xl shrink-0"><Stethoscope size={24} strokeWidth={3} /></div>
-                  <div>
-                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none">Schedule Visit</h3>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 pl-1">Clinical details for appointment</p>
+              <div className="p-6 sm:p-8 border-b border-slate-50 flex items-center gap-4 bg-slate-50/50">
+                <div className="h-12 w-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-xl shrink-0"><Stethoscope size={24} strokeWidth={3} /></div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none">Schedule Visit</h3>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 pl-1">Clinical details for appointment</p>
+                </div>
+              </div>
+              <div className="p-6 sm:p-8 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Specialist / Doctor</label>
+                    <select
+                      value={bookingForm.doctorId}
+                      onChange={(e) => setBookingForm({...bookingForm, doctorId: e.target.value})}
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all cursor-pointer">
+                      <option value="" disabled>Pick a specialist</option>
+                      {doctorList.map(d => <option key={d._id} value={d._id}>{d.name} - {d.department}</option>)}
+                    </select>
                   </div>
-               </div>
-               <div className="p-6 sm:p-8 space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                     <div className="space-y-3">
-                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Specialist / Doctor</label>
-                        <select className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all cursor-pointer">
-                           <option disabled selected>Pick a specialist</option>
-                           {doctors.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
-                        </select>
-                     </div>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-3">
-                           <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Date</label>
-                           <input type="date" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none" />
-                        </div>
-                        <div className="space-y-3">
-                           <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Time Slot</label>
-                           <select className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer"><option>10:00 AM</option></select>
-                        </div>
-                     </div>
-                     <div className="md:col-span-2 space-y-3">
-                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Consultation Summary</label>
-                        <textarea rows={4} className="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-sm font-bold text-slate-900 outline-none resize-none focus:bg-white transition-all shadow-sm" />
-                     </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Date</label>
+                      <input 
+                        type="date" 
+                        value={bookingForm.date}
+                        min={new Date().toISOString().split('T')[0]}
+                        onChange={(e) => setBookingForm({...bookingForm, date: e.target.value})}
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Time Slot</label>
+                      <select 
+                        value={bookingForm.time}
+                        onChange={(e) => setBookingForm({...bookingForm, time: e.target.value})}
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none cursor-pointer">
+                        <option value="09:00">09:00 AM</option>
+                        <option value="10:00">10:00 AM</option>
+                        <option value="11:00">11:00 AM</option>
+                        <option value="12:00">12:00 PM</option>
+                        <option value="13:00">01:00 PM</option>
+                        <option value="14:00">02:00 PM</option>
+                        <option value="15:00">03:00 PM</option>
+                        <option value="16:00">04:00 PM</option>
+                      </select>
+                    </div>
                   </div>
-               </div>
-               <div className="px-6 sm:px-8 py-8 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6">
-                  <button onClick={() => setView('list')} className="text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900">Cancel</button>
-                  <button className="w-full sm:w-auto flex items-center justify-center gap-4 px-10 py-5 bg-slate-950 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-xl">
-                    Confirm Schedule 
-                    <ChevronRight size={18} strokeWidth={3} />
-                  </button>
-               </div>
+                  <div className="md:col-span-2 space-y-3">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Consultation Summary</label>
+                    <textarea 
+                      rows={4} 
+                      value={bookingForm.reason}
+                      onChange={(e) => setBookingForm({...bookingForm, reason: e.target.value})}
+                      placeholder="Tell us why you are booking this visit..."
+                      className="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-[1.5rem] text-sm font-bold text-slate-900 outline-none resize-none focus:bg-white transition-all shadow-sm" />
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 sm:px-8 py-8 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6">
+                <button onClick={() => setView('list')} className="text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-900">Cancel</button>
+                <button 
+                  disabled={submitting}
+                  onClick={handleBooking}
+                  className="w-full sm:w-auto flex items-center justify-center gap-4 px-10 py-5 bg-slate-950 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-xl disabled:bg-slate-300">
+                  {submitting ? 'Booking...' : (
+                    <>
+                      Confirm Schedule
+                      <ChevronRight size={18} strokeWidth={3} />
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
