@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, User, Phone, Activity, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { registerUser } from './authApi'
 
 function SignUp() {
   const navigate = useNavigate()
@@ -10,37 +11,37 @@ function SignUp() {
     fullName: '', email: '', phone: '', password: '', confirmPassword: '',
   })
   const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm,  setShowConfirm]  = useState(false)
-  const [error,        setError]        = useState('')
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleChange = (e) => {
     setFormData(p => ({ ...p, [e.target.name]: e.target.value }))
     setError('')
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (formData.password.length < 6)                          return setError('Password must be at least 6 characters.')
-    if (formData.password !== formData.confirmPassword)        return setError('Passwords do not match.')
+    if (formData.password.length < 6) return setError('Password must be at least 6 characters.')
+    if (formData.password !== formData.confirmPassword) return setError('Passwords do not match.')
 
-    const existing   = JSON.parse(localStorage.getItem('pendingUsers') || '[]')
-    const demoEmails = ['admin@hms.com', 'doctor@hms.com', 'patient@hms.com', 'reception@hms.com']
+    setLoading(true)
+    try {
+      const payload = {
+        fullName: formData.fullName,
+        email: formData.email.toLowerCase(),
+        phone: formData.phone,
+        password: formData.password,
+        role: 'patient'
+      }
 
-    if (demoEmails.includes(formData.email.toLowerCase()))                          return setError('This email is already registered.')
-    if (existing.find(u => u.email === formData.email.toLowerCase()))               return setError('An account with this email already exists.')
-
-    localStorage.setItem('pendingUsers', JSON.stringify([...existing, {
-      id:           `PAT-${Date.now()}`,
-      fullName:     formData.fullName,
-      email:        formData.email.toLowerCase(),
-      phone:        formData.phone,
-      password:     formData.password,
-      role:         'patient',
-      assignedRole: 'patient',
-      status:       'active',
-      createdAt:    new Date().toLocaleDateString('en-GB'),
-    }]))
-    navigate('/login')
+      await registerUser(payload)
+      navigate('/login')
+    } catch (err) {
+      setError(err.message || 'Something went wrong during registration')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const inp = 'w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm font-bold text-slate-900 shadow-sm'
@@ -143,11 +144,10 @@ function SignUp() {
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
                 <input type={showConfirm ? 'text' : 'password'} name="confirmPassword" required placeholder="Re-enter password"
                   value={formData.confirmPassword} onChange={handleChange}
-                  className={`w-full pl-10 pr-10 py-3 bg-white border rounded-2xl focus:outline-none focus:ring-4 transition-all text-sm font-bold text-slate-900 shadow-sm [&::-ms-reveal]:hidden [&::-ms-clear]:hidden ${
-                    formData.confirmPassword && formData.password !== formData.confirmPassword
-                      ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10'
-                      : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/10'
-                  }`} />
+                  className={`w-full pl-10 pr-10 py-3 bg-white border rounded-2xl focus:outline-none focus:ring-4 transition-all text-sm font-bold text-slate-900 shadow-sm [&::-ms-reveal]:hidden [&::-ms-clear]:hidden ${formData.confirmPassword && formData.password !== formData.confirmPassword
+                    ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-500/10'
+                    : 'border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/10'
+                    }`} />
                 <button type="button" onClick={() => setShowConfirm(p => !p)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
                   {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -158,9 +158,9 @@ function SignUp() {
               )}
             </div>
 
-            <button type="submit"
-              className="w-full py-4 rounded-2xl bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2 !mt-5">
-              Create Account <ArrowRight className="h-4 w-4" />
+            <button type="submit" disabled={loading}
+              className="w-full py-4 rounded-2xl bg-emerald-500 text-white text-xs font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2 !mt-5 disabled:opacity-50">
+              {loading ? 'Creating...' : 'Create Account'} <ArrowRight className="h-4 w-4" />
             </button>
           </form>
 

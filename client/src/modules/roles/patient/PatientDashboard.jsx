@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight,
   Plus,
@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import useAuth from '../../../hooks/useAuth'
-import { getPatientByUserId } from '../../patients/patientApi'
+import { getPatientByUserId, updatePatient } from '../../patients/patientApi'
 import { getPatientAppointments } from '../../appointments/appointmentApi'
 
 const STATUS_COLORS = {
@@ -35,16 +35,44 @@ function PatientDashboard() {
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
 
+  // Onboarding State
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [submittingOnboarding, setSubmittingOnboarding] = useState(false)
+  const [onboardingForm, setOnboardingForm] = useState({
+    age: '',
+    gender: 'Male',
+    height: '',
+    weight: '',
+    bloodGroup: 'O+',
+    address: '',
+    medicalHistory: ''
+  })
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
         const pRes = await getPatientByUserId(user.id)
-        setPatientData(pRes.data)
+        const p = pRes.data
+        setPatientData(p)
 
-        if (pRes.data?._id) {
-          const aRes = await getPatientAppointments(pRes.data._id, 1, 3)
-          setAppointments(aRes.data.appointments || [])
+        // Trigger onboarding if vital stats are missing/default
+        if (p && (p.height === 0 || p.weight === 0 || p.age === 0)) {
+          setShowOnboarding(true)
+          setOnboardingForm({
+            age: p.age || '',
+            gender: p.gender || 'Male',
+            height: p.height || '',
+            weight: p.weight || '',
+            bloodGroup: p.bloodGroup || 'O+',
+            address: p.address && p.address !== "Not Provided" ? p.address : '',
+            medicalHistory: p.medicalHistory && p.medicalHistory !== "No known conditions" ? p.medicalHistory : ''
+          })
+        }
+
+        if (p?._id) {
+          const aRes = await getPatientAppointments(p._id, 1, 3)
+          setAppointments(aRes.data.appointments || aRes.data || [])
         }
       } catch (err) {
         console.error('Dashboard data fetch error:', err)
@@ -55,11 +83,27 @@ function PatientDashboard() {
     if (user?.id) fetchData()
   }, [user.id])
 
+  const handleOnboardingSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      setSubmittingOnboarding(true)
+      await updatePatient(patientData._id, onboardingForm)
+      const pRes = await getPatientByUserId(user.id)
+      setPatientData(pRes.data)
+      setShowOnboarding(false)
+    } catch (err) {
+      console.error('Onboarding update failed:', err)
+      alert('Failed to update profile. Please try again.')
+    } finally {
+      setSubmittingOnboarding(false)
+    }
+  }
+
   const stats = [
     { label: 'Blood Group', value: patientData?.bloodGroup || 'N/A', icon: Activity, color: 'emerald' },
     { label: 'Height', value: patientData?.height ? `${patientData.height} cm` : 'N/A', icon: User, color: 'blue' },
     { label: 'Weight', value: patientData?.weight ? `${patientData.weight} kg` : 'N/A', icon: TrendingUp, color: 'orange' },
-    { label: 'Allergies', value: patientData?.allergies?.length || '0', icon: ShieldCheck, color: 'purple' },
+    { label: 'Allergies', value: patientData?.allergies ? (Array.isArray(patientData.allergies) ? patientData.allergies.length : 'Yes') : 'None', icon: ShieldCheck, color: 'purple' },
   ]
 
   return (
@@ -134,17 +178,17 @@ function PatientDashboard() {
                 <div key={apt._id} className="p-6 rounded-[1.5rem] bg-slate-50/50 hover:bg-slate-50 transition-all flex flex-col sm:flex-row items-center justify-between gap-6 group border border-transparent hover:border-slate-100">
                   <div className="flex items-center gap-6 w-full sm:w-auto">
                     <div className="h-14 w-14 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-300 font-black text-sm group-hover:bg-emerald-500 group-hover:text-white group-hover:border-emerald-400 transition-all shrink-0 shadow-sm">
-                      {apt.doctorId?.name?.split(' ').map(n => n[0]).join('') || 'DR'}
+                      {apt.doctor?.split(' ').map(n => n[0]).join('') || 'DR'}
                     </div>
                     <div className="min-w-0">
-                      <h4 className="text-base font-black text-slate-900 leading-tight truncate">{apt.doctorId?.name}</h4>
-                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1.5">{apt.doctorId?.department} • {apt.appointmentTime}</p>
+                      <h4 className="text-base font-black text-slate-900 leading-tight truncate">{apt.doctor || 'Unknown Doctor'}</h4>
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-1.5">{apt.dept || 'General'} • {apt.time || 'TBD'}</p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto gap-10">
                     <div className="text-right">
-                      <p className="text-sm font-black text-slate-900 mb-1">{new Date(apt.appointmentDate).toDateString()}</p>
-                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${STATUS_COLORS[apt.status.charAt(0).toUpperCase() + apt.status.slice(1)]}`}>
+                      <p className="text-sm font-black text-slate-900 mb-1">{apt.date ? new Date(apt.date).toDateString() : 'Date TBD'}</p>
+                      <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${STATUS_COLORS[apt.status?.charAt(0).toUpperCase() + apt.status?.slice(1)] || STATUS_COLORS['Pending']}`}>
                         {apt.status}
                       </span>
                     </div>
@@ -163,28 +207,30 @@ function PatientDashboard() {
             <p className="text-xs font-bold text-slate-400 pl-5 mt-2">Latest clinical outcomes</p>
           </div>
 
-          <div className="p-8 space-y-10 flex-1">
-            {patientData?.medicalHistory?.length === 0 ? (
-              <div className="text-center text-slate-400 font-bold uppercase tracking-widest text-xs py-10">No Diagnostics Logged</div>
-            ) : patientData?.medicalHistory?.map((condition, idx) => (
-              <div key={idx} className="relative flex gap-6">
-                {idx !== patientData.medicalHistory.length - 1 && (
-                  <div className="absolute left-[11px] top-8 bottom-[-40px] w-[2.5px] bg-slate-100 rounded-full" />
-                )}
-                <div className="h-6 w-6 rounded-full bg-emerald-500 border-4 border-white shadow-xl ring-2 ring-emerald-50 shrink-0 relative z-10" />
-                <div className="space-y-3 flex-1 min-w-0">
-                  <div className="flex flex-col gap-1">
-                    <h4 className="text-base font-black text-slate-900 truncate leading-tight">Patient Record Update</h4>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ongoing Track</span>
-                  </div>
-                  <div className="bg-slate-50/80 p-5 rounded-2xl border border-slate-100/50 mt-2">
-                    <p className="text-xs font-bold text-slate-600 leading-relaxed italic">
-                      {condition}
-                    </p>
+          <div className="p-8 space-y-10 flex-1 overflow-y-auto">
+            {!patientData?.medicalHistory || (Array.isArray(patientData.medicalHistory) && patientData.medicalHistory.length === 0) ? (
+              <div className="text-center text-slate-400 font-bold uppercase tracking-widest text-xs py-10 opacity-60">No Diagnostics Logged</div>
+            ) : (
+              (Array.isArray(patientData.medicalHistory) ? patientData.medicalHistory : [patientData.medicalHistory]).map((condition, idx) => (
+                <div key={idx} className="relative flex gap-6">
+                  {(Array.isArray(patientData.medicalHistory) ? idx !== patientData.medicalHistory.length - 1 : false) && (
+                    <div className="absolute left-[11px] top-8 bottom-[-40px] w-[2.5px] bg-slate-100 rounded-full" />
+                  )}
+                  <div className="h-6 w-6 rounded-full bg-emerald-500 border-4 border-white shadow-xl ring-2 ring-emerald-50 shrink-0 relative z-10" />
+                  <div className="space-y-3 flex-1 min-w-0">
+                    <div className="flex flex-col gap-1">
+                      <h4 className="text-base font-black text-slate-900 truncate leading-tight">Clinical Summary</h4>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Diagnostic Record</span>
+                    </div>
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100/50 mt-2">
+                      <p className="text-xs font-bold text-slate-600 leading-relaxed italic">
+                        {condition}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           <div className="p-8 mt-auto pt-0">
@@ -198,6 +244,141 @@ function PatientDashboard() {
       </div>
         </>
       )}
+
+      {/* Onboarding Modal */}
+      <AnimatePresence>
+        {showOnboarding && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-xl overflow-hidden border border-slate-100"
+            >
+              <div className="bg-emerald-500 p-8 text-white relative">
+                <div className="absolute top-0 right-0 p-10 opacity-10">
+                  <Activity size={120} strokeWidth={4} />
+                </div>
+                <h2 className="text-3xl font-black uppercase tracking-tight leading-tight">Complete Your Profile</h2>
+                <p className="text-emerald-100 font-bold text-sm tracking-widest mt-2">Initialize your clinical records for better care</p>
+              </div>
+              
+              <form onSubmit={handleOnboardingSubmit} className="p-8 space-y-6">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Age (Years)</label>
+                    <input 
+                      required
+                      type="number"
+                      placeholder="e.g. 25"
+                      disabled={submittingOnboarding}
+                      value={onboardingForm.age}
+                      onChange={e => setOnboardingForm({...onboardingForm, age: e.target.value})}
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gender</label>
+                    <select 
+                      value={onboardingForm.gender}
+                      disabled={submittingOnboarding}
+                      onChange={e => setOnboardingForm({...onboardingForm, gender: e.target.value})}
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all cursor-pointer"
+                    >
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Blood Group</label>
+                    <select 
+                      value={onboardingForm.bloodGroup}
+                      disabled={submittingOnboarding}
+                      onChange={e => setOnboardingForm({...onboardingForm, bloodGroup: e.target.value})}
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all cursor-pointer"
+                    >
+                      {["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Height (cm)</label>
+                    <input 
+                      required
+                      type="number"
+                      placeholder="e.g. 175"
+                      disabled={submittingOnboarding}
+                      value={onboardingForm.height}
+                      onChange={e => setOnboardingForm({...onboardingForm, height: e.target.value})}
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Weight (kg)</label>
+                    <input 
+                      required
+                      type="number"
+                      placeholder="e.g. 70"
+                      disabled={submittingOnboarding}
+                      value={onboardingForm.weight}
+                      onChange={e => setOnboardingForm({...onboardingForm, weight: e.target.value})}
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Residential Address</label>
+                  <textarea
+                    required
+                    placeholder="Provide your full primary address..."
+                    disabled={submittingOnboarding}
+                    value={onboardingForm.address}
+                    onChange={e => setOnboardingForm({...onboardingForm, address: e.target.value})}
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all min-h-[80px]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Medical history / Chronic Conditions</label>
+                  <textarea
+                    placeholder="List any ongoing conditions (Diabetes, Hypertension, etc.)..."
+                    disabled={submittingOnboarding}
+                    value={onboardingForm.medicalHistory}
+                    onChange={e => setOnboardingForm({...onboardingForm, medicalHistory: e.target.value})}
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all min-h-[80px]"
+                  />
+                </div>
+
+                <button 
+                  type="submit"
+                  disabled={submittingOnboarding}
+                  className="w-full flex items-center justify-center gap-3 py-5 bg-slate-950 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-2xl active:scale-[0.98] disabled:opacity-50"
+                >
+                  {submittingOnboarding ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} />
+                      Saving Profile...
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck size={18} strokeWidth={3} />
+                      Finalize My Profile
+                    </>
+                  )}
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

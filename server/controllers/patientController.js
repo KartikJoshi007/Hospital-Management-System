@@ -61,7 +61,7 @@ exports.getAllPatients = asyncHandler(async (req, res) => {
 // @desc    Get patient by ID
 // @route   GET /api/patients/:id
 exports.getPatientById = asyncHandler(async (req, res) => {
-  const patient = await Patient.findById(req.params.id);
+  const patient = await Patient.findById(req.params.id).populate("userId", "fullName email phone");
 
   if (!patient) {
     throw new ApiError(404, "Patient not found");
@@ -75,7 +75,7 @@ exports.getPatientById = asyncHandler(async (req, res) => {
 // @desc    Get patient by user ID (with Lazy Creation)
 // @route   GET /api/patients/user/:userId
 exports.getPatientByUserId = asyncHandler(async (req, res) => {
-  let patient = await Patient.findOne({ userId: req.params.userId });
+  let patient = await Patient.findOne({ userId: req.params.userId }).populate("userId", "fullName email phone");
 
   // ✅ Lazy Creation: If no profile found, create a default one for the user
   if (!patient) {
@@ -94,6 +94,9 @@ exports.getPatientByUserId = asyncHandler(async (req, res) => {
         height: 0,
         weight: 0,
       });
+
+      // Populate after creation
+      patient = await Patient.findById(patient._id).populate("userId", "fullName email phone");
     } else {
       throw new ApiError(404, "Patient profile not found for this user");
     }
