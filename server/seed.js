@@ -8,6 +8,7 @@ const Appointment = require("./models/Appointment");
 const Expense = require("./models/Expense");
 const Medicine = require("./models/Medicine");
 const Billing = require("./models/Billing");
+const MedicalRecord = require("./models/MedicalRecord");
 
 const connectDB = require("./config/db");
 
@@ -32,32 +33,6 @@ const initialDoctors = [
     status: 'Active', 
     patients: 24 
   },
-  { 
-    name: 'Dr. Sneha Verma', 
-    specialization: 'Neurology', 
-    category: 'neurology',
-    roleLevel: 'consultant',
-    isOnDuty: false,
-    experience: '8 Years', 
-    availability: 'Tue, Thu, Sat (9AM–1PM)', 
-    contact: '+91 87654 32109', 
-    email: 'sneha@hms.com', 
-    status: 'Active', 
-    patients: 18 
-  },
-  { 
-    name: 'Dr. Rahul Patil', 
-    specialization: 'Orthopedics', 
-    category: 'orthopedic',
-    roleLevel: 'resident doctor',
-    isOnDuty: true,
-    experience: '15 Years', 
-    availability: 'Mon–Fri (2PM–6PM)', 
-    contact: '+91 76543 21098', 
-    email: 'rahul@hms.com', 
-    status: 'On Leave', 
-    patients: 0 
-  },
 ];
 
 const initialPatients = [
@@ -79,53 +54,19 @@ const initialPatients = [
       height: 175,
       weight: 75,
       bmi: 24.5
-    },
-    medicalReports: [
-      { title: "Blood Test - June", fileUrl: "https://example.com/report1.pdf" }
-    ]
-  },
-  { 
-    name: 'Rohan Sharma', 
-    age: 34, 
-    gender: 'Male', 
-    contact: '9876543210', 
-    bloodGroup: 'B+', 
-    status: 'Active', 
-    address: 'Mumbai, MH', 
-    medicalHistory: 'Diabetes Type 2',
-    vitals: {
-      bloodPressure: "130/85",
-      heartRate: 80,
-      temperature: 99.1,
-      oxygenSaturation: 97,
-      height: 168,
-      weight: 70,
-      bmi: 24.8
     }
   },
 ];
 
-const initialAppointments = [
-  { patient: 'Rohan Sharma', doctor: 'Dr. Aryan Mehta', dept: 'Cardiology', date: new Date(), time: '10:30 AM', status: 'Pending', reason: 'Chest pain' },
-  { patient: 'Priya Verma', doctor: 'Dr. Sneha Verma', dept: 'Neurology', date: new Date(), time: '11:15 AM', status: 'Confirmed', reason: 'Headache' },
-];
-
-const initialExpenses = [
-  { item: 'MRI Machine Maintenance', category: 'Machine', amount: 50000, date: new Date() },
-  { item: 'Office Chairs', category: 'Furniture', amount: 12000, date: new Date() },
-];
-
 const initialBilling = [
-  { patientName: "Rohan Sharma", amount: 1500, type: "OPD", paymentStatus: "Paid", department: "cardiology", category: "consultation" },
-  { patientName: "Priya Verma", amount: 12000, type: "IPD", paymentStatus: "Paid", department: "neurology", category: "surgery" },
-  { patientName: "Amit Patel", amount: 500, type: "OPD", paymentStatus: "Pending", department: "general", category: "medicine" },
+  { patientName: "Suresh Raina", amount: 1500, type: "OPD", paymentStatus: "Paid", department: "cardiology", category: "consultation" },
 ];
 
 const seedDB = async () => {
   try {
     await connectDB();
 
-    console.log("🛠️ Starting Full Database Sync (Aligned with Dashboard Requirements)...");
+    console.log("🛠️ Starting Database Seed (Clinical & Analytics Optimized)...");
 
     // Clean all collections
     await User.deleteMany();
@@ -135,8 +76,7 @@ const seedDB = async () => {
     await Expense.deleteMany();
     await Medicine.deleteMany();
     await Billing.deleteMany();
-
-    console.log("🗑️ Cleared existing database records.");
+    await MedicalRecord.deleteMany();
 
     // 1. Seed Users
     const createdUsers = [];
@@ -144,28 +84,60 @@ const seedDB = async () => {
       const user = await User.create(u);
       createdUsers.push(user);
     }
+
+    // 2. Seed Patient & Doctor
+    const drUser = createdUsers.find(u => u.role === "doctor");
+    initialDoctors[0].userId = drUser._id;
+    const doctor = await Doctor.create(initialDoctors[0]);
+
+    const ptUser = createdUsers.find(u => u.role === "patient");
+    initialPatients[0].userId = ptUser._id;
+    const patient = await Patient.create(initialPatients[0]);
+
+    // 3. Seed Medical Records (Internal & Historical)
+    await MedicalRecord.create([
+      {
+        patientId: patient._id,
+        doctorId: doctor._id,
+        type: "Prescription",
+        source: "Internal",
+        title: "Initial Consultation",
+        description: "Take Metformin 500mg daily.",
+        clinicName: "Our Hospital",
+        date: new Date('2024-06-01')
+      },
+      {
+        patientId: patient._id,
+        type: "Historical History",
+        source: "External",
+        title: "Asthma History (Childhood)",
+        description: "Diagnosed at age 10. Used inhaler for 5 years.",
+        clinicName: "Apollo Hospital, Delhi",
+        date: new Date('2015-06-12')
+      },
+      {
+        patientId: patient._id,
+        type: "Lab Report",
+        source: "Internal",
+        title: "Blood Sugar Test",
+        description: "Fasting blood sugar level: 110 mg/dL.",
+        clinicName: "Main Lab",
+        date: new Date('2024-06-05')
+      }
+    ]);
+
+    // 4. Seed Billing
+    initialBilling[0].patientId = patient._id;
+    initialBilling[0].doctorId = doctor._id;
+    await Billing.create(initialBilling);
+
     console.log(`✅ Seeded ${createdUsers.length} Base Users.`);
+    console.log(`✅ Seeded 1 Doctor (Aryan Mehta).`);
+    console.log(`✅ Seeded 1 Patient (Suresh Raina) with full Clinical Records.`);
+    console.log(`✅ Seeded Internal Prescriptions and External Historical Data.`);
+    console.log(`✅ Seeded Billing records for Revenue Analytics.`);
 
-    // 2. Seed Doctors (Linking to User)
-    const doctorUser = createdUsers.find(u => u.role === "doctor");
-    if (doctorUser) initialDoctors[0].userId = doctorUser._id;
-    await Doctor.insertMany(initialDoctors);
-    console.log(`✅ Seeded ${initialDoctors.length} Doctors (with role levels & categories).`);
-
-    // 3. Seed Patients (Linking to User)
-    const patientUser = createdUsers.find(u => u.role === "patient");
-    if (patientUser) initialPatients[0].userId = patientUser._id;
-    await Patient.insertMany(initialPatients);
-    console.log(`✅ Seeded ${initialPatients.length} Patients (with full vitals & reports).`);
-
-    // 4. Seed Others
-    await Appointment.insertMany(initialAppointments);
-    await Expense.insertMany(initialExpenses);
-    await Billing.insertMany(initialBilling);
-
-    console.log(`✅ Seeded Dashboard Data (Appointments, Billing, Expenses).`);
-
-    console.log("\n🎉 DATABASE SYNC COMPLETE! Your backend is now 100% aligned with your Admin Dashboard requirements.\n");
+    console.log("\n🎉 SEED COMPLETE! Your schema is now fully verified for Hospital operations.\n");
     process.exit();
   } catch (err) {
     console.error("❌ Seeding failed:", err);

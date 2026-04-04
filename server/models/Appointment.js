@@ -28,10 +28,11 @@ const appointmentSchema = new mongoose.Schema(
       required: [true, "Department is required"],
     },
 
-    // 🔥 FIX (String → Date)
+    // 🔥 FIX (String → Date & indexed for bar graphs)
     date: {
       type: Date,
       required: [true, "Date is required"],
+      index: true,
     },
 
     time: {
