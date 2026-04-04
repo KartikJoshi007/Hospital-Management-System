@@ -1,55 +1,97 @@
-import { useState, useMemo } from 'react'
-import { Search, Edit, Trash2, Eye, X, AlertCircle } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Search, Edit, Trash2, Eye, X, AlertCircle, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import PatientProfileModal from './PatientProfileModal'
-
-const initialPatients = [
-  { id: 'P-001', name: 'Rohan Sharma', age: 34, gender: 'Male', contact: '9876543210', bloodGroup: 'B+', status: 'Active', address: 'Mumbai, MH', medicalHistory: 'Diabetes Type 2' },
-  { id: 'P-002', name: 'Priya Verma', age: 28, gender: 'Female', contact: '8765432109', bloodGroup: 'O+', status: 'Admitted', address: 'Pune, MH', medicalHistory: 'Asthma (mild)' },
-  { id: 'P-003', name: 'Amit Patel', age: 45, gender: 'Male', contact: '9123456789', bloodGroup: 'A+', status: 'Discharged', address: 'Ahmedabad, GJ', medicalHistory: 'Hypertension' },
-  { id: 'P-004', name: 'Sara Khan', age: 31, gender: 'Female', contact: '7654321098', bloodGroup: 'AB-', status: 'Active', address: 'Delhi, DL', medicalHistory: 'No known conditions' },
-  { id: 'P-005', name: 'Vikram Singh', age: 52, gender: 'Male', contact: '9000111222', bloodGroup: 'O-', status: 'Admitted', address: 'Jaipur, RJ', medicalHistory: 'Cardiac history' },
-]
+import { getAllPatients, updatePatient, deletePatient } from '../../patients/patientApi'
 
 const STATUS_COLORS = {
-  Active: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-  Admitted: 'bg-blue-50 text-blue-600 border-blue-100',
+  Active:     'bg-emerald-50 text-emerald-600 border-emerald-100',
+  Admitted:   'bg-blue-50 text-blue-600 border-blue-100',
   Discharged: 'bg-slate-50 text-slate-500 border-slate-100',
 }
 
 function PatientManagement() {
-  const [patients, setPatients] = useState(initialPatients)
-  const [search, setSearch] = useState('')
-  const [genderFilter, setGenderFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [patients, setPatients]             = useState([])
+  const [loading, setLoading]               = useState(true)
+  const [error, setError]                   = useState('')
+  const [search, setSearch]                 = useState('')
+  const [genderFilter, setGenderFilter]     = useState('')
+  const [statusFilter, setStatusFilter]     = useState('')
   const [viewPatient, setViewPatient]       = useState(null)
-  const [editPatient, setEditPatient] = useState(null)
+  const [editPatient, setEditPatient]       = useState(null)
   const [deleteCandidate, setDeleteCandidate] = useState(null)
-  const [formData, setFormData] = useState({})
-  const [message, setMessage] = useState('')
+  const [formData, setFormData]             = useState({})
+  const [saving, setSaving]                 = useState(false)
+  const [deleting, setDeleting]             = useState(false)
+  const [message, setMessage]               = useState('')
 
-  const filtered = useMemo(() => patients.filter(p => {
-    const bySearch = search ? p.name.toLowerCase().includes(search.toLowerCase()) || p.contact.includes(search) : true
-    const byGender = genderFilter ? p.gender === genderFilter : true
-    const byStatus = statusFilter ? p.status === statusFilter : true
-    return bySearch && byGender && byStatus
-  }), [patients, search, genderFilter, statusFilter])
-
-  const openEdit = (p) => { setEditPatient(p); setFormData({ ...p }) }
-
-  const handleSave = (e) => {
-    e.preventDefault()
-    setPatients(prev => prev.map(p => p.id === editPatient.id ? { ...formData, id: editPatient.id } : p))
-    setMessage('Patient updated successfully')
-    setEditPatient(null)
+  const showMsg = (msg) => {
+    setMessage(msg)
     setTimeout(() => setMessage(''), 3000)
   }
 
-  const confirmDelete = () => {
-    setPatients(prev => prev.filter(p => p.id !== deleteCandidate.id))
-    setMessage('Patient removed successfully')
-    setDeleteCandidate(null)
-    setTimeout(() => setMessage(''), 3000)
+  const fetchPatients = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await getAllPatients(1, 100, search)
+      // backend returns { data: { data: [...] } } or { data: [...] }
+      const list = res?.data?.data ?? res?.data ?? []
+      // apply gender + status filter client-side (backend supports search only)
+      setPatients(list)
+    } catch (err) {
+      setError(err?.message || 'Failed to load patients')
+    } finally {
+      setLoading(false)
+    }
+  }, [search])
+
+  // debounce search
+  useEffect(() => {
+    const t = setTimeout(() => fetchPatients(), 400)
+    return () => clearTimeout(t)
+  }, [fetchPatients])
+
+  // client-side gender + status filter
+  const filtered = patients.filter(p => {
+    const byGender = genderFilter ? p.gender?.toLowerCase() === genderFilter.toLowerCase() : true
+    const byStatus = statusFilter ? p.status === statusFilter : true
+    return byGender && byStatus
+  })
+
+  const openEdit = (p) => {
+    setEditPatient(p)
+    setFormData({ name: p.name, age: p.age, contact: p.contact, address: p.address, medicalHistory: p.medicalHistory })
+  }
+
+  const handleSave = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    try {
+      const res = await updatePatient(editPatient._id, formData)
+      const updated = res?.data ?? res
+      setPatients(prev => prev.map(p => p._id === editPatient._id ? { ...p, ...updated } : p))
+      setEditPatient(null)
+      showMsg('Patient updated successfully')
+    } catch (err) {
+      showMsg(err?.message || 'Update failed')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const confirmDelete = async () => {
+    setDeleting(true)
+    try {
+      await deletePatient(deleteCandidate._id)
+      setPatients(prev => prev.filter(p => p._id !== deleteCandidate._id))
+      setDeleteCandidate(null)
+      showMsg('Patient removed successfully')
+    } catch (err) {
+      showMsg(err?.message || 'Delete failed')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -62,8 +104,9 @@ function PatientManagement() {
       </div>
 
       {message && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="px-5 py-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-xs font-black text-emerald-700">
-          ✓ {message}
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className={`px-5 py-3 rounded-2xl text-xs font-black border ${message.includes('failed') || message.includes('Failed') ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
+          {message.includes('failed') || message.includes('Failed') ? '✕' : '✓'} {message}
         </motion.div>
       )}
 
@@ -88,59 +131,75 @@ function PatientManagement() {
           <option value="Admitted">Admitted</option>
           <option value="Discharged">Discharged</option>
         </select>
+        {(genderFilter || statusFilter) && (
+          <button onClick={() => { setGenderFilter(''); setStatusFilter('') }}
+            className="px-4 py-3 rounded-xl bg-rose-50 text-rose-500 text-xs font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-500 hover:text-white transition-all">
+            Clear
+          </button>
+        )}
       </div>
 
       {/* Table */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/50">
-                {['Patient', 'Age / Gender', 'Contact', 'Blood Group', 'Status', 'Actions'].map(h => (
-                  <th key={h} className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-6 py-12 text-center text-xs font-bold text-slate-400">No patients found</td></tr>
-              ) : filtered.map((p, idx) => (
-                <motion.tr key={p.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.03 }}
-                  className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                          onClick={() => setViewPatient(p)}
-                          className="h-9 w-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0 cursor-pointer"
-                        >
-                          {p.name.charAt(0)}
+        {loading ? (
+          <div className="flex items-center justify-center py-16 gap-3 text-slate-400">
+            <Loader2 size={18} className="animate-spin" />
+            <span className="text-xs font-bold">Loading patients...</span>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-16 gap-2 text-rose-400">
+            <AlertCircle size={16} />
+            <span className="text-xs font-bold">{error}</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/50">
+                  {['Patient', 'Age / Gender', 'Contact', 'Blood Group', 'Status', 'Actions'].map(h => (
+                    <th key={h} className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={6} className="px-6 py-12 text-center text-xs font-bold text-slate-400">No patients found</td></tr>
+                ) : filtered.map((p, idx) => (
+                  <motion.tr key={p._id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.03 }}
+                    className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div onClick={() => setViewPatient(p)}
+                          className="h-9 w-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0 cursor-pointer">
+                          {p.name?.charAt(0)}
                         </div>
-                      <div>
-                        <p className="text-xs font-black text-slate-900">{p.name}</p>
-                        <p className="text-[9px] font-bold text-slate-400">{p.id}</p>
+                        <div>
+                          <p className="text-xs font-black text-slate-900">{p.name}</p>
+                          <p className="text-[9px] font-bold text-slate-400">{p._id?.slice(-6).toUpperCase()}</p>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-xs font-bold text-slate-600">{p.age} yrs • {p.gender}</td>
-                  <td className="px-6 py-4 text-xs font-bold text-slate-600">{p.contact}</td>
-                  <td className="px-6 py-4">
-                    <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 text-[9px] font-black border border-rose-100">{p.bloodGroup}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${STATUS_COLORS[p.status]}`}>{p.status}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => setViewPatient(p)} className="p-2 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-500 transition-all"><Eye size={14} /></button>
-                      <button onClick={() => openEdit(p)} className="p-2 rounded-lg text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 transition-all"><Edit size={14} /></button>
-                      <button onClick={() => setDeleteCandidate(p)} className="p-2 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-all"><Trash2 size={14} /></button>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-bold text-slate-600">{p.age} yrs • {p.gender}</td>
+                    <td className="px-6 py-4 text-xs font-bold text-slate-600">{p.contact}</td>
+                    <td className="px-6 py-4">
+                      <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-600 text-[9px] font-black border border-rose-100">{p.bloodGroup}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${STATUS_COLORS[p.status] || STATUS_COLORS.Active}`}>{p.status}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setViewPatient(p)} className="p-2 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-500 transition-all"><Eye size={14} /></button>
+                        <button onClick={() => openEdit(p)} className="p-2 rounded-lg text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 transition-all"><Edit size={14} /></button>
+                        <button onClick={() => setDeleteCandidate(p)} className="p-2 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-all"><Trash2 size={14} /></button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {viewPatient && (
@@ -160,11 +219,11 @@ function PatientManagement() {
                 </div>
                 <form onSubmit={handleSave} className="space-y-4">
                   {[
-                    { label: 'Full Name', key: 'name', type: 'text' },
-                    { label: 'Age', key: 'age', type: 'number' },
-                    { label: 'Contact', key: 'contact', type: 'tel' },
-                    { label: 'Address', key: 'address', type: 'text' },
-                    { label: 'Medical History', key: 'medicalHistory', type: 'text' },
+                    { label: 'Full Name',        key: 'name',           type: 'text'   },
+                    { label: 'Age',              key: 'age',            type: 'number' },
+                    { label: 'Contact',          key: 'contact',        type: 'tel'    },
+                    { label: 'Address',          key: 'address',        type: 'text'   },
+                    { label: 'Medical History',  key: 'medicalHistory', type: 'text'   },
                   ].map(f => (
                     <div key={f.key}>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{f.label}</label>
@@ -174,7 +233,11 @@ function PatientManagement() {
                   ))}
                   <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                     <button type="button" onClick={() => setEditPatient(null)} className="px-6 py-3 rounded-xl border border-slate-200 text-xs font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all">Cancel</button>
-                    <button type="submit" className="px-8 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-500 transition-all active:scale-95">Update</button>
+                    <button type="submit" disabled={saving}
+                      className="px-8 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-500 transition-all active:scale-95 disabled:opacity-60 flex items-center gap-2">
+                      {saving && <Loader2 size={13} className="animate-spin" />}
+                      Update
+                    </button>
                   </div>
                 </form>
               </div>
@@ -194,7 +257,11 @@ function PatientManagement() {
               <p className="text-sm font-bold text-slate-400 mt-2 mb-8">Remove <span className="text-slate-900 font-black">{deleteCandidate.name}</span> from records?</p>
               <div className="flex gap-3">
                 <button onClick={() => setDeleteCandidate(null)} className="flex-1 py-3 rounded-2xl bg-slate-50 text-xs font-black uppercase tracking-widest text-slate-400 border border-slate-100 hover:bg-slate-100 transition-all">Cancel</button>
-                <button onClick={confirmDelete} className="flex-1 py-3 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white hover:bg-rose-600 transition-all active:scale-95">Remove</button>
+                <button onClick={confirmDelete} disabled={deleting}
+                  className="flex-1 py-3 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white hover:bg-rose-600 transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2">
+                  {deleting && <Loader2 size={13} className="animate-spin" />}
+                  Remove
+                </button>
               </div>
             </motion.div>
           </div>

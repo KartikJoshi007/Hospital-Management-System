@@ -7,13 +7,6 @@ import { getAllDoctors, createDoctor, updateDoctor, deleteDoctor } from '../../d
 
 const SPECIALIZATIONS = ['Cardiology', 'Neurology', 'Orthopedics', 'Dermatology', 'Pediatrics', 'General Medicine']
 
-const initialDoctors = [
-  { id: 'D-001', name: 'Dr. Aryan Mehta', specialization: 'Cardiology',      experience: '12 Years', availability: 'Mon, Wed, Fri (10AM–2PM)', contact: '+91 98765 43210', email: 'aryan@hms.com',  status: 'Active',   patients: 24 },
-  { id: 'D-002', name: 'Dr. Sneha Verma', specialization: 'Neurology',        experience: '8 Years',  availability: 'Tue, Thu, Sat (9AM–1PM)',  contact: '+91 87654 32109', email: 'sneha@hms.com',  status: 'Active',   patients: 18 },
-  { id: 'D-003', name: 'Dr. Rahul Patil', specialization: 'Orthopedics',      experience: '15 Years', availability: 'Mon–Fri (2PM–6PM)',         contact: '+91 76543 21098', email: 'rahul@hms.com',  status: 'On Leave', patients: 0  },
-  { id: 'D-004', name: 'Dr. Nisha Iyer',  specialization: 'Dermatology',      experience: '5 Years',  availability: 'Wed, Fri, Sun (11AM–4PM)', contact: '+91 65432 10987', email: 'nisha@hms.com',  status: 'Active',   patients: 12 },
-]
-
 const emptyForm = { name: '', specialization: '', experience: '', availability: '', contact: '', email: '', status: 'Active' }
 
 function DoctorManagement({ view }) {
@@ -36,7 +29,7 @@ function DoctorManagement({ view }) {
     try {
       setLoading(true)
       const res = await getAllDoctors()
-      setDoctors(res.data || [])
+      setDoctors(res?.data?.data ?? res?.data ?? [])
       setError(null)
     } catch (err) {
       console.error('Error fetching doctors:', err)

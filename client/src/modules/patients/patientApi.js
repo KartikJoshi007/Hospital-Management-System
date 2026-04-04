@@ -12,10 +12,10 @@ export const createPatient = async (patientData) => {
 };
 
 // Get all patients
-export const getAllPatients = async (page = 1, limit = 10, search = "") => {
+export const getAllPatients = async (page = 1, limit = 100, search = "", gender = "", status = "") => {
   try {
     const response = await axios.get("/patients", {
-      params: { page, limit, search },
+      params: { page, limit, search, gender, status },
     });
     return response.data;
   } catch (error) {
