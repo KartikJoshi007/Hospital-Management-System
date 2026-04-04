@@ -58,14 +58,14 @@ function PatientDashboard() {
         const p = pRes.data
         setPatientData(p)
 
-        // Trigger onboarding if vital stats are missing/default
-        if (p && (p.height === 0 || p.weight === 0 || p.age === 0)) {
+        // Strictly trigger onboarding if vital stats are missing/disabled
+        if (p && (!p.vitals || p.vitals.height === 0 || p.vitals.weight === 0 || p.age === 0 || p.address === 'Not Provided')) {
           setShowOnboarding(true)
           setOnboardingForm({
             age: p.age || '',
             gender: p.gender || 'Male',
-            height: p.height || '',
-            weight: p.weight || '',
+            height: p.vitals?.height || '',
+            weight: p.vitals?.weight || '',
             bloodGroup: p.bloodGroup || 'O+',
             address: p.address && p.address !== "Not Provided" ? p.address : '',
             medicalHistory: p.medicalHistory && p.medicalHistory !== "No known conditions" ? p.medicalHistory : ''
@@ -89,7 +89,12 @@ function PatientDashboard() {
     e.preventDefault()
     try {
       setSubmittingOnboarding(true)
-      await updatePatient(patientData._id, onboardingForm)
+      const payload = {
+        ...onboardingForm,
+        height: Number(onboardingForm.height),
+        weight: Number(onboardingForm.weight)
+      }
+      await updatePatient(patientData._id, payload)
       const pRes = await getPatientByUserId(user.id)
       setPatientData(pRes.data)
       setShowOnboarding(false)
@@ -102,11 +107,10 @@ function PatientDashboard() {
   }
 
   const stats = [
-    { label: 'Blood Group', value: patientData?.bloodGroup || 'N/A', icon: Activity, color: 'emerald' },
-    { label: 'Height', value: patientData?.height ? `${patientData.height} cm` : 'N/A', icon: User, color: 'blue' },
-    { label: 'Weight', value: patientData?.weight ? `${patientData.weight} kg` : 'N/A', icon: TrendingUp, color: 'orange' },
-    { label: 'Allergies', value: patientData?.allergies ? (Array.isArray(patientData.allergies) ? patientData.allergies.length : 'Yes') : 'None', icon: ShieldCheck, color: 'purple' },
-    { label: 'Admission Date', value: patientData?.admissionDate ? new Date(patientData.admissionDate).toLocaleDateString() : 'None', icon: FileText, color: 'emerald' },
+    { label: 'Blood Group', value: patientData?.bloodGroup || 'O+', icon: Activity, color: 'emerald' },
+    { label: 'Height', value: patientData?.vitals?.height ? `${patientData.vitals.height} cm` : 'N/A', icon: User, color: 'blue' },
+    { label: 'Weight', value: patientData?.vitals?.weight ? `${patientData.vitals.weight} kg` : 'N/A', icon: TrendingUp, color: 'orange' },
+    { label: 'Medical History', value: patientData?.medicalHistory && patientData.medicalHistory !== "No known conditions" ? patientData.medicalHistory : 'None', icon: ShieldCheck, color: 'purple' },
   ]
 
   return (
@@ -380,6 +384,15 @@ function PatientDashboard() {
                     </>
                   )}
                 </button>
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowOnboarding(false)}
+                    className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-700 transition-colors bg-transparent border-none outline-none"
+                  >
+                    I'll complete this later
+                  </button>
+                </div>
               </form>
             </motion.div>
           </motion.div>
