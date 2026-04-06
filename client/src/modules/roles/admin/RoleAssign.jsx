@@ -25,11 +25,14 @@ const LEVEL_COLORS = {
 }
 
 function RoleAssign() {
-  const [doctors, setDoctors] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState('')
-  const [search,  setSearch]  = useState('')
-  const [saving,  setSaving]  = useState({}) // { [id]: 'saving' | 'saved' | 'error' }
+  const [doctors,   setDoctors]   = useState([])
+  const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState('')
+  const [search,    setSearch]    = useState('')
+  const [editId,    setEditId]    = useState(null)   // which row is in edit mode
+  const [editLevel, setEditLevel] = useState('')     // selected level in edit mode
+  const [saving,    setSaving]    = useState(false)
+  const [savedId,   setSavedId]   = useState(null)   // show ✓ Saved for this id
 
   // GET /api/doctors
   useEffect(() => {
@@ -44,28 +47,33 @@ function RoleAssign() {
     d.specialization?.toLowerCase().includes(search.toLowerCase())
   )
 
-  // PUT /api/doctors/:id — send full doctor object with updated roleLevel
-  const updateLevel = async (doc, displayLevel) => {
-    const id = doc._id
-    setSaving(p => ({ ...p, [id]: 'saving' }))
+  const handleEdit = (doc) => {
+    setEditId(doc._id)
+    setEditLevel(toDisplay(doc.roleLevel))
+  }
 
+  const handleCancel = () => {
+    setEditId(null)
+    setEditLevel('')
+  }
+
+  // PATCH /api/doctors/:id/role-level
+  const handleSave = async (doc) => {
+    setSaving(true)
     try {
-      await api.put(`/doctors/${id}`, {
-        name:           doc.name,
-        specialization: doc.specialization,
-        experience:     doc.experience,
-        availability:   doc.availability,
-        contact:        doc.contact,
-        email:          doc.email,
-        roleLevel:      toBackend(displayLevel), // Title Case → lowercase
+      await api.patch(`/doctors/${doc._id}/role-level`, {
+        roleLevel: toBackend(editLevel),
       })
-      // update local state
-      setDoctors(prev => prev.map(d => d._id === id ? { ...d, roleLevel: toBackend(displayLevel) } : d))
-      setSaving(p => ({ ...p, [id]: 'saved' }))
-      setTimeout(() => setSaving(p => ({ ...p, [id]: '' })), 2000)
+      setDoctors(prev => prev.map(d => d._id === doc._id ? { ...d, roleLevel: toBackend(editLevel) } : d))
+      setEditId(null)
+      setEditLevel('')
+      setSavedId(doc._id)
+      setTimeout(() => setSavedId(null), 2500)
     } catch {
-      setSaving(p => ({ ...p, [id]: 'error' }))
-      setTimeout(() => setSaving(p => ({ ...p, [id]: '' })), 2500)
+      setError('Failed to update role. Please try again.')
+      setTimeout(() => setError(''), 3000)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -124,7 +132,7 @@ function RoleAssign() {
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-xs font-bold text-slate-400">No doctors found</td></tr>
               ) : filtered.map((doc, idx) => {
                 const displayLevel = toDisplay(doc.roleLevel)
-                const status       = saving[doc._id]
+                const isEditing    = editId === doc._id
                 return (
                   <motion.tr key={doc._id}
                     initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.04 }}
@@ -168,16 +176,34 @@ function RoleAssign() {
                     {/* Assign Role */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
-                        <select
-                          value={displayLevel}
-                          disabled={status === 'saving'}
-                          onChange={e => updateLevel(doc, e.target.value)}
-                          className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all appearance-none cursor-pointer disabled:opacity-50">
-                          {DOCTOR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-                        </select>
-                        {status === 'saving' && <span className="text-[10px] font-black text-slate-400">Saving...</span>}
-                        {status === 'saved'  && <span className="text-[10px] font-black text-emerald-500">✓ Saved</span>}
-                        {status === 'error'  && <span className="text-[10px] font-black text-rose-500">✗ Failed</span>}
+                        {isEditing ? (
+                          <>
+                            <select
+                              value={editLevel}
+                              onChange={e => setEditLevel(e.target.value)}
+                              className="px-3 py-2 rounded-xl border border-emerald-300 bg-white text-xs font-bold text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all appearance-none cursor-pointer">
+                              {DOCTOR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                            </select>
+                            <button onClick={() => handleSave(doc)} disabled={saving}
+                              className="px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all disabled:opacity-50">
+                              {saving ? 'Saving...' : 'Save'}
+                            </button>
+                            <button onClick={handleCancel} disabled={saving}
+                              className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-[9px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all disabled:opacity-50">
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => handleEdit(doc)}
+                              className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-[9px] font-black uppercase tracking-widest hover:bg-emerald-50 hover:text-emerald-600 border border-slate-200 hover:border-emerald-200 transition-all">
+                              Edit
+                            </button>
+                            {savedId === doc._id && (
+                              <span className="text-[10px] font-black text-emerald-500">✓ Saved</span>
+                            )}
+                          </>
+                        )}
                       </div>
                     </td>
                   </motion.tr>

@@ -168,6 +168,29 @@ exports.getDoctorStats = asyncHandler(async (req, res) => {
     }, "Doctor stats fetched successfully")
   );
 });
+// @desc    Update doctor roleLevel only
+// @route   PATCH /api/doctors/:id/role-level
+exports.updateRoleLevel = asyncHandler(async (req, res) => {
+  const { roleLevel } = req.body
+
+  const validLevels = ['senior doctor', 'junior doctor', 'resident doctor', 'consultant', 'intern', 'other']
+  if (!roleLevel || !validLevels.includes(roleLevel)) {
+    throw new ApiError(400, 'Invalid role level')
+  }
+
+  const doctor = await Doctor.findByIdAndUpdate(
+    req.params.id,
+    { roleLevel },
+    { new: true, runValidators: false }
+  )
+
+  if (!doctor) throw new ApiError(404, 'Doctor not found')
+
+  return res.status(200).json(
+    new ApiResponse(200, doctor, 'Doctor role level updated successfully')
+  )
+})
+
 // @desc    Get doctor by user ID (with Lazy Creation)
 // @route   GET /api/doctors/user/:userId
 exports.getDoctorByUserId = asyncHandler(async (req, res) => {

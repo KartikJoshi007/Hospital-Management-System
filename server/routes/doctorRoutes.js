@@ -13,7 +13,10 @@ router
   .get(protect, doctorController.getAllDoctors);
 
 router.get("/stats", protect, authorize("admin", "doctor"), doctorController.getDoctorStats);
-router.get("/user/:userId", protect, doctorController.getDoctorByUserId); // ✅ Added
+router.get("/user/:userId", protect, doctorController.getDoctorByUserId);
+
+// Dedicated route to update roleLevel only (no full validator needed)
+router.patch("/:id/role-level", protect, authorize("admin"), doctorController.updateRoleLevel);
 
 // ID routes
 router
