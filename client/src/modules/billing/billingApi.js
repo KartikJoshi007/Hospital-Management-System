@@ -18,3 +18,8 @@ export const updateBill = async (id, data) => {
 export const deleteBill = async (id) => {
   await axios.delete(`/bills/${id}`);
 };
+
+export const getBillsByPatient = async (patientId) => {
+  const res = await axios.get(`/bills/patient/${patientId}`);
+  return res.data.data;
+};

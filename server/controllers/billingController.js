@@ -1,4 +1,5 @@
 const Billing = require("../models/Billing");
+const Patient = require("../models/Patient");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
@@ -87,6 +88,18 @@ exports.getBillById = asyncHandler(async (req, res) => {
 // @desc    Get bills by patient ID
 // @route   GET /api/bills/patient/:patientId
 exports.getBillsByPatient = asyncHandler(async (req, res) => {
+  const patient = await Patient.findById(req.params.patientId);
+  
+  if (!patient) {
+    throw new ApiError(404, "Patient not found");
+  }
+
+  // Security check: patients can only see their own bills
+  const isPatient = req.user.role === "patient" || req.user.role === "Patient";
+  if (isPatient && patient.userId?.toString() !== req.user.id) {
+    throw new ApiError(403, "Access denied: You can only view your own bills");
+  }
+
   const bills = await Billing.find({ patientId: req.params.patientId })
     .populate("doctorId", "name specialization")
     .sort({ createdAt: -1 });
