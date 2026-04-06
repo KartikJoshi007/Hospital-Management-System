@@ -41,6 +41,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/queue", queueRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/expenses", expenseRoutes);
+app.use("/api/records", require("./routes/medicalRecordRoutes"));
 
 // Root/Health Check
 app.get("/", (req, res) => {
