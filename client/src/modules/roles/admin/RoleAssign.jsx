@@ -1,39 +1,72 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Stethoscope, Star, Search } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import api from '../../../api/axios'
 
+// Frontend display labels (Title Case)
 const DOCTOR_LEVELS = ['Senior Doctor', 'Junior Doctor', 'Resident Doctor', 'Consultant', 'Intern', 'Other']
 
-const LEVEL_COLORS = {
-  'Senior Doctor': 'bg-blue-50 text-blue-700 border-blue-200',
-  'Junior Doctor': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  'Resident Doctor': 'bg-purple-50 text-purple-700 border-purple-200',
-  'Consultant': 'bg-amber-50 text-amber-700 border-amber-200',
-  'Intern': 'bg-pink-50 text-pink-700 border-pink-200',
-  'Other': 'bg-slate-50 text-slate-600 border-slate-200',
+// Convert display label → backend enum (lowercase)
+const toBackend = (level) => level.toLowerCase()
+
+// Convert backend enum → display label (Title Case)
+const toDisplay = (level) => {
+  if (!level) return 'Other'
+  return level.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
 }
 
-const initialDoctors = [
-  { id: 'D-001', name: 'Dr. Aryan Mehta', specialization: 'Cardiology', experience: '12 Years', email: 'aryan@hms.com', level: 'Senior Doctor' },
-  { id: 'D-002', name: 'Dr. Sneha Verma', specialization: 'Neurology', experience: '8 Years', email: 'sneha@hms.com', level: 'Junior Doctor' },
-  { id: 'D-003', name: 'Dr. Rahul Patil', specialization: 'Orthopedics', experience: '15 Years', email: 'rahul@hms.com', level: 'Senior Doctor' },
-  { id: 'D-004', name: 'Dr. Nisha Iyer', specialization: 'Dermatology', experience: '5 Years', email: 'nisha@hms.com', level: 'Junior Doctor' },
-]
+const LEVEL_COLORS = {
+  'Senior Doctor':   'bg-blue-50 text-blue-700 border-blue-200',
+  'Junior Doctor':   'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'Resident Doctor': 'bg-purple-50 text-purple-700 border-purple-200',
+  'Consultant':      'bg-amber-50 text-amber-700 border-amber-200',
+  'Intern':          'bg-pink-50 text-pink-700 border-pink-200',
+  'Other':           'bg-slate-50 text-slate-600 border-slate-200',
+}
 
 function RoleAssign() {
-  const [doctors, setDoctors] = useState(initialDoctors)
-  const [search, setSearch] = useState('')
-  const [saved, setSaved] = useState({})
+  const [doctors, setDoctors] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error,   setError]   = useState('')
+  const [search,  setSearch]  = useState('')
+  const [saving,  setSaving]  = useState({}) // { [id]: 'saving' | 'saved' | 'error' }
+
+  // GET /api/doctors
+  useEffect(() => {
+    api.get('/doctors')
+      .then(res => setDoctors(res.data.data || []))
+      .catch(() => setError('Failed to load doctors.'))
+      .finally(() => setLoading(false))
+  }, [])
 
   const filtered = doctors.filter(d =>
-    d.name.toLowerCase().includes(search.toLowerCase()) ||
-    d.specialization.toLowerCase().includes(search.toLowerCase())
+    d.name?.toLowerCase().includes(search.toLowerCase()) ||
+    d.specialization?.toLowerCase().includes(search.toLowerCase())
   )
 
-  const updateLevel = (id, level) => {
-    setDoctors(prev => prev.map(d => d.id === id ? { ...d, level } : d))
-    setSaved(prev => ({ ...prev, [id]: true }))
-    setTimeout(() => setSaved(prev => ({ ...prev, [id]: false })), 2000)
+  // PUT /api/doctors/:id — send full doctor object with updated roleLevel
+  const updateLevel = async (doc, displayLevel) => {
+    const id = doc._id
+    setSaving(p => ({ ...p, [id]: 'saving' }))
+
+    try {
+      await api.put(`/doctors/${id}`, {
+        name:           doc.name,
+        specialization: doc.specialization,
+        experience:     doc.experience,
+        availability:   doc.availability,
+        contact:        doc.contact,
+        email:          doc.email,
+        roleLevel:      toBackend(displayLevel), // Title Case → lowercase
+      })
+      // update local state
+      setDoctors(prev => prev.map(d => d._id === id ? { ...d, roleLevel: toBackend(displayLevel) } : d))
+      setSaving(p => ({ ...p, [id]: 'saved' }))
+      setTimeout(() => setSaving(p => ({ ...p, [id]: '' })), 2000)
+    } catch {
+      setSaving(p => ({ ...p, [id]: 'error' }))
+      setTimeout(() => setSaving(p => ({ ...p, [id]: '' })), 2500)
+    }
   }
 
   return (
@@ -50,6 +83,16 @@ function RoleAssign() {
           <span className="text-xs font-black text-emerald-700">{doctors.length} Doctors</span>
         </div>
       </div>
+
+      {/* Error */}
+      <AnimatePresence>
+        {error && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="px-5 py-3 rounded-2xl bg-rose-50 border border-rose-100 text-xs font-black text-rose-600">
+            ✗ {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Search */}
       <div className="relative">
@@ -75,70 +118,71 @@ function RoleAssign() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filtered.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan={5} className="px-6 py-12 text-center text-xs font-bold text-slate-400">Loading...</td></tr>
+              ) : filtered.length === 0 ? (
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-xs font-bold text-slate-400">No doctors found</td></tr>
-              ) : filtered.map((doc, idx) => (
-                <motion.tr
-                  key={doc.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: idx * 0.04 }}
-                  className="hover:bg-slate-50/40 transition-colors group"
-                >
-                  {/* Doctor */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0">
-                        {doc.name.split(' ').slice(1).map(n => n[0]).join('')}
+              ) : filtered.map((doc, idx) => {
+                const displayLevel = toDisplay(doc.roleLevel)
+                const status       = saving[doc._id]
+                return (
+                  <motion.tr key={doc._id}
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.04 }}
+                    className="hover:bg-slate-50/40 transition-colors group">
+
+                    {/* Doctor */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0">
+                          {doc.name?.split(' ').slice(1).map(n => n[0]).join('') || '?'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-slate-900">{doc.name}</p>
+                          <p className="text-[10px] font-bold text-slate-400">{doc.email}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-black text-slate-900">{doc.name}</p>
-                        <p className="text-[10px] font-bold text-slate-400">{doc.email}</p>
+                    </td>
+
+                    {/* Specialization */}
+                    <td className="px-6 py-4">
+                      <span className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider border border-emerald-100">
+                        {doc.specialization}
+                      </span>
+                    </td>
+
+                    {/* Experience */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1.5">
+                        <Star size={11} className="text-amber-400 fill-current" />
+                        <span className="text-xs font-bold text-slate-700">{doc.experience}</span>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* Specialization */}
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider border border-emerald-100">
-                      {doc.specialization}
-                    </span>
-                  </td>
+                    {/* Current Level */}
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${LEVEL_COLORS[displayLevel] || LEVEL_COLORS['Other']}`}>
+                        {displayLevel}
+                      </span>
+                    </td>
 
-                  {/* Experience */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1.5">
-                      <Star size={11} className="text-amber-400 fill-current" />
-                      <span className="text-xs font-bold text-slate-700">{doc.experience}</span>
-                    </div>
-                  </td>
-
-                  {/* Current Level */}
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${LEVEL_COLORS[doc.level]}`}>
-                      {doc.level}
-                    </span>
-                  </td>
-
-                  {/* Assign Role */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={doc.level}
-                        onChange={e => updateLevel(doc.id, e.target.value)}
-                        className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all appearance-none cursor-pointer"
-                      >
-                        {DOCTOR_LEVELS.map(l => (
-                          <option key={l} value={l}>{l}</option>
-                        ))}
-                      </select>
-                      {saved[doc.id] && (
-                        <span className="text-[10px] font-black text-emerald-500">✓ Saved</span>
-                      )}
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
+                    {/* Assign Role */}
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={displayLevel}
+                          disabled={status === 'saving'}
+                          onChange={e => updateLevel(doc, e.target.value)}
+                          className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all appearance-none cursor-pointer disabled:opacity-50">
+                          {DOCTOR_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                        </select>
+                        {status === 'saving' && <span className="text-[10px] font-black text-slate-400">Saving...</span>}
+                        {status === 'saved'  && <span className="text-[10px] font-black text-emerald-500">✓ Saved</span>}
+                        {status === 'error'  && <span className="text-[10px] font-black text-rose-500">✗ Failed</span>}
+                      </div>
+                    </td>
+                  </motion.tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
