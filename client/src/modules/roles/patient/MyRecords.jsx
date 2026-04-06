@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
    Search,
    Filter,
@@ -14,32 +14,16 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import ModernTable from './ModernTable'
-
-const medicalRecords = [
-   {
-      id: 1,
-      title: 'Post-Surgery Prescription',
-      type: 'Prescription',
-      date: '2023-10-12',
-      doctor: 'Dr. Rahul Patil',
-      dept: 'Orthopedics',
-      status: 'Ready',
-      size: '1.2 MB'
-   },
-   {
-      id: 4,
-      title: 'Cardiac Follow-up Prescription',
-      type: 'Prescription',
-      date: '2023-09-15',
-      doctor: 'Dr. Aryan Mehta',
-      dept: 'Cardiology',
-      status: 'Ready',
-      size: '0.8 MB'
-   },
-]
+import useAuth from '../../../hooks/useAuth'
+import { getPatientRecords } from '../../patients/medicalRecordApi'
 
 function MyRecords() {
    const navigate = useNavigate()
+   const { user } = useAuth()
+   
+   const [medicalRecords, setMedicalRecords] = useState([])
+   const [isLoading, setIsLoading] = useState(true)
+
    const [searchTerm, setSearchTerm] = useState('')
    const [activeCategory, setActiveCategory] = useState('All')
    const [selectedDept, setSelectedDept] = useState('All')
@@ -47,8 +31,33 @@ function MyRecords() {
    const [downloadingId, setDownloadingId] = useState(null)
    const [isDownloadingAll, setIsDownloadingAll] = useState(false)
 
-   const categories = ['All', 'Prescription']
-   const departments = ['All', 'Cardiology', 'Orthopedics', 'Neurology', 'Dermatology']
+   const categories = ['All', 'Prescription', 'Lab Report', 'Clinical Note']
+   const departments = ['All', 'Cardiology', 'Orthopedics', 'Neurology', 'Dermatology', 'General']
+
+   useEffect(() => {
+      const fetchRecords = async () => {
+         try {
+            setIsLoading(true)
+            const res = await getPatientRecords(user.id)
+            const formattedRecords = res.data.map(r => ({
+               id: r._id,
+               title: r.title,
+               type: r.type,
+               date: r.date,
+               doctor: r.doctorId?.fullName || r.doctorId?.name || 'External Doctor',
+               dept: r.clinicName || 'General',
+               status: 'Ready',
+               size: r.attachments?.length ? 'Has Attachments' : 'Note'
+            }))
+            setMedicalRecords(formattedRecords)
+         } catch (error) {
+            console.error("Failed to fetch medical records:", error)
+         } finally {
+            setIsLoading(false)
+         }
+      }
+      if (user?.id) fetchRecords()
+   }, [user.id])
 
    const filteredRecords = medicalRecords.filter(record => {
       const matchesSearch = record.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -133,7 +142,16 @@ function MyRecords() {
 
    return (
       <div className="space-y-6 pb-10 animate-in fade-in duration-500 w-full px-2 sm:px-4 max-w-[100vw] overflow-x-hidden">
-
+         {/* Loading State Overlay */}
+         {isLoading && (
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+               <div className="bg-white p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4">
+                  <Loader2 size={32} className="animate-spin text-emerald-500" strokeWidth={3} />
+                  <p className="text-sm font-black text-slate-900 uppercase tracking-widest">Loading Records...</p>
+               </div>
+            </div>
+         )}
+         
          {/* Header Section */}
          <div className="p-6 sm:p-8 bg-white rounded-[2rem] border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden">
             <div className="min-w-0">
