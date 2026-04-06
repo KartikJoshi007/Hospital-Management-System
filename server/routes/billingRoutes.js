@@ -13,8 +13,8 @@ router
   .get(protect, authorize("admin", "reception"), billingController.getAllBills);
 
 // Stats and Revenue
-router.get("/stats", protect, authorize("admin"), billingController.getBillingStats);
-router.get("/revenue", protect, authorize("admin"), billingController.getRevenueReport);
+router.get("/stats", protect, authorize("admin", "reception"), billingController.getBillingStats);
+router.get("/revenue", protect, authorize("admin", "reception"), billingController.getRevenueReport);
 
 // Patient lookup
 router.get("/patient/:patientId", protect, billingController.getBillsByPatient);
@@ -24,7 +24,7 @@ router
   .route("/:id")
   .get(protect, billingController.getBillById)
   .put(protect, authorize("admin", "reception"), billingController.updateBill)
-  .delete(protect, authorize("admin"), billingController.deleteBill);
+  .delete(protect, authorize("admin", "reception"), billingController.deleteBill);
 
 // Mark as paid
 router.put("/:id/mark-paid", protect, authorize("admin", "reception"), billingController.markBillPaid);

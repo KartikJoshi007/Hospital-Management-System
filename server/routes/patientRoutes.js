@@ -11,10 +11,10 @@ const validate = require("../middleware/validatorMiddleware");
 const { protect, authorize } = require("../middleware/authMiddleware");
 
 // Stats route (must be before :id routes)
-router.get("/stats", protect, authorize("admin", "doctor"), patientController.getPatientStats);
+router.get("/stats", protect, authorize("admin", "doctor", "reception"), patientController.getPatientStats);
 
 // Search route (must be before :id routes)
-router.get("/search/:query", protect, authorize("admin", "doctor"), patientController.searchPatients);
+router.get("/search/:query", protect, authorize("admin", "doctor", "reception"), patientController.searchPatients);
 
 // User-specific route (must be before :id routes)
 router.get("/user/:userId", protect, userIdParamValidator, validate, patientController.getPatientByUserId);
@@ -22,14 +22,14 @@ router.get("/user/:userId", protect, userIdParamValidator, validate, patientCont
 // Base routes (protected)
 router
   .route("/")
-  .post(protect, authorize("admin", "doctor", "patient"), patientValidator, validate, patientController.createPatient)
+  .post(protect, authorize("admin", "doctor", "patient", "reception"), patientValidator, validate, patientController.createPatient)
   .get(protect, authorize("admin", "doctor", "reception"), patientController.getAllPatients);
 
 // ID-specific routes
 router
   .route("/:id")
   .get(protect, patientIdParamValidator, validate, patientController.getPatientById)
-  .put(protect, authorize("admin", "doctor", "patient"), patientIdParamValidator, patientUpdateValidator, validate, patientController.updatePatient)
-  .delete(protect, authorize("admin"), patientIdParamValidator, validate, patientController.deletePatient);
+  .put(protect, authorize("admin", "doctor", "patient", "reception"), patientIdParamValidator, patientUpdateValidator, validate, patientController.updatePatient)
+  .delete(protect, authorize("admin", "reception"), patientIdParamValidator, validate, patientController.deletePatient);
 
 module.exports = router;

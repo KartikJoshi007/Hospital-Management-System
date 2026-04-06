@@ -17,8 +17,8 @@ exports.appointmentValidator = [
     .trim()
     .notEmpty()
     .withMessage("Reason for appointment is required")
-    .isLength({ min: 5 })
-    .withMessage("Reason must be at least 5 characters"),
+    .isLength({ min: 2 })
+    .withMessage("Reason must be at least 2 characters"),
 ];
 
 exports.appointmentUpdateValidator = [

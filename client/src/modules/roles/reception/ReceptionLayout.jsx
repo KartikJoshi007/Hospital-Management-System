@@ -1,28 +1,54 @@
-import { Outlet, Link } from "react-router-dom";
+import { useState } from 'react'
+import { Outlet, useLocation } from 'react-router-dom'
+import ReceptionSidebar from './ReceptionSidebar'
+import ReceptionNavbar from './ReceptionNavbar'
 
-const ReceptionLayout = () => {
+const PAGE_TITLES = {
+  '/reception/dashboard': 'Reception Dashboard',
+  '/reception/patients': 'Patient Management',
+  '/reception/appointments': 'Appointment Handling',
+  '/reception/billing': 'Billing & Invoicing',
+  '/reception/queue': 'Queue Management',
+}
+
+const getTitle = (pathname) => {
+  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname]
+  const match = Object.keys(PAGE_TITLES)
+    .filter(k => pathname.startsWith(k))
+    .sort((a, b) => b.length - a.length)[0]
+  return PAGE_TITLES[match] || 'Reception Desk'
+}
+
+function ReceptionLayout() {
+  const { pathname } = useLocation()
+  const [collapsed, setCollapsed] = useState(false)
+
   return (
-    <div className="flex">
-
+    <div className="flex h-screen w-full overflow-hidden bg-[#F8FAFC]">
       {/* Sidebar */}
-      <div className="w-64 bg-gray-800 text-white min-h-screen p-4">
-        <h2 className="font-bold mb-4">Reception</h2>
+      <aside
+        className={`shrink-0 border-r border-slate-200 bg-white hidden lg:block transition-all duration-300 ${
+          collapsed ? 'w-16' : 'w-72'
+        }`}
+      >
+        <ReceptionSidebar collapsed={collapsed} onToggle={() => setCollapsed(prev => !prev)} />
+      </aside>
 
-      
+      {/* Main area */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <ReceptionNavbar
+          title={getTitle(pathname)}
+          onToggle={() => setCollapsed(prev => !prev)}
+        />
 
-<li><Link to="/reception/dashboard">Dashboard</Link></li>
-<li><Link to="/reception/patients">Patients</Link></li>
-<li><Link to="/reception/appointments">Appointments</Link></li>
-<li><Link to="/reception/billing">Billing</Link></li>
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8 scroll-smooth text-slate-900">
+          <div className="mx-auto w-full">
+            <Outlet />
+          </div>
+        </main>
       </div>
-
-      {/* Main */}
-      <div className="flex-1 p-4">
-        <Outlet />
-      </div>
-
     </div>
-  );
-};
+  )
+}
 
-export default ReceptionLayout;
+export default ReceptionLayout
