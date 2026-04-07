@@ -1,60 +1,44 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Plus, X, Clock, BedDouble, AlertTriangle, Bell, CheckCircle2, Stethoscope, CalendarDays, Scissors } from 'lucide-react'
-import { getScheduleEvents } from './scheduleStore'
+import { ChevronLeft, ChevronRight, Plus, X, Clock, BedDouble, AlertTriangle, Bell, CheckCircle2, Stethoscope, CalendarDays, Scissors, Loader2 } from 'lucide-react'
+import useAuth from '../../../hooks/useAuth'
+import { getDoctorByUserId } from '../../doctors/doctorApi'
+import { getDoctorSchedule, createScheduleEvent, deleteScheduleEvent } from './scheduleApi'
+import { getDoctorAppointments, cancelAppointment } from '../../appointments/appointmentApi'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
-const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 const EVENT_TYPES = {
-  appointment: { label: 'Appointment',         color: 'bg-blue-500',   light: 'bg-blue-50 border-blue-100',   text: 'text-blue-600',   dot: 'bg-blue-500'   },
-  upcoming:    { label: 'Upcoming Appointment', color: 'bg-purple-500', light: 'bg-purple-50 border-purple-100', text: 'text-purple-600', dot: 'bg-purple-500' },
-  procedure:   { label: 'Procedure',            color: 'bg-rose-500',   light: 'bg-rose-50 border-rose-100',   text: 'text-rose-600',   dot: 'bg-rose-500'   },
-  leave:       { label: 'Leave',                color: 'bg-amber-500',  light: 'bg-amber-50 border-amber-100', text: 'text-amber-600',  dot: 'bg-amber-500'  },
-  holiday:     { label: 'Holiday',              color: 'bg-slate-400',  light: 'bg-slate-50 border-slate-200', text: 'text-slate-500',  dot: 'bg-slate-400'  },
+  appointment: { label: 'Appointment', color: 'bg-blue-500', light: 'bg-blue-50 border-blue-100', text: 'text-blue-600', dot: 'bg-blue-500' },
+  completed:   { label: 'Completed',   color: 'bg-emerald-500', light: 'bg-emerald-50 border-emerald-100', text: 'text-emerald-600', dot: 'bg-emerald-500' },
+  upcoming: { label: 'Upcoming Appointment', color: 'bg-purple-500', light: 'bg-purple-50 border-purple-100', text: 'text-purple-600', dot: 'bg-purple-500' },
+  procedure: { label: 'Procedure', color: 'bg-rose-500', light: 'bg-rose-50 border-rose-100', text: 'text-rose-600', dot: 'bg-rose-500' },
+  leave: { label: 'Leave', color: 'bg-amber-500', light: 'bg-amber-50 border-amber-100', text: 'text-amber-600', dot: 'bg-amber-500' },
+  holiday: { label: 'Holiday', color: 'bg-slate-400', light: 'bg-slate-50 border-slate-200', text: 'text-slate-500', dot: 'bg-slate-400' },
 }
 
-const LEAVE_REASONS = ['Personal Emergency','Medical / Health Issue','Family Function','Conference / Training','Planned Vacation','Other']
+const LEAVE_REASONS = ['Personal Emergency', 'Medical / Health Issue', 'Family Function', 'Conference / Training', 'Planned Vacation', 'Other']
 
 // ─── Seed Events (yyyy-mm-dd) ─────────────────────────────────────────────────
-const SEED_EVENTS = [
-  { id: 'E-001', date: '2025-07-01', type: 'holiday',     title: 'National Holiday',           time: 'All Day',  note: 'Hospital closed' },
-  { id: 'E-002', date: '2025-07-02', type: 'appointment', title: 'Rohan Sharma — OPD',         time: '09:00 AM', note: 'Hypertension follow-up' },
-  { id: 'E-003', date: '2025-07-02', type: 'appointment', title: 'Priya Verma — Follow-up',    time: '10:30 AM', note: 'Migraine review' },
-  { id: 'E-004', date: '2025-07-02', type: 'procedure',   title: 'Knee Arthroscopy',           time: '08:00 AM', note: 'Vikram Singh · OT-1' },
-  { id: 'E-005', date: '2025-07-03', type: 'appointment', title: 'Amit Patel — OPD',           time: '11:00 AM', note: 'Diabetes check' },
-  { id: 'E-006', date: '2025-07-03', type: 'upcoming',    title: 'Sara Khan — Consultation',   time: '02:00 PM', note: 'Asthma management' },
-  { id: 'E-007', date: '2025-07-04', type: 'leave',       title: 'Half Day Leave',             time: 'PM',       note: 'Personal Emergency' },
-  { id: 'E-008', date: '2025-07-07', type: 'appointment', title: 'Neha Gupta — OPD',           time: '09:30 AM', note: 'Routine check-up' },
-  { id: 'E-009', date: '2025-07-07', type: 'procedure',   title: 'Thyroid Lobectomy',          time: '07:30 AM', note: 'Meena Joshi · OT-2' },
-  { id: 'E-010', date: '2025-07-08', type: 'upcoming',    title: 'Ravi Desai — Follow-up',     time: '11:00 AM', note: 'Post-op review' },
-  { id: 'E-011', date: '2025-07-09', type: 'appointment', title: 'Arjun Nair — OPD',           time: '02:30 PM', note: 'General consultation' },
-  { id: 'E-012', date: '2025-07-10', type: 'leave',       title: 'Full Day Leave',             time: 'All Day',  note: 'Conference / Training' },
-  { id: 'E-013', date: '2025-07-14', type: 'appointment', title: 'Sunita Rao — Follow-up',     time: '09:00 AM', note: 'BP monitoring' },
-  { id: 'E-014', date: '2025-07-14', type: 'upcoming',    title: 'Vikram Singh — Consultation',time: '03:00 PM', note: 'Post-surgery review' },
-  { id: 'E-015', date: '2025-07-15', type: 'procedure',   title: 'Lumbar Discectomy',          time: '08:30 AM', note: 'Ravi Desai · OT-1' },
-  { id: 'E-016', date: '2025-07-21', type: 'holiday',     title: 'Public Holiday',             time: 'All Day',  note: 'Hospital closed' },
-  { id: 'E-017', date: '2025-07-22', type: 'appointment', title: 'Rohan Sharma — OPD',         time: '10:00 AM', note: 'Monthly review' },
-  { id: 'E-018', date: '2025-07-23', type: 'upcoming',    title: 'Priya Verma — Follow-up',    time: '11:30 AM', note: 'Migraine follow-up' },
-  { id: 'E-019', date: '2025-07-28', type: 'procedure',   title: 'Carpal Tunnel Release',      time: '09:00 AM', note: 'Arjun Nair · OT-2' },
-  { id: 'E-020', date: '2025-07-30', type: 'appointment', title: 'Amit Patel — Consultation',  time: '02:00 PM', note: 'HbA1c review' },
-]
+// SEED_EVENTS removed as we now use backend data
 
 const TYPE_ICONS = {
   appointment: <Stethoscope size={11} className="text-white" />,
-  upcoming:    <CalendarDays size={11} className="text-white" />,
-  procedure:   <Scissors size={11} className="text-white" />,
-  leave:       <BedDouble size={11} className="text-white" />,
-  holiday:     <Bell size={11} className="text-white" />,
+  completed:   <CheckCircle2 size={11} className="text-white" />,
+  upcoming: <CalendarDays size={11} className="text-white" />,
+  procedure: <Scissors size={11} className="text-white" />,
+  leave: <BedDouble size={11} className="text-white" />,
+  holiday: <Bell size={11} className="text-white" />,
 }
 
 // ─── Add Event Modal ──────────────────────────────────────────────────────────
 function AddEventModal({ date, onClose, onAdd }) {
-  const [type, setType]   = useState('appointment')
+  const [type, setType] = useState('appointment')
   const [title, setTitle] = useState('')
-  const [time, setTime]   = useState('')
-  const [note, setNote]   = useState('')
+  const [time, setTime] = useState('')
+  const [note, setNote] = useState('')
   const valid = title.trim() && (type === 'holiday' || type === 'leave' || time)
 
   return (
@@ -76,11 +60,10 @@ function AddEventModal({ date, onClose, onAdd }) {
           <div>
             <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Event Type</label>
             <div className="flex flex-wrap gap-2">
-              {Object.entries(EVENT_TYPES).map(([key, val]) => (
+              {Object.entries(EVENT_TYPES).filter(([key]) => key !== 'completed').map(([key, val]) => (
                 <button key={key} onClick={() => setType(key)}
-                  className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
-                    type === key ? `${val.color} text-white border-transparent` : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'
-                  }`}>{val.label}</button>
+                  className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${type === key ? `${val.color} text-white border-transparent` : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'
+                    }`}>{val.label}</button>
               ))}
             </div>
           </div>
@@ -108,9 +91,8 @@ function AddEventModal({ date, onClose, onAdd }) {
               <div className="flex flex-wrap gap-2">
                 {LEAVE_REASONS.map(r => (
                   <button key={r} onClick={() => setNote(r)}
-                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${
-                      note === r ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-amber-300'
-                    }`}>{r}</button>
+                    className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${note === r ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-amber-300'
+                      }`}>{r}</button>
                 ))}
               </div>
             </div>
@@ -132,9 +114,8 @@ function AddEventModal({ date, onClose, onAdd }) {
           </button>
           <button onClick={() => valid && onAdd({ type, title: title.trim(), time: time || (type === 'leave' || type === 'holiday' ? 'All Day' : ''), note })}
             disabled={!valid}
-            className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-              valid ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-slate-100 text-slate-300 cursor-not-allowed'
-            }`}>
+            className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${valid ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-slate-100 text-slate-300 cursor-not-allowed'
+              }`}>
             Add Event
           </button>
         </div>
@@ -145,50 +126,147 @@ function AddEventModal({ date, onClose, onAdd }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 function Schedule() {
+  const { user } = useAuth()
   const today = new Date()
-  const [current, setCurrent]     = useState({ year: today.getFullYear(), month: today.getMonth() })
-  const [selected, setSelected]   = useState(today.toISOString().slice(0, 10))
-  const [events, setEvents]       = useState(() => [...SEED_EVENTS, ...getScheduleEvents()])
-  const [addModal, setAddModal]     = useState(false)
-  const [viewEvent, setViewEvent]   = useState(null)
-  const [confirmDelete, setConfirmDelete] = useState(null) // event to delete
+  const [current, setCurrent] = useState({ year: today.getFullYear(), month: today.getMonth() })
+  const [selected, setSelected] = useState(today.toISOString().slice(0, 10))
+  const [events, setEvents] = useState([])
+  const [appointments, setAppointments] = useState([])
+  const [doctorProfile, setDoctorProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [addModal, setAddModal] = useState(false)
+  const [viewEvent, setViewEvent] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
-  // sync when DoctorPatientModal adds a new event
+  const fetchSchedule = async (doctorId) => {
+    try {
+      const [schedRes, apptRes] = await Promise.all([
+        getDoctorSchedule(doctorId),
+        getDoctorAppointments(doctorId, 1, 200)
+      ])
+      setEvents(schedRes.data || [])
+      setAppointments(apptRes.data || [])
+    } catch (err) {
+      console.error("Failed to fetch schedule:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    const sync = () => setEvents(() => [...SEED_EVENTS, ...getScheduleEvents()])
+    const init = async () => {
+      if (!user?.id) return
+      try {
+        setLoading(true)
+        const profRes = await getDoctorByUserId(user.id)
+        const profile = profRes.data
+        setDoctorProfile(profile)
+        if (profile?._id) {
+          await fetchSchedule(profile._id)
+        }
+      } catch (err) {
+        console.error("Failed to initialize schedule:", err)
+        setLoading(false)
+      }
+    }
+    init()
+  }, [user?.id])
+
+  // Sync when other parts of the app update the schedule
+  useEffect(() => {
+    const sync = () => {
+       if (doctorProfile?._id) fetchSchedule(doctorProfile._id)
+    }
     window.addEventListener('scheduleUpdated', sync)
     return () => window.removeEventListener('scheduleUpdated', sync)
-  }, [])
+  }, [doctorProfile?._id])
 
-  const firstDay    = new Date(current.year, current.month, 1).getDay()
+  const firstDay = new Date(current.year, current.month, 1).getDay()
   const daysInMonth = new Date(current.year, current.month + 1, 0).getDate()
-  const prevDays    = new Date(current.year, current.month, 0).getDate()
+  const prevDays = new Date(current.year, current.month, 0).getDate()
 
   const dateStr = (day) =>
     `${current.year}-${String(current.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 
-  const eventsForDate = (d) => events.filter(e => e.date === d)
+  const appointmentEvents = useMemo(() => appointments
+    .filter(a => a.status !== 'Cancelled')
+    .map(a => ({
+      _id: a._id,
+      type: a.status === 'Completed' ? 'completed' : 'appointment',
+      title: a.patient,
+      date: new Date(a.date).toISOString().slice(0, 10),
+      time: a.time,
+      note: a.reason,
+      status: a.status,
+      dept: a.dept,
+      apptType: a.type,
+      _isAppointment: true,
+    })), [appointments])
+
+  const allEvents = useMemo(() => {
+    const apptIds = new Set(appointmentEvents.map(e => e._id))
+    const schedOnly = events.filter(e => !apptIds.has(e._id))
+    return [...schedOnly, ...appointmentEvents]
+  }, [events, appointmentEvents])
+
+  const eventsForDate = (d) => allEvents.filter(e => e.date === d)
 
   const selectedEvents = eventsForDate(selected).sort((a, b) => a.time.localeCompare(b.time))
 
-  const handleAdd = (data) => {
-    setEvents(prev => [...prev, { id: `E-${Date.now()}`, date: selected, ...data }])
-    setAddModal(false)
+  const handleAdd = async (data) => {
+    if (!doctorProfile?._id) return
+    try {
+      const res = await createScheduleEvent({
+        ...data,
+        date: selected,
+        doctorId: doctorProfile._id
+      })
+      if (res.success) {
+        setEvents(prev => [...prev, res.data])
+        setAddModal(false)
+      }
+    } catch (err) {
+      console.error("Failed to add event:", err)
+    }
   }
 
-  const removeEvent = (id) => {
-    setEvents(prev => prev.filter(e => e.id !== id))
-    setConfirmDelete(null)
-    setViewEvent(null)
+  const removeEvent = async (id) => {
+    const isAppt = confirmDelete?._isAppointment
+    try {
+      const res = isAppt
+        ? await cancelAppointment(id)
+        : await deleteScheduleEvent(id)
+      if (res.success) {
+        if (isAppt) {
+          setAppointments(prev => prev.filter(a => a._id !== id))
+        } else {
+          setEvents(prev => prev.filter(e => (e._id || e.id) !== id))
+        }
+        setConfirmDelete(null)
+        setViewEvent(null)
+      }
+    } catch (err) {
+      console.error('Failed to remove event:', err)
+    }
   }
 
   const todayStr = today.toISOString().slice(0, 10)
 
-  // upcoming events from today sorted
-  const upcomingList = events
-    .filter(e => e.date >= todayStr && (e.type === 'upcoming' || e.type === 'appointment'))
-    .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
-    .slice(0, 5)
+  const upcomingList = useMemo(() => {
+    return allEvents
+      .filter(e => e.date >= todayStr && (e.type === 'upcoming' || e.type === 'appointment' || e.type === 'procedure'))
+      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+      .slice(0, 5)
+  }, [allEvents, todayStr])
+
+  if (loading) {
+    return (
+      <div className="h-[80vh] flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
+        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Loading clinical schedule...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 pb-10 animate-in fade-in duration-500">
@@ -236,39 +314,37 @@ function Schedule() {
 
             {/* Current month days */}
             {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
-              const ds        = dateStr(day)
+              const ds = dateStr(day)
               const dayEvents = eventsForDate(ds)
-              const isToday   = ds === todayStr
-              const isSel     = ds === selected
+              const isToday = ds === todayStr
+              const isSel = ds === selected
               const isWeekend = (() => { const dow = new Date(ds).getDay(); return dow === 0 || dow === 6 })()
-              const hasLeave  = dayEvents.some(e => e.type === 'leave')
-              const hasHoliday= dayEvents.some(e => e.type === 'holiday')
+              const hasLeave = dayEvents.some(e => e.type === 'leave')
+              const hasHoliday = dayEvents.some(e => e.type === 'holiday')
 
               return (
                 <div key={day} onClick={() => setSelected(ds)}
-                  className={`min-h-[80px] p-1.5 border-b border-r border-slate-50 cursor-pointer transition-colors ${
-                    isSel      ? 'bg-blue-50' :
+                  className={`min-h-[80px] p-1.5 border-b border-r border-slate-50 cursor-pointer transition-colors ${isSel ? 'bg-blue-50' :
                     hasHoliday ? 'bg-slate-50' :
-                    hasLeave   ? 'bg-amber-50/40' :
-                    isWeekend  ? 'bg-slate-50/50' :
-                    'hover:bg-slate-50'
-                  }`}>
+                      hasLeave ? 'bg-amber-50/40' :
+                        isWeekend ? 'bg-slate-50/50' :
+                          'hover:bg-slate-50'
+                    }`}>
                   {/* Day number */}
                   <div className="flex items-center justify-between mb-1">
-                    <span className={`h-6 w-6 flex items-center justify-center rounded-full text-[11px] font-black transition-all ${
-                      isToday ? 'bg-blue-500 text-white' :
-                      isSel   ? 'bg-blue-100 text-blue-600' :
-                      isWeekend ? 'text-slate-400' :
-                      'text-slate-700'
-                    }`}>{day}</span>
+                    <span className={`h-6 w-6 flex items-center justify-center rounded-full text-[11px] font-black transition-all ${isToday ? 'bg-blue-500 text-white' :
+                      isSel ? 'bg-blue-100 text-blue-600' :
+                        isWeekend ? 'text-slate-400' :
+                          'text-slate-700'
+                      }`}>{day}</span>
                     {hasHoliday && <span className="text-[8px] font-black text-slate-400 uppercase">Holiday</span>}
-                    {hasLeave   && !hasHoliday && <span className="text-[8px] font-black text-amber-500 uppercase">Leave</span>}
+                    {hasLeave && !hasHoliday && <span className="text-[8px] font-black text-amber-500 uppercase">Leave</span>}
                   </div>
 
                   {/* Event pills */}
                   <div className="space-y-0.5">
                     {dayEvents.slice(0, 3).map(e => (
-                      <div key={e.id} className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-black truncate ${EVENT_TYPES[e.type].color} text-white`}>
+                      <div key={e._id || e.id} className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-black truncate ${EVENT_TYPES[e.type].color} text-white`}>
                         {TYPE_ICONS[e.type]}
                         <span className="truncate">{e.title}</span>
                       </div>
@@ -327,8 +403,9 @@ function Schedule() {
                   </button>
                 </div>
               ) : selectedEvents.map(e => (
-                <motion.div key={e.id} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
-                  className="flex items-start gap-3 px-5 py-3 group hover:bg-slate-50 transition-colors">
+                <motion.div key={e._id || e.id} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
+                  onClick={() => setViewEvent(e)}
+                  className="flex items-start gap-3 px-5 py-3 group hover:bg-slate-50 transition-colors cursor-pointer">
                   <div className={`h-7 w-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${EVENT_TYPES[e.type].color}`}>
                     {TYPE_ICONS[e.type]}
                   </div>
@@ -341,8 +418,8 @@ function Schedule() {
                       {e.note && <span className="text-[9px] font-bold text-slate-300 truncate">· {e.note}</span>}
                     </div>
                   </div>
-                  <button onClick={() => setConfirmDelete(e)}
-                    className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-400 transition-all shrink-0 mt-1">
+                  <button onClick={() => !e._isAppointment && setConfirmDelete(e)}
+                    className={`opacity-0 group-hover:opacity-100 transition-all shrink-0 mt-1 ${e._isAppointment ? 'text-slate-200 cursor-not-allowed' : 'text-slate-300 hover:text-rose-400'}`}>
                     <X size={12} />
                   </button>
                 </motion.div>
@@ -360,16 +437,18 @@ function Schedule() {
               {upcomingList.length === 0 ? (
                 <p className="px-5 py-6 text-xs font-bold text-slate-300 text-center">No upcoming events</p>
               ) : upcomingList.map(e => (
-                <div key={e.id} onClick={() => setViewEvent(e)}
-                  className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors cursor-pointer">
+                <div key={e._id || e.id} onClick={() => setViewEvent(e)}
+                  className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 transition-colors cursor-pointer group">
                   <div className={`h-2 w-2 rounded-full shrink-0 ${EVENT_TYPES[e.type].dot}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-black text-slate-700 truncate">{e.title}</p>
                     <p className="text-[9px] font-bold text-slate-400">{e.date} · {e.time}</p>
                   </div>
-                  <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${EVENT_TYPES[e.type].light} ${EVENT_TYPES[e.type].text}`}>
-                    {EVENT_TYPES[e.type].label}
-                  </span>
+                  <button
+                    onClick={ev => { ev.stopPropagation(); setConfirmDelete(e) }}
+                    className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-400 transition-all shrink-0">
+                    <X size={12} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -403,6 +482,24 @@ function Schedule() {
 
               {/* Details */}
               <div className="px-6 py-4 space-y-3">
+                {viewEvent._isAppointment && viewEvent.status && (
+                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                    <CheckCircle2 size={13} className="text-slate-400 shrink-0" />
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</p>
+                      <p className="text-xs font-black text-slate-700">{viewEvent.status}</p>
+                    </div>
+                  </div>
+                )}
+                {viewEvent._isAppointment && viewEvent.dept && (
+                  <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                    <Stethoscope size={13} className="text-slate-400 shrink-0" />
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Department</p>
+                      <p className="text-xs font-black text-slate-700">{viewEvent.dept}</p>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
                   <Clock size={13} className="text-slate-400 shrink-0" />
                   <div>
@@ -482,7 +579,7 @@ function Schedule() {
                   Keep It
                 </button>
                 <button
-                  onClick={() => removeEvent(confirmDelete.id)}
+                  onClick={() => removeEvent(confirmDelete._id || confirmDelete.id)}
                   className="flex-1 py-2.5 rounded-xl bg-rose-500 text-white text-xs font-black uppercase tracking-widest hover:bg-rose-600 transition-all"
                 >
                   Yes, Cancel

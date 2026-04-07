@@ -21,8 +21,14 @@ function DoctorManagement({ view }) {
   const [deleteCandidate, setDeleteCandidate] = useState(null)
   const [selectedDoc, setSelectedDoc]       = useState(null)
   const [formData, setFormData]             = useState(emptyForm)
-  const [message, setMessage]               = useState('')
-  const [isSaving, setIsSaving]             = useState(false)
+  const [message,    setMessage]   = useState({ text: '', error: false })
+  const [isSaving,   setIsSaving]   = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const notify = (text, error = false) => {
+    setMessage({ text, error })
+    setTimeout(() => setMessage({ text: '', error: false }), 3000)
+  }
 
   // Fetch doctors
   const fetchDoctors = async () => {
@@ -65,33 +71,34 @@ function DoctorManagement({ view }) {
     setIsSaving(true)
     try {
       if (editingDoc) {
-        await updateDoctor(editingDoc._id, formData)
-        setMessage('Doctor updated successfully')
+        const res = await updateDoctor(editingDoc._id, formData)
+        const updated = res?.data?.data ?? res?.data ?? {}
+        setDoctors(prev => prev.map(d => d._id === editingDoc._id ? { ...d, ...updated } : d))
+        notify('Doctor updated successfully')
       } else {
         await createDoctor(formData)
-        setMessage('Doctor added successfully')
+        notify('Doctor added successfully')
+        fetchDoctors()
       }
       setIsFormOpen(false)
-      fetchDoctors()
-      setTimeout(() => setMessage(''), 3000)
     } catch (err) {
-      console.error('Error saving doctor:', err)
-      alert(err.message || 'Error saving doctor data')
+      notify(err?.message || 'Error saving doctor data', true)
     } finally {
       setIsSaving(false)
     }
   }
 
   const confirmDelete = async () => {
+    setIsDeleting(true)
     try {
       await deleteDoctor(deleteCandidate._id)
-      setMessage('Doctor removed successfully')
+      setDoctors(prev => prev.filter(d => d._id !== deleteCandidate._id))
       setDeleteCandidate(null)
-      fetchDoctors()
-      setTimeout(() => setMessage(''), 3000)
+      notify('Doctor removed successfully')
     } catch (err) {
-      console.error('Error deleting doctor:', err)
-      alert(err.message || 'Error removing doctor')
+      notify(err?.message || 'Error removing doctor', true)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -109,9 +116,10 @@ function DoctorManagement({ view }) {
         </button>
       </div>
 
-      {message && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="px-5 py-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-xs font-black text-emerald-700">
-          ✓ {message}
+      {message.text && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className={`px-5 py-3 rounded-2xl text-xs font-black border ${message.error ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
+          {message.error ? '✕' : '✓'} {message.text}
         </motion.div>
       )}
 
@@ -296,7 +304,11 @@ function DoctorManagement({ view }) {
               <p className="text-sm font-bold text-slate-400 mt-2 mb-8">Remove <span className="text-slate-900 font-black">{deleteCandidate.name}</span> from the directory?</p>
               <div className="flex gap-3">
                 <button onClick={() => setDeleteCandidate(null)} className="flex-1 py-3 rounded-2xl bg-slate-50 text-xs font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 transition-all border border-slate-100">Cancel</button>
-                <button onClick={confirmDelete} className="flex-1 py-3 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white hover:bg-rose-600 transition-all active:scale-95">Remove</button>
+                <button onClick={confirmDelete} disabled={isDeleting}
+                  className="flex-1 py-3 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white hover:bg-rose-600 transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2">
+                  {isDeleting && <Loader2 size={13} className="animate-spin" />}
+                  Remove
+                </button>
               </div>
             </motion.div>
           </div>

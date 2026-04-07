@@ -46,6 +46,7 @@ app.use("/api/expenses", expenseRoutes);
 app.use("/api/reports", reportRoutes);
 
 app.use("/api/records", require("./routes/medicalRecordRoutes"));
+app.use("/api/schedule", require("./routes/scheduleRoutes"));
 
 // Root/Health Check
 app.get("/", (req, res) => {

@@ -1,7 +1,10 @@
-import { useState } from 'react'
-import { X, User, FileText, Pill, Calendar, Activity, Eye, Phone, MapPin, AlertTriangle, DollarSign, ClipboardList, Droplets, Download, Filter, Scissors, Clock, ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, User, FileText, Pill, Calendar, Activity, Eye, Phone, MapPin, AlertTriangle, DollarSign, Droplets, Download, Scissors, Clock, ChevronLeft, ChevronRight, Plus, Check, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { addScheduleEvent } from './scheduleStore'
+import useAuth from '../../../hooks/useAuth'
+import { getDoctorByUserId } from '../../doctors/doctorApi'
+import { createScheduleEvent } from './scheduleApi'
+import { getBillsByPatient } from '../../billing/billingApi'
 import jsPDF from 'jspdf'
 
 const HOSPITAL = {
@@ -28,8 +31,10 @@ const RESULT_COLORS = {
 }
 
 const BILL_COLORS = {
-  Paid:   'bg-emerald-50 text-emerald-600 border-emerald-100',
-  Unpaid: 'bg-rose-50 text-rose-500 border-rose-100',
+  Paid:    'bg-emerald-50 text-emerald-600 border-emerald-100',
+  Pending: 'bg-amber-50 text-amber-600 border-amber-100',
+  Overdue: 'bg-rose-50 text-rose-500 border-rose-100',
+  Unpaid:  'bg-rose-50 text-rose-500 border-rose-100',
 }
 
 const RECORD_STATUS_COLORS = {
@@ -56,16 +61,6 @@ const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 const MOCK = {
-  address:   '42, MG Road, Mumbai, Maharashtra',
-  emergency: '+91 98001 11222',
-  allergies: ['Penicillin', 'Dust', 'Pollen'],
-  nextVisit: '2024-07-15',
-  calendarEvents: [
-    { id: 'E-001', date: '2024-07-15', type: 'appointment', title: 'Follow-up Consultation', time: '10:00 AM', note: 'Review HbA1c results' },
-    { id: 'E-002', date: '2024-07-22', type: 'surgery',     title: 'Knee Arthroscopy',        time: '08:30 AM', note: 'Pre-op fasting required' },
-    { id: 'E-003', date: '2024-07-28', type: 'upcoming',    title: 'Upcoming Appointment',    time: '11:00 AM', note: 'Routine check-up' },
-    { id: 'E-004', date: '2024-08-05', type: 'followup',    title: 'Post-Surgery Follow-up',  time: '09:00 AM', note: 'Wound inspection' },
-  ],
   reports: [
     {
       id: 'R-001', name: 'Blood Test Report', date: '2024-06-08', type: 'Lab', result: 'Normal',
@@ -101,48 +96,12 @@ const MOCK = {
       doctor: 'Dr. Sneha Verma', lab: 'Central Lab',
     },
   ],
-  prescriptions: [
-    {
-      id: 'Rx-001', date: '2024-06-10', doctor: 'Dr. Aryan Mehta',
-      medicines: [
-        { name: 'Metformin 500mg', dose: '1 tablet',  freq: 'Twice daily', duration: '30 days', instructions: 'After meals'  },
-        { name: 'Amlodipine 5mg',  dose: '1 tablet',  freq: 'Once daily',  duration: '30 days', instructions: 'Morning'      },
-        { name: 'Aspirin 75mg',    dose: '1 tablet',  freq: 'Once daily',  duration: '30 days', instructions: 'After dinner' },
-      ],
-      notes: 'Avoid high-sodium diet. Monitor BP weekly. Follow-up in 4 weeks.',
-    },
-    {
-      id: 'Rx-002', date: '2024-05-01', doctor: 'Dr. Sneha Verma',
-      medicines: [
-        { name: 'Pantoprazole 40mg', dose: '1 tablet',  freq: 'Once daily', duration: '14 days', instructions: 'Before meals' },
-        { name: 'Vitamin D3 60K',    dose: '1 capsule', freq: 'Weekly',     duration: '8 weeks', instructions: 'With milk'    },
-      ],
-      notes: 'Increase calcium-rich food intake.',
-    },
-  ],
-  vitals: {
-    bp: '140/90 mmHg', heartRate: '82 bpm', temp: '98.6°F',
-    spo2: '97%', weight: '78 kg', height: '172 cm', bmi: '26.4', lastUpdated: '2024-06-10', lastUpdatedTime: '09:45 AM',
-  },
-  records: [
-    { id: 'R-001', type: 'Prescription',  date: '2024-06-10', diagnosis: 'Hypertension',        status: 'Final'   },
-    { id: 'R-002', type: 'Lab Report',    date: '2024-06-11', diagnosis: 'Migraine',             status: 'Final'   },
-    { id: 'R-003', type: 'Discharge Note',date: '2024-06-09', diagnosis: 'Diabetes Type 2',      status: 'Draft'   },
-    { id: 'R-004', type: 'Imaging',       date: '2024-06-08', diagnosis: 'Rheumatoid Arthritis', status: 'Pending' },
-  ],
-  billing: [
-    { id: 'B-001', desc: 'OPD Consultation', date: '2024-06-10', amount: '₹500',  status: 'Paid'   },
-    { id: 'B-002', desc: 'Blood Test (CBC)',  date: '2024-06-08', amount: '₹800',  status: 'Paid'   },
-    { id: 'B-003', desc: 'X-Ray Chest',       date: '2024-05-20', amount: '₹1200', status: 'Paid'   },
-    { id: 'B-004', desc: 'HbA1c Test',        date: '2024-06-01', amount: '₹650',  status: 'Unpaid' },
-    { id: 'B-005', desc: 'Follow-up Visit',   date: '2024-06-15', amount: '₹300',  status: 'Unpaid' },
-  ],
 }
 
 const EMPTY_MED = { name: '', dose: '', freq: '', duration: '', instructions: '' }
 
 function PrescriptionTab({ patient }) {
-  const [prescriptions, setPrescriptions] = useState(MOCK.prescriptions)
+  const [prescriptions, setPrescriptions] = useState([])
   const [showForm, setShowForm]           = useState(false)
   const [medicines, setMedicines]         = useState([{ ...EMPTY_MED }])
   const [notes, setNotes]                 = useState('')
@@ -536,29 +495,58 @@ function CalendarTab({ events, onBookSurgery, patient }) {
     .filter(e => e.type === 'appointment' || e.type === 'surgery')
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const handleSave = () => {
-    if (!form.date || !form.time) return
+  const { user } = useAuth()
+  const [doctorProfile, setDoctorProfile] = useState(null)
+
+  useEffect(() => {
+    const fetchDoc = async () => {
+      if (!user?.id) return
+      try {
+        const res = await getDoctorByUserId(user.id)
+        setDoctorProfile(res.data)
+      } catch (err) {
+        console.error("Failed to load doctor profile in modal:", err)
+      }
+    }
+    fetchDoc()
+  }, [user?.id])
+
+  const handleSave = async () => {
+    if (!form.date || !form.time || !doctorProfile?._id) return
     const titles  = { surgery: 'Schedule Procedure', appointment: 'Next Appointment' }
     const typeMap  = { surgery: 'procedure', appointment: 'upcoming' }
     const timeDisp = fmt12(form.time)
-    const newEvent = {
-      id: `E-${Date.now()}`, date: form.date, type: modal.type,
-      title: titles[modal.type], time: timeDisp, note: form.note,
-    }
-    setLocalEvents(prev => [...prev, newEvent])
-    addScheduleEvent({
-      id:    newEvent.id,
-      date:  newEvent.date,
-      type:  typeMap[modal.type],
+    
+    const eventParams = {
+      doctorId: doctorProfile._id,
+      date: form.date,
+      type: typeMap[modal.type],
       title: `${patient.name} — ${titles[modal.type]}`,
-      time:  timeDisp,
-      note:  form.note || patient.name,
-    })
-    if (modal.type === 'surgery' && onBookSurgery) {
-      onBookSurgery(newEvent)
+      time: timeDisp,
+      note: form.note || patient.name,
     }
-    setModal(null)
-    setForm({ date: '', time: '', note: '' })
+
+    try {
+      const res = await createScheduleEvent(eventParams)
+      if (res.success) {
+        const newEvent = {
+          ...res.data,
+          id: res.data._id || res.data.id
+        }
+        setLocalEvents(prev => [...prev, newEvent])
+        
+        // Notify other components (like Schedule.jsx) that schedule has updated
+        window.dispatchEvent(new Event('scheduleUpdated'))
+        
+        if (modal.type === 'surgery' && onBookSurgery) {
+          onBookSurgery(newEvent)
+        }
+        setModal(null)
+        setForm({ date: '', time: '', note: '' })
+      }
+    } catch (err) {
+      console.error("Failed to save schedule event from modal:", err)
+    }
   }
 
   const selectedDateStr = selected
@@ -762,8 +750,21 @@ function CalendarTab({ events, onBookSurgery, patient }) {
 }
 
 function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
-  const [activeTab, setActiveTab] = useState('overview')
-  const [viewReport, setViewReport] = useState(null)
+  const [activeTab,   setActiveTab]   = useState('overview')
+  const [viewReport,  setViewReport]  = useState(null)
+  const [bills,       setBills]       = useState([])
+  const [billsLoading, setBillsLoading] = useState(false)
+  const [billsError,  setBillsError]  = useState('')
+
+  useEffect(() => {
+    if (activeTab !== 'billing' || !patient._id) return
+    setBillsLoading(true)
+    setBillsError('')
+    getBillsByPatient(patient._id)
+      .then(data => setBills(Array.isArray(data) ? data : []))
+      .catch(() => setBillsError('Failed to load billing records'))
+      .finally(() => setBillsLoading(false))
+  }, [activeTab, patient._id])
 
   return (
     <>
@@ -792,9 +793,11 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${patient.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
                       {patient.status}
                     </span>
-                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border bg-purple-50 text-purple-600 border-purple-100">
-                      <Calendar size={9} /> Next: {MOCK.nextVisit}
-                    </span>
+                    {patient.nextVisit && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border bg-purple-50 text-purple-600 border-purple-100">
+                        <Calendar size={9} /> Next: {patient.nextVisit}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -822,7 +825,7 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
 
             {/* OVERVIEW */}
             {activeTab === 'overview' && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
                     { label: 'Age',    value: `${patient.age} yrs` },
@@ -837,6 +840,30 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
                   ))}
                 </div>
 
+                {/* Quick Vitals in Overview (Height & Weight only) */}
+                {(patient.vitals?.height || patient.vitals?.weight) && (
+                   <div className="grid grid-cols-2 gap-4 max-w-sm">
+                      {patient.vitals.height ? (
+                        <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 flex items-center gap-3">
+                           <div className="h-8 w-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shrink-0 shadow-sm"><Activity size={14} /></div>
+                           <div>
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Height</p>
+                              <p className="text-sm font-black text-slate-900">{patient.vitals.height} cm</p>
+                           </div>
+                        </div>
+                      ) : null}
+                      {patient.vitals.weight ? (
+                        <div className="p-4 rounded-2xl bg-orange-50/50 border border-orange-100 flex items-center gap-3">
+                           <div className="h-8 w-8 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm"><Activity size={14} /></div>
+                           <div>
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Weight</p>
+                              <p className="text-sm font-black text-slate-900">{patient.vitals.weight} kg</p>
+                           </div>
+                        </div>
+                      ) : null}
+                   </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                     <div className="flex items-center gap-2 mb-1">
@@ -850,14 +877,7 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
                       <MapPin size={12} className="text-slate-400" />
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Address</p>
                     </div>
-                    <p className="text-sm font-bold text-slate-900">{MOCK.address}</p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Phone size={12} className="text-rose-400" />
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Emergency Contact</p>
-                    </div>
-                    <p className="text-sm font-bold text-slate-900">{MOCK.emergency}</p>
+                    <p className="text-sm font-bold text-slate-900">{patient.address}</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                     <div className="flex items-center gap-2 mb-1">
@@ -871,26 +891,16 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
                 <div className="p-4 rounded-2xl bg-rose-50 border border-rose-100">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertTriangle size={12} className="text-rose-500" />
-                    <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest">Known Allergies</p>
+                    <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest">Medical History / Known Allergies</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {MOCK.allergies.map(a => (
-                      <span key={a} className="px-3 py-1 rounded-full bg-white border border-rose-200 text-rose-600 text-[10px] font-black">{a}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100">
-                  <div className="flex items-center gap-2 mb-2">
-                    <ClipboardList size={12} className="text-amber-500" />
-                    <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Doctor Notes</p>
-                  </div>
-                  <p className="text-sm font-bold text-amber-900 leading-relaxed">{patient.notes}</p>
+                  <p className="text-sm font-bold text-rose-900 leading-relaxed">
+                    {patient.medicalHistory || 'No known conditions or allergies recorded.'}
+                  </p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100">
                   <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Current Condition</p>
-                  <p className="text-sm font-black text-blue-900">{patient.condition}</p>
+                  <p className="text-sm font-black text-blue-900">{patient.status}</p>
                 </div>
               </div>
             )}
@@ -931,71 +941,124 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
             )}
 
             {/* VITALS */}
-            {activeTab === 'vitals' && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <Clock size={11} />
-                  Last updated: {MOCK.vitals.lastUpdated} at {MOCK.vitals.lastUpdatedTime}
+            {activeTab === 'vitals' && (() => {
+              const v = patient.vitals || {}
+              const rows = [
+                { label: 'Height', value: v.height, unit: 'cm', icon: <Activity size={14} />, color: 'bg-blue-500' },
+                { label: 'Weight', value: v.weight, unit: 'kg', icon: <Activity size={14} />, color: 'bg-orange-500' },
+              ].filter(r => r.value && r.value !== 0)
+
+              return (
+                <div className="space-y-6">
+                  {rows.length === 0 ? (
+                    <div className="py-20 text-center space-y-3">
+                       <Activity className="h-10 w-10 text-slate-200 mx-auto" />
+                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No clinical vitals recorded yet.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto">
+                      {rows.map((row, i) => (
+                        <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                          className="p-8 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center">
+                          <div className={`h-14 w-14 rounded-3xl ${row.color} text-white flex items-center justify-center mb-4 shadow-lg shadow-black/5`}>
+                             {row.icon}
+                          </div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{row.label}</p>
+                          <p className="text-2xl font-black text-slate-900">{row.value} <span className="text-xs text-slate-400 font-bold ml-1">{row.unit}</span></p>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {[
-                    { label: 'Blood Pressure', value: MOCK.vitals.bp        },
-                    { label: 'Heart Rate',      value: MOCK.vitals.heartRate },
-                    { label: 'Temperature',     value: MOCK.vitals.temp      },
-                    { label: 'SpO2',            value: MOCK.vitals.spo2      },
-                    { label: 'Weight',          value: MOCK.vitals.weight    },
-                    { label: 'Height',          value: MOCK.vitals.height    },
-                    { label: 'BMI',             value: MOCK.vitals.bmi       },
-                  ].map((v, i) => (
-                    <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                      className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{v.label}</p>
-                      <p className="text-sm font-black text-slate-900">{v.value}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
+              )
+            })()}
 
             {/* CALENDAR */}
             {activeTab === 'calendar' && (
-              <CalendarTab events={MOCK.calendarEvents} patient={patient} onBookSurgery={(ev) => onBookSurgery && onBookSurgery({ ...ev, patient: patient.name })} />
+              <CalendarTab
+                events={(patient.appointments || []).map(a => ({
+                  id:    a._id,
+                  date:  new Date(a.date).toISOString().slice(0, 10),
+                  type:  a.status === 'Completed' ? 'followup' : 'appointment',
+                  title: `${a.patient} — ${a.type}`,
+                  time:  a.time,
+                  note:  a.reason,
+                }))
+                }
+                patient={patient}
+                onBookSurgery={(ev) => onBookSurgery && onBookSurgery({ ...ev, patient: patient.name })}
+              />
             )}
 
             {/* BILLING */}
             {activeTab === 'billing' && (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  {[
-                    { label: 'Total Paid',   value: MOCK.billing.filter(b => b.status === 'Paid').length,   cls: 'bg-emerald-50 border-emerald-100 text-emerald-600' },
-                    { label: 'Total Unpaid', value: MOCK.billing.filter(b => b.status === 'Unpaid').length, cls: 'bg-rose-50 border-rose-100 text-rose-500'         },
-                  ].map((s, i) => (
-                    <div key={i} className={`p-4 rounded-2xl border text-center ${s.cls}`}>
-                      <p className="text-2xl font-black">{s.value}</p>
-                      <p className="text-[9px] font-black uppercase tracking-widest mt-1 opacity-70">{s.label}</p>
+                {billsLoading ? (
+                  <div className="flex items-center justify-center py-16 gap-3 text-slate-400">
+                    <Loader2 size={18} className="animate-spin" />
+                    <span className="text-xs font-bold">Loading billing records...</span>
+                  </div>
+                ) : billsError ? (
+                  <div className="flex items-center justify-center py-16 gap-2 text-rose-400">
+                    <AlertTriangle size={16} />
+                    <span className="text-xs font-bold">{billsError}</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      {[
+                        {
+                          label: 'Total Paid',
+                          value: bills.filter(b => b.paymentStatus === 'Paid' || b.status === 'Paid').length,
+                          cls: 'bg-emerald-50 border-emerald-100 text-emerald-600',
+                        },
+                        {
+                          label: 'Pending / Overdue',
+                          value: bills.filter(b => b.paymentStatus !== 'Paid' && b.status !== 'Paid').length,
+                          cls: 'bg-rose-50 border-rose-100 text-rose-500',
+                        },
+                      ].map((s, i) => (
+                        <div key={i} className={`p-4 rounded-2xl border text-center ${s.cls}`}>
+                          <p className="text-2xl font-black">{s.value}</p>
+                          <p className="text-[9px] font-black uppercase tracking-widest mt-1 opacity-70">{s.label}</p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                {MOCK.billing.map((b, i) => (
-                  <motion.div key={b.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition-all">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
-                        <DollarSign size={16} className="text-slate-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-slate-900">{b.desc}</p>
-                        <p className="text-[10px] font-bold text-slate-400">{b.id} • {b.date}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <p className="text-sm font-black text-slate-900">{b.amount}</p>
-                      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${BILL_COLORS[b.status]}`}>
-                        {b.status}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
+
+                    {bills.length === 0 ? (
+                      <div className="py-10 text-center text-xs font-bold text-slate-400">No billing records found for this patient.</div>
+                    ) : bills.map((b, i) => {
+                      const status    = b.paymentStatus || b.status || 'Pending'
+                      const statusCls = BILL_COLORS[status] || BILL_COLORS['Pending']
+                      const desc      = b.service || b.type || 'Consultation'
+                      const date      = b.date ? new Date(b.date).toLocaleDateString('en-IN') : '—'
+                      const amount    = `₹${Number(b.amount || 0).toLocaleString('en-IN')}`
+                      return (
+                        <motion.div key={b._id || i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                          className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition-all">
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                              <DollarSign size={16} className="text-slate-400" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-slate-900">{desc}</p>
+                              <p className="text-[10px] font-bold text-slate-400">
+                                {b._id?.slice(-6).toUpperCase()} • {date}
+                                {b.paymentMethod ? ` • ${b.paymentMethod}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <p className="text-sm font-black text-slate-900">{amount}</p>
+                            <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${statusCls}`}>
+                              {status}
+                            </span>
+                          </div>
+                        </motion.div>
+                      )
+                    })}
+                  </>
+                )}
               </div>
             )}
 
