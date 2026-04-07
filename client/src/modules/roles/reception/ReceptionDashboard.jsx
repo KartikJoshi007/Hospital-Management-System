@@ -18,16 +18,17 @@ const ReceptionDashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [patientsRes, appointmentsRes, billingRes] = await Promise.all([
+      const [patientsRes, appointmentsRes, billingRes,queueRes] = await Promise.all([
         API.get("/patients"),
         API.get("/appointments"),
-        API.get("/bills/stats")
+        API.get("/bills/stats"),
+         API.get("/queue") 
       ]);
 
       setData({
         patients: patientsRes.data?.data || [],
         appointments: appointmentsRes.data?.data || [],
-        queue: [], // Queue typically separate but we can keep it as mock for now or fetch if route exists
+         queue: queueRes.data?.data || [], // Queue typically separate but we can keep it as mock for now or fetch if route exists
         billingStats: billingRes.data?.data?.summary || { totalRevenue: 0, totalPending: 0 }
       });
     } catch (err) {
