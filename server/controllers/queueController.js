@@ -22,7 +22,7 @@ exports.getQueue = asyncHandler(async (req, res) => {
 // @desc    Add to queue
 // @route   POST /api/queue
 exports.addToQueue = asyncHandler(async (req, res) => {
-  const { name, patientId, doctorId, doctorName, department } = req.body;
+  const { name, patientId, doctorId, doctorName, department,status  } = req.body;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -38,6 +38,7 @@ exports.addToQueue = asyncHandler(async (req, res) => {
     doctorId,
     doctorName,
     department,
+    status: status || "Waiting",
     date: today,
   });
 
