@@ -28,7 +28,8 @@ const AppointmentHandler = () => {
         API.get("/appointments"),
         API.get("/doctors")
       ]);
-      setAppointments(appRes.data?.data || []);
+      const apptsData = appRes.data?.data;
+      setAppointments(Array.isArray(apptsData) ? apptsData : (apptsData?.appointments || []));
       setDoctors(docRes.data?.data || []);
     } catch (err) {
       console.error("Fetch failed:", err);
