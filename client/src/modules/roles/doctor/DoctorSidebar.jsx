@@ -1,13 +1,12 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { LayoutDashboard, CalendarCheck, Users, Clock, LogOut, FileText } from 'lucide-react'
+import { LayoutDashboard, CalendarCheck, Users, Clock, LogOut } from 'lucide-react'
 import useAuth from '../../../hooks/useAuth'
 
 const navigation = [
-  { to: '/doctor/dashboard',      label: 'Dashboard',       icon: <LayoutDashboard className="h-4 w-4" /> },
-  { to: '/doctor/appointments',    label: 'My Appointments', icon: <CalendarCheck className="h-4 w-4" /> },
-  { to: '/doctor/patients',        label: 'My Patients',     icon: <Users className="h-4 w-4" /> },
-  { to: '/doctor/medical-records', label: 'Medical Records', icon: <FileText className="h-4 w-4" /> },
-  { to: '/doctor/schedule',        label: 'My Schedule',     icon: <Clock className="h-4 w-4" /> },
+  { to: '/doctor/dashboard',   label: 'Dashboard',       icon: <LayoutDashboard className="h-4 w-4" /> },
+  { to: '/doctor/appointments', label: 'My Appointments', icon: <CalendarCheck className="h-4 w-4" /> },
+  { to: '/doctor/patients',     label: 'My Patients',     icon: <Users className="h-4 w-4" /> },
+  { to: '/doctor/schedule',     label: 'My Schedule',     icon: <Clock className="h-4 w-4" /> },
 ]
 
 function DoctorSidebar({ collapsed, onToggle }) {
