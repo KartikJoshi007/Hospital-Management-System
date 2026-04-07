@@ -26,7 +26,8 @@ const PatientHandler = () => {
       const res = await API.get("/patients");
       // The backend returns new ApiResponse(200, patients, "...")
       // and axios instance doesn't have a response interceptor that unwraps 'data' completely
-      setPatients(res.data?.data || []);
+      const patientsData = res.data?.data;
+      setPatients(Array.isArray(patientsData) ? patientsData : (patientsData?.patients || []));
     } catch (err) {
       console.error("Error fetching patients:", err);
     } finally {
@@ -112,7 +113,8 @@ const PatientHandler = () => {
       if (searchTerm.trim()) {
         try {
           const res = await API.get(`/patients/search/${searchTerm}`);
-          setPatients(res.data?.data || []);
+          const patientsData = res.data?.data;
+      setPatients(Array.isArray(patientsData) ? patientsData : (patientsData?.patients || []));
         } catch (err) {
           console.error("Search failed:", err);
         }
