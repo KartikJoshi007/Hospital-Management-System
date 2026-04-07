@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { CalendarCheck, Users, FileText, Clock, TrendingUp, TrendingDown, ArrowUpRight, CheckCircle2, Circle, AlertCircle, MapPin, Stethoscope, Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import useAuth from '../../../hooks/useAuth'
-import { getDoctorByUserId } from '../../doctors/doctorApi'
+import { getDoctorByUserId, getDoctorPatientCount } from '../../doctors/doctorApi'
 import { getDoctorAppointments } from '../../appointments/appointmentApi'
 
 function DoctorDashboard() {
@@ -27,11 +27,15 @@ function DoctorDashboard() {
         const profile = profRes.data
         setDoctorProfile(profile)
 
-        // 2. Get Doctor Appointments
+        // 2. Get Doctor Appointments + Patient Count in parallel
         const d = new Date().toISOString().split('T')[0]
-        const apptRes = await getDoctorAppointments(profile._id, 1, 100)
+        const [apptRes, patientCountRes] = await Promise.all([
+          getDoctorAppointments(profile._id, 1, 100),
+          getDoctorPatientCount(profile._id),
+        ])
         const allAppts = Array.isArray(apptRes.data) ? apptRes.data : (apptRes.data?.appointments || [])
         setAppointments(allAppts)
+        const totalPatients = patientCountRes.data?.count ?? profile.patients ?? 0
 
         // 3. Derived Today's Appts
         const todayAppts = allAppts.filter(a => {
@@ -43,7 +47,7 @@ function DoctorDashboard() {
         const completed = allAppts.filter(a => a.status === 'Completed').length
         setStats([
           { label: "Today's Appointments", value: todayAppts.length.toString(), change: '+0', trend: 'up', icon: CalendarCheck, path: '/doctor/appointments' },
-          { label: 'Total Patients', value: profile.patients?.toString() || '0', change: '+0', trend: 'up', icon: Users, path: '/doctor/patients' },
+          { label: 'Total Patients', value: totalPatients.toString(), change: '+0', trend: 'up', icon: Users, path: '/doctor/patients' },
           { label: 'Completed Visits', value: completed.toString(), change: '+0', trend: 'up', icon: CheckCircle2, path: '/doctor/appointments' },
           { label: 'On Duty Status', value: profile.isOnDuty ? 'Yes' : 'No', change: '', trend: 'up', icon: Clock, path: '/doctor/schedule' },
         ])

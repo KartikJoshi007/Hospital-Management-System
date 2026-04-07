@@ -1,5 +1,6 @@
 const Doctor = require("../models/Doctor");
 const User = require("../models/User"); // ✅ Added
+const Appointment = require("../models/Appointment");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
@@ -190,6 +191,28 @@ exports.updateRoleLevel = asyncHandler(async (req, res) => {
     new ApiResponse(200, doctor, 'Doctor role level updated successfully')
   )
 })
+
+// @desc    Get total unique patients for a doctor
+// @route   GET /api/doctors/:id/patient-count
+exports.getDoctorPatientCount = asyncHandler(async (req, res) => {
+  const doctor = await Doctor.findById(req.params.id);
+  if (!doctor) throw new ApiError(404, "Doctor not found");
+
+  const appointments = await Appointment.find({
+    $or: [{ doctorId: doctor._id }, { doctor: doctor.name }],
+    status: { $ne: "Cancelled" },
+  }).select("patientId patient");
+
+  const uniquePatients = new Set();
+  appointments.forEach((a) => {
+    if (a.patientId) uniquePatients.add(a.patientId.toString());
+    else if (a.patient) uniquePatients.add(a.patient);
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, { count: uniquePatients.size }, "Patient count fetched successfully")
+  );
+});
 
 // @desc    Get doctor by user ID (with Lazy Creation)
 // @route   GET /api/doctors/user/:userId
