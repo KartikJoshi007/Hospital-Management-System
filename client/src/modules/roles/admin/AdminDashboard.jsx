@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { motion } from 'framer-motion'
 import { Users, Stethoscope, CalendarCheck, CreditCard, TrendingUp, ArrowUpRight } from 'lucide-react'
@@ -7,40 +7,13 @@ import PatientProfileModal from './PatientProfileModal'
 import DoctorProfileModal from './DoctorProfileModal'
 import api from '../../../api/axios'
 
-// Static appointment chart data — no backend endpoint exists
-const chartData = {
-  day:   [
-    { label: '12AM', appointments: 4  }, { label: '3AM',  appointments: 2  },
-    { label: '6AM',  appointments: 8  }, { label: '9AM',  appointments: 31 },
-    { label: '12PM', appointments: 47 }, { label: '3PM',  appointments: 38 },
-    { label: '6PM',  appointments: 22 }, { label: '9PM',  appointments: 11 },
-  ],
-  week:  [
-    { label: 'Mon', appointments: 42 }, { label: 'Tue', appointments: 58 },
-    { label: 'Wed', appointments: 35 }, { label: 'Thu', appointments: 71 },
-    { label: 'Fri', appointments: 63 }, { label: 'Sat', appointments: 29 },
-    { label: 'Sun', appointments: 18 },
-  ],
-  month: [
-    { label: 'W1', appointments: 210 }, { label: 'W2', appointments: 185 },
-    { label: 'W3', appointments: 240 }, { label: 'W4', appointments: 198 },
-  ],
-  year:  [
-    { label: 'Jan', appointments: 520 }, { label: 'Feb', appointments: 480 },
-    { label: 'Mar', appointments: 610 }, { label: 'Apr', appointments: 570 },
-    { label: 'May', appointments: 690 }, { label: 'Jun', appointments: 640 },
-    { label: 'Jul', appointments: 710 }, { label: 'Aug', appointments: 680 },
-    { label: 'Sep', appointments: 590 }, { label: 'Oct', appointments: 630 },
-    { label: 'Nov', appointments: 550 }, { label: 'Dec', appointments: 500 },
-  ],
-}
-
 const CHART_TABS = [
-  { key: 'day', label: 'Day' }, { key: 'week', label: 'Week' },
-  { key: 'month', label: 'Month' }, { key: 'year', label: 'Year' },
+  { key: 'day',   label: 'Day'   },
+  { key: 'week',  label: 'Week'  },
+  { key: 'month', label: 'Month' },
+  { key: 'year',  label: 'Year'  },
 ]
 
-// Colors for pie chart — assigned by index
 const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4']
 
 const STATUS_COLORS = {
@@ -59,8 +32,6 @@ function AdminDashboard() {
   const [chartTab,        setChartTab]        = useState('week')
   const [chartCache,      setChartCache]      = useState({})
   const [chartLoading,    setChartLoading]    = useState(false)
-  const [dateFilter,      setDateFilter]      = useState('')
-  const [statusFilter,    setStatusFilter]    = useState('')
   const [selectedPatient, setSelectedPatient] = useState(null)
   const [selectedDoctor,  setSelectedDoctor]  = useState(null)
 
@@ -82,33 +53,25 @@ function AdminDashboard() {
       .finally(() => setChartLoading(false))
   }, [chartTab])
 
-  // Stats cards from API
   const stats = [
-    { label: 'Total Patients',      value: dashData?.totalPatients      ?? '—', icon: Users,         color: 'emerald', path: '/admin/patients'     },
-    { label: 'Total Doctors',       value: dashData?.totalDoctors       ?? '—', icon: Stethoscope,   color: 'blue',    path: '/admin/doctors'      },
-    { label: 'Appointments Today',  value: dashData?.appointmentsToday  ?? '—', icon: CalendarCheck, color: 'orange',  path: '/admin/appointments' },
-    { label: 'Total Expenses',      value: dashData?.totalRevenue != null ? `₹${(dashData.totalRevenue / 100000).toFixed(1)}L` : '—', icon: CreditCard, color: 'purple', path: '/admin/billing' },
+    { label: 'Total Patients',     value: dashData?.totalPatients     ?? '—', icon: Users,         color: 'emerald', path: '/admin/patients'     },
+    { label: 'Total Doctors',      value: dashData?.totalDoctors      ?? '—', icon: Stethoscope,   color: 'blue',    path: '/admin/doctors'      },
+    { label: 'Appointments Today', value: dashData?.appointmentsToday ?? '—', icon: CalendarCheck, color: 'orange',  path: '/admin/appointments' },
+    {
+      label: 'Total Expenses',
+      value: dashData?.totalRevenue != null ? `₹${(dashData.totalRevenue / 100000).toFixed(1)}L` : '—',
+      icon: CreditCard, color: 'purple', path: '/admin/billing',
+    },
   ]
 
-  // Revenue pie chart from API — assign colors by index
   const revenueData = (dashData?.revenueByDept || []).map((d, i) => ({
     name:  d.name || d._id || 'Other',
     value: d.value,
     color: PIE_COLORS[i % PIE_COLORS.length],
   }))
 
-  // Recent patients from API
   const recentPatients = dashData?.recentPatients || []
-
-  // On-duty doctors from API
-  const onDutyDoctors = dashData?.onDutyDoctors || []
-
-  // Filter recent patients by date and status
-  const filteredPatients = useMemo(() => recentPatients.filter(p => {
-    const byDate   = dateFilter   ? new Date(p.createdAt).toISOString().slice(0, 10) === dateFilter : true
-    const byStatus = statusFilter ? p.status === statusFilter : true
-    return byDate && byStatus
-  }), [recentPatients, dateFilter, statusFilter])
+  const onDutyDoctors  = dashData?.onDutyDoctors  || []
 
   return (
     <div className="space-y-8 pb-10 animate-in fade-in duration-500">
@@ -133,9 +96,7 @@ function AdminDashboard() {
               <TrendingUp size={12} className="text-emerald-500 mt-1" />
             </div>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{s.label}</p>
-            <h3 className="text-2xl font-black text-slate-900">
-              {loading ? '—' : s.value}
-            </h3>
+            <h3 className="text-2xl font-black text-slate-900">{loading ? '—' : s.value}</h3>
           </motion.div>
         ))}
       </div>
@@ -143,7 +104,7 @@ function AdminDashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Bar Chart — static appointment data */}
+        {/* Bar Chart */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
           className="lg:col-span-2 p-8 rounded-3xl bg-white border border-slate-100 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-4">
@@ -181,7 +142,7 @@ function AdminDashboard() {
           </div>
         </motion.div>
 
-        {/* Pie Chart — real revenue by dept */}
+        {/* Pie Chart */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
           className="p-8 rounded-3xl bg-white border border-slate-100 shadow-sm flex flex-col">
           <div className="mb-4">
@@ -215,35 +176,15 @@ function AdminDashboard() {
         </motion.div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-100">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filter:</p>
-        <input type="date" value={dateFilter} onChange={e => setDateFilter(e.target.value)}
-          className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-emerald-400 transition-all" />
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-emerald-400 transition-all appearance-none min-w-32">
-          <option value="">All Status</option>
-          <option value="Active">Active</option>
-          <option value="Admitted">Admitted</option>
-          <option value="Discharged">Discharged</option>
-        </select>
-        {(dateFilter || statusFilter) && (
-          <button onClick={() => { setDateFilter(''); setStatusFilter('') }}
-            className="px-4 py-2 rounded-xl bg-rose-50 text-rose-500 text-xs font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-500 hover:text-white transition-all">
-            Clear
-          </button>
-        )}
-      </div>
-
       {/* Tables Row */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
-        {/* Recent Patients — from API */}
+        {/* Recent Patients */}
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-5 border-b border-slate-50">
             <div>
               <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Recent Patients</h3>
-              <p className="text-[10px] font-bold text-slate-400 mt-0.5">{filteredPatients.length} records</p>
+              <p className="text-[10px] font-bold text-slate-400 mt-0.5">{recentPatients.length} records</p>
             </div>
             <button onClick={() => navigate('/admin/patients')} className="text-[10px] font-black text-emerald-600 hover:underline uppercase tracking-widest">
               View All →
@@ -261,9 +202,9 @@ function AdminDashboard() {
               <tbody className="divide-y divide-slate-50">
                 {loading ? (
                   <tr><td colSpan={4} className="px-6 py-8 text-center text-xs font-bold text-slate-400">Loading...</td></tr>
-                ) : filteredPatients.length === 0 ? (
+                ) : recentPatients.length === 0 ? (
                   <tr><td colSpan={4} className="px-6 py-8 text-center text-xs font-bold text-slate-400">No records found</td></tr>
-                ) : filteredPatients.map(p => (
+                ) : recentPatients.map(p => (
                   <tr key={p._id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-3">
@@ -290,7 +231,7 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* On-Duty Doctors — from API */}
+        {/* On-Duty Doctors */}
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-5 border-b border-slate-50">
             <div>
