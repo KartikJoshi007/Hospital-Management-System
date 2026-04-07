@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import ModernTable from './ModernTable'
 import useAuth from '../../../hooks/useAuth'
 import { getPatientRecords } from '../../patients/medicalRecordApi'
+import { getPatientByUserId } from '../../patients/patientApi'
 
 function MyRecords() {
    const navigate = useNavigate()
@@ -39,7 +40,10 @@ function MyRecords() {
    const fetchRecords = async () => {
       try {
          setIsLoading(true)
-         const res = await getPatientRecords(user.id)
+         const pRes = await getPatientByUserId(user.id)
+         const patientId = pRes.data?._id
+         if (!patientId) return
+         const res = await getPatientRecords(patientId)
          const formattedRecords = (res?.data || []).map(r => ({
             id: r._id,
             title: r.title,

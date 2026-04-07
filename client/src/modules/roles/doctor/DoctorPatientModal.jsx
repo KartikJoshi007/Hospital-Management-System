@@ -61,45 +61,9 @@ const EVENT_COLORS = {
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
-const MOCK = {
-  reports: [
-    {
-      id: 'R-001', name: 'Blood Test Report', date: '2024-06-08', type: 'Lab', result: 'Normal',
-      summary: 'Complete Blood Count within normal range.',
-      findings: [
-        { label: 'Hemoglobin',     value: '14.2 g/dL', status: 'Normal' },
-        { label: 'WBC Count',      value: '7,200 /µL', status: 'Normal' },
-        { label: 'Platelet Count', value: '2.5 L /µL', status: 'Normal' },
-        { label: 'RBC Count',      value: '5.1 M/µL',  status: 'Normal' },
-      ],
-      doctor: 'Dr. Aryan Mehta', lab: 'Central Lab',
-    },
-    {
-      id: 'R-002', name: 'X-Ray Chest', date: '2024-05-20', type: 'Radiology', result: 'Clear',
-      summary: 'Lungs clear. No consolidation or pleural effusion.',
-      findings: [
-        { label: 'Lung Fields', value: 'Clear',       status: 'Normal' },
-        { label: 'Heart Size',  value: 'Normal',      status: 'Normal' },
-        { label: 'Pleura',      value: 'No effusion', status: 'Normal' },
-        { label: 'Bones',       value: 'Intact',      status: 'Normal' },
-      ],
-      doctor: 'Dr. Rahul Patil', lab: 'Radiology Dept',
-    },
-    {
-      id: 'R-003', name: 'HbA1c Test', date: '2024-06-01', type: 'Lab', result: 'High',
-      summary: 'HbA1c elevated at 8.1%. Indicates poor glycemic control.',
-      findings: [
-        { label: 'HbA1c',           value: '8.1%',      status: 'High'   },
-        { label: 'Fasting Glucose', value: '148 mg/dL', status: 'High'   },
-        { label: 'Post-meal',       value: '210 mg/dL', status: 'High'   },
-        { label: 'Insulin',         value: 'Normal',    status: 'Normal' },
-      ],
-      doctor: 'Dr. Sneha Verma', lab: 'Central Lab',
-    },
-  ],
-}
-
 const EMPTY_MED = { name: '', dose: '', freq: '', duration: '', instructions: '' }
+
+const EMPTY_FINDING = { label: '', value: '', status: 'Normal' }
 
 function PrescriptionTab({ patient }) {
   const { user } = useAuth()
@@ -517,6 +481,165 @@ function PrescriptionTab({ patient }) {
                 >
                   Yes, Delete
                 </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function ReportsTab({ patient }) {
+  const [reports, setReports] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [viewReport, setViewReport] = useState(null)
+
+  const fetchReports = async () => {
+    if (!patient?._id) return
+    setLoading(true)
+    try {
+      const res = await getPatientRecords(patient._id)
+      const list = Array.isArray(res?.data) ? res.data : (res?.data?.records || [])
+      const reportsOnly = list
+        .filter(r => r.type === 'Lab Report' || r.type === 'Imaging')
+        .map(r => {
+          let findings = []
+          try {
+            findings = JSON.parse(r.description)
+          } catch {
+            findings = [{ label: 'Observation', value: r.description, status: 'Normal' }]
+          }
+          return {
+            id: r._id?.slice(-8).toUpperCase() || 'R-NEW',
+            name: r.title,
+            date: new Date(r.date).toISOString().slice(0, 10),
+            type: r.type,
+            result: r.title.toLowerCase().includes('normal') ? 'Normal' : 'Final',
+            doctor: r.doctorId?.fullName || r.doctorId?.name || 'Lab Physician',
+            lab: r.clinicName || 'Central Lab',
+            summary: r.title,
+            findings: findings,
+          }
+        })
+      setReports(reportsOnly)
+    } catch (err) {
+      console.error("Failed to fetch reports:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchReports()
+  }, [patient?._id])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20 gap-3 text-slate-400">
+        <Loader2 size={18} className="animate-spin" />
+        <span className="text-xs font-black uppercase tracking-widest">Accessing laboratory records...</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{reports.length} report(s) available</p>
+      {reports.map((r, i) => (
+        <motion.div key={r.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+          className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition-all">
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+              <FileText size={16} className="text-blue-500" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-slate-900">{r.name}</p>
+              <p className="text-[10px] font-bold text-slate-400">{r.type} • {r.date}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${RESULT_COLORS[r.result] || 'bg-slate-50 text-slate-500 border-slate-100'}`}>
+              {r.result}
+            </span>
+            <button onClick={() => setViewReport(r)}
+              className="p-2 rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100 transition-all">
+              <Eye size={13} />
+            </button>
+          </div>
+        </motion.div>
+      ))}
+
+      {reports.length === 0 && (
+        <div className="py-16 text-center text-xs font-bold text-slate-400 flex flex-col items-center gap-3">
+          <FileText size={24} className="text-slate-200" />
+          No laboratory reports or imaging found for this patient.
+        </div>
+      )}
+
+      {/* Report Detail Sub-Modal */}
+      <AnimatePresence>
+        {viewReport && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden"
+            >
+              <div className="px-8 pt-6 pb-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shadow-sm">
+                    <FileText size={16} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">{viewReport.name}</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{viewReport.type} • {viewReport.date}</p>
+                  </div>
+                </div>
+                <button onClick={() => setViewReport(null)}
+                  className="h-9 w-9 flex items-center justify-center rounded-xl bg-white text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all border border-slate-200 shadow-sm">
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="px-8 py-6 space-y-5 max-h-[60vh] overflow-y-auto">
+                <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100">
+                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Record Summary</p>
+                  <p className="text-sm font-bold text-slate-800 leading-relaxed">{viewReport.name}</p>
+                </div>
+
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Laboratory Findings</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {Array.isArray(viewReport.findings) ? viewReport.findings.map((f, i) => (
+                      <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{f.label}</p>
+                        <p className="text-sm font-black text-slate-900">{f.value}</p>
+                        {f.status && (
+                          <span className={`mt-1 inline-block px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${RESULT_COLORS[f.status] || 'bg-slate-50 text-slate-500 border-slate-100'}`}>
+                            {f.status}
+                          </span>
+                        )}
+                      </div>
+                    )) : (
+                      <div className="col-span-2 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600">
+                        {viewReport.findings}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Medical Professional</p>
+                    <p className="text-xs font-black text-slate-900 mt-0.5">{viewReport.doctor}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Clinic / Laboratory</p>
+                    <p className="text-xs font-black text-slate-900 mt-0.5">{viewReport.lab}</p>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -968,32 +1091,7 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
 
             {/* REPORTS */}
             {activeTab === 'reports' && (
-              <div className="space-y-3">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{MOCK.reports.length} reports available</p>
-                {MOCK.reports.map((r, i) => (
-                  <motion.div key={r.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition-all">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
-                        <FileText size={16} className="text-blue-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-slate-900">{r.name}</p>
-                        <p className="text-[10px] font-bold text-slate-400">{r.type} • {r.date}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${RESULT_COLORS[r.result] || 'bg-slate-50 text-slate-500 border-slate-100'}`}>
-                        {r.result}
-                      </span>
-                      <button onClick={() => setViewReport(r)}
-                        className="p-2 rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100 transition-all">
-                        <Eye size={13} />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+              <ReportsTab patient={patient} />
             )}
 
             {/* PRESCRIPTION */}
@@ -1126,69 +1224,6 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
           </div>
         </motion.div>
       </div>
-
-      {/* Report Detail Sub-Modal */}
-      <AnimatePresence>
-        {viewReport && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden"
-            >
-              <div className="px-8 pt-6 pb-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                    <FileText size={16} className="text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-black text-slate-900">{viewReport.name}</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{viewReport.type} • {viewReport.date}</p>
-                  </div>
-                </div>
-                <button onClick={() => setViewReport(null)}
-                  className="h-9 w-9 flex items-center justify-center rounded-xl bg-white text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all border border-slate-200">
-                  <X size={16} />
-                </button>
-              </div>
-
-              <div className="px-8 py-6 space-y-5">
-                <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100">
-                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Summary</p>
-                  <p className="text-sm font-bold text-slate-800 leading-relaxed">{viewReport.summary}</p>
-                </div>
-
-                <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Findings</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {viewReport.findings.map((f, i) => (
-                      <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{f.label}</p>
-                        <p className="text-sm font-black text-slate-900">{f.value}</p>
-                        <span className={`mt-1 inline-block px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${RESULT_COLORS[f.status] || 'bg-slate-50 text-slate-500 border-slate-100'}`}>
-                          {f.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                  <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Reviewed By</p>
-                    <p className="text-xs font-black text-slate-900 mt-0.5">{viewReport.doctor}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lab / Dept</p>
-                    <p className="text-xs font-black text-slate-900 mt-0.5">{viewReport.lab}</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </>
   )
 }

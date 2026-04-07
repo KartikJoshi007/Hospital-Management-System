@@ -70,3 +70,13 @@ export const getDoctorByUserId = async (userId) => {
     throw error.response?.data || error.message;
   }
 };
+
+// Get total unique patient count for a doctor
+export const getDoctorPatientCount = async (doctorId) => {
+  try {
+    const response = await axios.get(`/doctors/${doctorId}/patient-count`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
