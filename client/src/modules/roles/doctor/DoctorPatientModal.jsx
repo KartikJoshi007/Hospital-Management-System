@@ -5,6 +5,7 @@ import useAuth from '../../../hooks/useAuth'
 import { getDoctorByUserId } from '../../doctors/doctorApi'
 import { createScheduleEvent } from './scheduleApi'
 import { getBillsByPatient } from '../../billing/billingApi'
+import { getPatientRecords, createRecord } from '../../patients/medicalRecordApi'
 import jsPDF from 'jspdf'
 
 const HOSPITAL = {
@@ -101,12 +102,61 @@ const MOCK = {
 const EMPTY_MED = { name: '', dose: '', freq: '', duration: '', instructions: '' }
 
 function PrescriptionTab({ patient }) {
+  const { user } = useAuth()
   const [prescriptions, setPrescriptions] = useState([])
+  const [loading, setLoading]             = useState(false)
   const [showForm, setShowForm]           = useState(false)
   const [medicines, setMedicines]         = useState([{ ...EMPTY_MED }])
   const [notes, setNotes]                 = useState('')
   const [error, setError]                 = useState('')
-  const [confirmDel, setConfirmDel]       = useState(null) // rx to delete
+  const [confirmDel, setConfirmDel]       = useState(null)
+  const [doctorProfile, setDoctorProfile] = useState(null)
+
+  // Fetch Doctor Profile
+  useEffect(() => {
+    if (user?.id) {
+      getDoctorByUserId(user.id)
+        .then(res => setDoctorProfile(res?.data?.data || res?.data))
+        .catch(err => console.error("Failed to fetch doctor profile:", err))
+    }
+  }, [user?.id])
+
+  // Fetch Patient Prescriptions
+  const fetchRx = async () => {
+    if (!patient?._id) return
+    setLoading(true)
+    try {
+      const res = await getPatientRecords(patient._id)
+      const list = res?.data || []
+      const rxOnly = list
+        .filter(r => r.type === 'Prescription')
+        .map(r => {
+          let meds = []
+          try {
+             meds = JSON.parse(r.description)
+          } catch {
+             meds = [{ name: r.title, dose: '—', freq: '—', duration: '—', instructions: r.description }]
+          }
+          return {
+            id:       r._id?.slice(-8).toUpperCase() || 'Rx-NEW',
+            dbId:     r._id,
+            date:     new Date(r.date).toISOString().slice(0, 10),
+            doctor:   r.doctorId?.fullName || r.doctorId?.name || 'Doctor',
+            medicines: meds,
+            notes:     r.title === 'Prescription' ? '' : r.title, // Simplified notes handling
+          }
+        })
+      setPrescriptions(rxOnly)
+    } catch (err) {
+      console.error("Failed to fetch prescriptions:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchRx()
+  }, [patient?._id])
 
   const updateMed = (i, field, val) =>
     setMedicines(prev => prev.map((m, idx) => idx === i ? { ...m, [field]: val } : m))
@@ -115,21 +165,32 @@ function PrescriptionTab({ patient }) {
 
   const removeMedRow = (i) => setMedicines(prev => prev.filter((_, idx) => idx !== i))
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const filled = medicines.filter(m => m.name.trim())
     if (!filled.length) { setError('Add at least one medicine.'); return }
-    const newRx = {
-      id:       `Rx-${String(prescriptions.length + 1).padStart(3, '0')}`,
-      date:     new Date().toISOString().slice(0, 10),
-      doctor:   'Dr. (You)',
-      medicines: filled,
-      notes,
+    if (!doctorProfile?._id) { setError('Doctor profile not loaded yet.'); return }
+
+    setLoading(true)
+    try {
+      const recordData = {
+        patientId: patient._id,
+        doctorId:  doctorProfile._id,
+        type:      'Prescription',
+        title:     notes || 'General Prescription',
+        description: JSON.stringify(filled)
+      }
+
+      await createRecord(recordData)
+      setShowForm(false)
+      setMedicines([{ ...EMPTY_MED }])
+      setNotes('')
+      setError('')
+      fetchRx() // Refresh list
+    } catch (err) {
+      setError(err?.message || 'Failed to save record.')
+    } finally {
+      setLoading(false)
     }
-    setPrescriptions(prev => [newRx, ...prev])
-    setShowForm(false)
-    setMedicines([{ ...EMPTY_MED }])
-    setNotes('')
-    setError('')
   }
 
   const inputCls = 'w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-400 bg-white placeholder:text-slate-300'
