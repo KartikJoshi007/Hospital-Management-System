@@ -6,16 +6,21 @@ import { Calendar, Clock, User, Stethoscope, FileText, Trash2, CheckCircle2, Plu
 const AppointmentHandler = () => {
   const [form, setForm] = useState({
     patient: "",
+    patientId: "",
     doctor: "",
-    doctorId: "", // Added to store ID
+    doctorId: "",
     dept: "General",
     date: "",
     time: "",
     reason: "",
+    historicalReport: "",
   });
 
   const [appointments, setAppointments] = useState([]);
-  const [doctors, setDoctors] = useState([]); // Store real doctors
+  const [patients, setPatients] = useState([]);
+  const [patientSearch, setPatientSearch] = useState("");
+  const [showPatientList, setShowPatientList] = useState(false);
+  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchingDocs, setFetchingDocs] = useState(false);
 
@@ -24,13 +29,16 @@ const AppointmentHandler = () => {
     setLoading(true);
     setFetchingDocs(true);
     try {
-      const [appRes, docRes] = await Promise.all([
+      const [appRes, docRes, patRes] = await Promise.all([
         API.get("/appointments"),
-        API.get("/doctors")
+        API.get("/doctors"),
+        API.get("/patients")
       ]);
       const apptsData = appRes.data?.data;
+      const patsData = patRes.data?.data;
       setAppointments(Array.isArray(apptsData) ? apptsData : (apptsData?.appointments || []));
       setDoctors(docRes.data?.data || []);
+      setPatients(Array.isArray(patsData) ? patsData : (patsData?.patients || []));
     } catch (err) {
       console.error("Fetch failed:", err);
     } finally {
@@ -78,13 +86,16 @@ const AppointmentHandler = () => {
 
       setForm({
         patient: "",
+        patientId: "",
         doctor: "",
         doctorId: "",
         dept: "General",
         date: "",
         time: "",
         reason: "",
+        historicalReport: "",
       });
+      setPatientSearch("");
     } catch (err) {
       const errorData = err.response?.data;
       if (errorData?.errors && errorData.errors.length > 0) {
@@ -97,7 +108,11 @@ const AppointmentHandler = () => {
   };
 
   // ❌ Delete
-  const handleDelete = async (id) => {
+  const handleDelete = async (e, id) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!window.confirm("Are you sure?")) return;
     try {
       await API.delete(`/appointments/${id}`);
@@ -133,20 +148,46 @@ const AppointmentHandler = () => {
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Patient Name</label>
+            <div className="space-y-1 relative">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Link Patient</label>
               <div className="relative group">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
                 <input
                   type="text"
-                  name="patient"
-                  placeholder="Full Name"
-                  required
-                  value={form.patient}
-                  onChange={handleChange}
+                  placeholder="Search existing patient..."
+                  value={patientSearch}
+                  onChange={(e) => {
+                    setPatientSearch(e.target.value);
+                    setShowPatientList(true);
+                  }}
+                  onFocus={() => setShowPatientList(true)}
                   className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200"
                 />
               </div>
+
+              {/* Suggestions List */}
+              {showPatientList && patientSearch && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl max-h-48 overflow-y-auto custom-scrollbar animate-in slide-in-from-top-2 duration-200">
+                  {patients.filter(p => p.name.toLowerCase().includes(patientSearch.toLowerCase())).length > 0 ? (
+                    patients.filter(p => p.name.toLowerCase().includes(patientSearch.toLowerCase())).map(p => (
+                      <button
+                        key={p._id}
+                        onClick={() => {
+                          setForm({ ...form, patient: p.name, patientId: p._id });
+                          setPatientSearch(p.name);
+                          setShowPatientList(false);
+                        }}
+                        className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-purple-50 hover:text-purple-600 border-b border-slate-50 last:border-0 transition-colors flex items-center justify-between"
+                      >
+                        <span>{p.name}</span>
+                        <span className="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded uppercase font-mono">ID: {p._id.slice(-6)}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-xs text-slate-400 font-bold italic">No matching patient found</div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -218,13 +259,28 @@ const AppointmentHandler = () => {
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Clinical Reason</label>
               <div className="relative group">
+                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <input
+                  type="text"
+                  name="reason"
+                  placeholder="Short reason"
+                  required
+                  value={form.reason}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Medical History (Optional)</label>
+              <div className="relative group">
                 <FileText className="absolute left-3 top-3 text-slate-400" size={14} />
                 <textarea
-                  name="reason"
-                  placeholder="Notes..."
-                  required
+                  name="historicalReport"
+                  placeholder="Reference clinical history..."
                   rows={2}
-                  value={form.reason}
+                  value={form.historicalReport}
                   onChange={handleChange}
                   className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 resize-none"
                 />
@@ -307,7 +363,7 @@ const AppointmentHandler = () => {
                         {a.status || 'Scheduled'}
                       </span>
                       <button
-                        onClick={() => handleDelete(a._id)}
+                        onClick={(e) => handleDelete(e, a._id)}
                         className="p-2 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95"
                       >
                         <Trash2 size={14} />

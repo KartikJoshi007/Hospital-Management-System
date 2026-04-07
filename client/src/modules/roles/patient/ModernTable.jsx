@@ -1,6 +1,6 @@
 import React from 'react';
 
-const ModernTable = ({ headers, data, renderRow }) => {
+const ModernTable = ({ headers, data, renderRow, centerAllHeaders = false }) => {
   return (
     <div className="rounded-[1.5rem] border border-slate-200 shadow-sm transition-all hover:shadow-md bg-white overflow-visible">
       <div className="overflow-x-auto scrollbar-hide rounded-[1.5rem]">
@@ -10,7 +10,7 @@ const ModernTable = ({ headers, data, renderRow }) => {
               {headers.map((header, idx) => (
                 <th 
                   key={idx} 
-                  className={`px-6 py-5 whitespace-nowrap text-[11px] font-black uppercase tracking-widest text-slate-400 ${idx === 0 ? 'text-left' : 'text-center'}`}
+                  className={`px-6 py-5 whitespace-nowrap text-[11px] font-black uppercase tracking-widest text-slate-400 ${(!centerAllHeaders && idx === 0) ? 'text-left' : 'text-center'}`}
                 >
                   {header}
                 </th>

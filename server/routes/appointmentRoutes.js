@@ -32,7 +32,7 @@ router
   .get(protect, appointmentIdValidator, validate, appointmentController.getAppointmentById)
   .put(protect, appointmentIdValidator, appointmentUpdateValidator, validate, appointmentController.updateAppointment)
   .patch(protect, appointmentIdValidator, appointmentUpdateValidator, validate, appointmentController.updateAppointment)
-  .delete(protect, authorize("admin", "doctor"), appointmentIdValidator, validate, appointmentController.deleteAppointment);
+  .delete(protect, authorize("admin", "doctor", "reception"), appointmentIdValidator, validate, appointmentController.deleteAppointment);
 
 // Cancel route
 router.put("/:id/cancel", protect, appointmentIdValidator, validate, appointmentController.cancelAppointment);
