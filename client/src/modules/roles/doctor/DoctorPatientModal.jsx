@@ -2,6 +2,14 @@ import { useState } from 'react'
 import { X, User, FileText, Pill, Calendar, Activity, Eye, Phone, MapPin, AlertTriangle, DollarSign, ClipboardList, Droplets, Download, Filter, Scissors, Clock, ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { addScheduleEvent } from './scheduleStore'
+import jsPDF from 'jspdf'
+
+const HOSPITAL = {
+  name:    'City Care Hospital',
+  timing:  'Mon – Sat: 8:00 AM – 9:00 PM  |  Sun: 9:00 AM – 2:00 PM',
+  address: '42, MG Road, Mumbai, Maharashtra – 400001',
+  phone:   '+91 98001 11222',
+}
 
 const TABS = [
   { key: 'overview',     label: 'Overview',     icon: User        },
@@ -167,6 +175,148 @@ function PrescriptionTab({ patient }) {
 
   const inputCls = 'w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-400 bg-white placeholder:text-slate-300'
 
+  const downloadPDF = (rx) => {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+    const pw = doc.internal.pageSize.getWidth()
+    let y = 0
+
+    // ── Header background ──
+    doc.setFillColor(37, 99, 235)
+    doc.rect(0, 0, pw, 38, 'F')
+
+    // Hospital name
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(20)
+    doc.setTextColor(255, 255, 255)
+    doc.text(HOSPITAL.name, pw / 2, 14, { align: 'center' })
+
+    // Timing
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.text(HOSPITAL.timing, pw / 2, 21, { align: 'center' })
+
+    // Doctor degree / name
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.text(rx.doctor, pw / 2, 28, { align: 'center' })
+
+    // Divider line
+    doc.setDrawColor(255, 255, 255)
+    doc.setLineWidth(0.3)
+    doc.line(14, 33, pw - 14, 33)
+
+    // Rx ID + Date
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Rx ID: ${rx.id}`, 14, 37)
+    doc.text(`Date: ${rx.date}`, pw - 14, 37, { align: 'right' })
+
+    y = 50
+
+    // ── Patient info ──
+    doc.setTextColor(30, 41, 59)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Patient:', 14, y)
+    doc.setFont('helvetica', 'normal')
+    doc.text(patient.name, 35, y)
+    y += 6
+
+    // ── Divider ──
+    doc.setDrawColor(203, 213, 225)
+    doc.setLineWidth(0.3)
+    doc.line(14, y, pw - 14, y)
+    y += 8
+
+    // ── Rx symbol ──
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(16)
+    doc.setTextColor(37, 99, 235)
+    doc.text('Rx', 14, y)
+    y += 8
+
+    // ── Medicine table header ──
+    const cols = { med: 14, dose: 72, freq: 100, dur: 130, inst: 158 }
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(100, 116, 139)
+    doc.text('MEDICINE',     cols.med,  y)
+    doc.text('DOSE',         cols.dose, y)
+    doc.text('FREQUENCY',    cols.freq, y)
+    doc.text('DURATION',     cols.dur,  y)
+    doc.text('INSTRUCTIONS', cols.inst, y)
+    y += 3
+
+    doc.setDrawColor(203, 213, 225)
+    doc.line(14, y, pw - 14, y)
+    y += 6
+
+    // ── Medicine rows ──
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(30, 41, 59)
+    rx.medicines.forEach((m, idx) => {
+      // alternating row bg
+      if (idx % 2 === 0) {
+        doc.setFillColor(248, 250, 252)
+        doc.rect(14, y - 4, pw - 28, 8, 'F')
+      }
+      doc.setFontSize(8.5)
+      doc.setFont('helvetica', 'bold')
+      doc.text(m.name        || '—', cols.med,  y)
+      doc.setFont('helvetica', 'normal')
+      doc.text(m.dose        || '—', cols.dose, y)
+      doc.text(m.freq        || '—', cols.freq, y)
+      doc.text(m.duration    || '—', cols.dur,  y)
+      doc.text(m.instructions|| '—', cols.inst, y)
+      y += 9
+    })
+
+    y += 4
+    doc.setDrawColor(203, 213, 225)
+    doc.line(14, y, pw - 14, y)
+    y += 8
+
+    // ── Notes ──
+    if (rx.notes) {
+      doc.setFillColor(255, 251, 235)
+      const noteLines = doc.splitTextToSize(`Notes: ${rx.notes}`, pw - 28)
+      const noteH = noteLines.length * 5 + 6
+      doc.rect(14, y - 4, pw - 28, noteH, 'F')
+      doc.setFontSize(8.5)
+      doc.setFont('helvetica', 'italic')
+      doc.setTextColor(120, 83, 8)
+      doc.text(noteLines, 17, y)
+      y += noteH + 4
+    }
+
+    // ── Doctor signature line ──
+    y += 6
+    doc.setDrawColor(148, 163, 184)
+    doc.line(pw - 60, y, pw - 14, y)
+    y += 5
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8)
+    doc.setTextColor(30, 41, 59)
+    doc.text(rx.doctor, pw - 14, y, { align: 'right' })
+    y += 4
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 116, 139)
+    doc.text('Signature', pw - 14, y, { align: 'right' })
+
+    // ── Footer ──
+    const pageH = doc.internal.pageSize.getHeight()
+    doc.setFillColor(37, 99, 235)
+    doc.rect(0, pageH - 18, pw, 18, 'F')
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(255, 255, 255)
+    doc.text(HOSPITAL.address, pw / 2, pageH - 10, { align: 'center' })
+    doc.text(`Tel: ${HOSPITAL.phone}`, pw / 2, pageH - 5, { align: 'center' })
+
+    doc.save(`Prescription_${rx.id}_${patient.name.replace(/\s+/g, '_')}.pdf`)
+  }
+
   return (
     <div className="space-y-4">
       {/* Header row */}
@@ -261,6 +411,12 @@ function PrescriptionTab({ patient }) {
             </div>
             <div className="flex items-center gap-2">
               <Pill size={15} className="text-blue-400" />
+              <button
+                onClick={() => downloadPDF(rx)}
+                title="Download PDF"
+                className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-blue-500 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all">
+                <Download size={13} />
+              </button>
               <button
                 onClick={() => setConfirmDel(rx)}
                 className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-all">
