@@ -32,7 +32,6 @@ import PatientManagement from '../modules/roles/admin/PatientManagement'
 import AppointmentManagement from '../modules/roles/admin/AppointmentManagement'
 import RevenueDashboard from '../modules/roles/admin/RevenueDashboard'
 import AdminProfile from '../modules/roles/admin/AdminProfile'
-import ReportsDashboard from '../modules/roles/admin/ReportsDashboard'
 
 // Doctor
 import DoctorLayout from '../modules/roles/doctor/DoctorLayout'
@@ -87,7 +86,6 @@ function AppRoutes() {
           <Route path="/admin/patients" element={<PatientManagement />} />
           <Route path="/admin/appointments" element={<AppointmentManagement />} />
           <Route path="/admin/billing" element={<RevenueDashboard />} />
-          <Route path="/admin/reports" element={<ReportsDashboard />} />
           <Route path="/admin/profile" element={<AdminProfile />} />
         </Route>
       </Route>
