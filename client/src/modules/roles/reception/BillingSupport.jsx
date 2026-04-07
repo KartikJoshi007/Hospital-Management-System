@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { CreditCard, User, Activity, IndianRupee, Plus, Receipt, Trash2, Edit3, Save, Search, CheckCircle2, AlertCircle, Filter } from "lucide-react";
+import { CreditCard, User, Activity, IndianRupee, Plus, Receipt, Trash2, Edit3, Save, Search, CheckCircle2, AlertCircle, Filter, Download } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import API from "../../../api/axios";
 
 const BillingSupport = () => {
@@ -97,6 +99,137 @@ const BillingSupport = () => {
     } catch (err) {
        console.error("Failed to mark as paid:", err);
     }
+  };
+
+  const handleDownloadPDF = (bill) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // -- Header Section --
+    doc.setFontSize(22);
+    doc.setTextColor(30, 41, 59); // Slate-800
+    doc.setFont("helvetica", "bold");
+    doc.text("LIFELINE HOSPITAL", 20, 30);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text("123 Health Ave, Medical District", 20, 38);
+    doc.text("Contact: +91 9876543210 | info@lifelinehospital.com", 20, 43);
+
+    // -- Invoice Label --
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(79, 70, 229); // Indigo-600
+    doc.text("INVOICE", pageWidth - 50, 30);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text(`No: #${bill._id.slice(-6).toUpperCase()}`, pageWidth - 50, 38);
+    doc.text(`Date: ${new Date(bill.createdAt || Date.now()).toLocaleDateString()}`, pageWidth - 50, 43);
+
+    // -- Separator --
+    doc.setDrawColor(241, 245, 249);
+    doc.line(20, 55, pageWidth - 20, 55);
+
+    // -- Patient Details --
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text("PATIENT NAME", 20, 68);
+    doc.setFont("helvetica", "normal");
+    doc.text(bill.patientName || "Anonymous", 20, 75);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("PAYMENT STATUS", pageWidth / 2, 68);
+    doc.setFont("helvetica", "normal");
+    
+    // Fix: Pass separate RGB arguments instead of an array
+    if (bill.paymentStatus === "Paid") {
+      doc.setTextColor(16, 185, 129);
+    } else {
+      doc.setTextColor(249, 115, 22);
+    }
+    
+    const statusText = (bill.paymentStatus || "PENDING").toString().toUpperCase();
+    doc.text(statusText, pageWidth / 2, 75);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.text("DEPARTMENT", pageWidth - 60, 68);
+    doc.setFont("helvetica", "normal");
+    doc.text(bill.type || "General", pageWidth - 60, 75);
+
+    // -- Bill Table --
+    autoTable(doc, {
+      startY: 90,
+      head: [["Service Description", "Unit Price", "Qty", "Total Amount"]],
+      body: [
+        [
+          bill.service || "General Medical Care", 
+          `Rs. ${(bill.amount || 0).toLocaleString()}`, 
+          "1", 
+          `Rs. ${(bill.amount || 0).toLocaleString()}`
+        ]
+      ],
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [30, 41, 59], 
+        textColor: [255, 255, 255], 
+        fontStyle: 'bold',
+        halign: 'left'
+      },
+      styles: {
+        fontSize: 10,
+        cellPadding: 5,
+      },
+      columnStyles: {
+        0: { cellWidth: 95 },
+        1: { halign: 'right' },
+        2: { halign: 'center' },
+        3: { halign: 'right', fontStyle: 'bold' }
+      }
+    });
+
+    // -- Summary Section --
+    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 150;
+    
+    // Styled summary background
+    doc.setDrawColor(241, 245, 249);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(pageWidth - 95, finalY, 75, 22, 3, 3, 'FD');
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(100, 116, 139);
+    doc.text("GRAND TOTAL", pageWidth - 90, finalY + 13);
+
+    doc.setFontSize(13);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Rs. ${(bill.amount || 0).toLocaleString()}`, pageWidth - 25, finalY + 14, { align: "right" });
+
+    // -- Footer & Signature --
+    const footerY = 265;
+    doc.setDrawColor(241, 245, 249);
+    doc.line(20, footerY, pageWidth - 20, footerY);
+    
+    // Authorized Signature
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text("AUTHORIZED SIGNATORY", pageWidth - 60, footerY - 15);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(pageWidth - 65, footerY - 20, pageWidth - 20, footerY - 20);
+
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont("helvetica", "italic");
+    doc.text("This is a computer-generated document. No physical signature required for internal use.", 20, footerY + 8);
+    doc.text("Thank you for choosing Lifeline Hospital - Your health is our priority.", pageWidth / 2, footerY + 15, { align: 'center' });
+
+    // -- Save PDF --
+    doc.save(`Invoice_${bill.patientName.replace(/\s+/g, '_')}_${bill._id.slice(-4)}.pdf`);
   };
 
   const filteredBills = bills.filter(b => 
@@ -335,6 +468,13 @@ const BillingSupport = () => {
                              <CheckCircle2 size={14} />
                            </button>
                         )}
+                        <button
+                          onClick={() => handleDownloadPDF(bill)}
+                          title="Download PDF Invoice"
+                          className="p-2 rounded-xl bg-purple-50 text-purple-500 hover:bg-purple-500 hover:text-white transition-all shadow-sm active:scale-95"
+                        >
+                          <Download size={14} />
+                        </button>
                         <button
                           onClick={() => handleEdit(bill)}
                           className="p-2 rounded-xl bg-blue-50 text-blue-500 hover:bg-blue-500 hover:text-white transition-all shadow-sm active:scale-95"
