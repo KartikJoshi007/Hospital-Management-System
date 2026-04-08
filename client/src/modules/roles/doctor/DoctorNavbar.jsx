@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuth from '../../../hooks/useAuth'
+import NotificationBell from '../../../components/NotificationBell'
 
 function DoctorNavbar({ title, onToggle }) {
   const [searchTerm, setSearchTerm] = useState('')
@@ -85,6 +86,9 @@ function DoctorNavbar({ title, onToggle }) {
         <div className="hidden lg:block text-right">
           <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{today}</p>
         </div>
+
+        {/* Notifications */}
+        <NotificationBell />
 
         {/* Profile avatar */}
         <div

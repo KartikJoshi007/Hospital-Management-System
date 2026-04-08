@@ -11,6 +11,7 @@ const getPageTitle = (path) => {
     if (path.includes('records')) return 'My Medical Records'
     if (path.includes('billing')) return 'My Bills'
     if (path.includes('profile')) return 'My Profile'
+    if (path.includes('notifications')) return 'Notification Center'
     return 'Patient Portal'
   }
   if (path.startsWith('/dashboard')) return 'Hospital Dashboard'

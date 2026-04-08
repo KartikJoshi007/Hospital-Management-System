@@ -16,9 +16,12 @@ function RoleRoutes() {
     return <Navigate to="/reception/dashboard" replace />
   }
 
-  // Doctor-specific routes are currently disabled; send doctors to legacy dashboard.
-  if (role === 'doctor' || role === 'patient') {
-    return <Navigate to="/dashboard" replace />
+  if (role === 'doctor') {
+    return <Navigate to="/doctor/dashboard" replace />
+  }
+
+  if (role === 'patient') {
+    return <Navigate to="/patient/dashboard" replace />
   }
 
   return <Navigate to="/unauthorized" replace />

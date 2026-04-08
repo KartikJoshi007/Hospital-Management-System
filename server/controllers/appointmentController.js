@@ -134,7 +134,7 @@ exports.getAppointmentById = asyncHandler(async (req, res) => {
 // @desc    Update appointment
 // @route   PUT /api/appointments/:id
 exports.updateAppointment = asyncHandler(async (req, res) => {
-  const { patient, doctor, dept, date, time, status, reason, type, priority } = req.body;
+  const { patient, doctor, dept, date, time, status, reason, type, priority, patientId, doctorId } = req.body;
 
   let appointment = await Appointment.findById(req.params.id);
 
@@ -142,17 +142,73 @@ exports.updateAppointment = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Appointment not found");
   }
 
+  const isRescheduled = (date && date !== appointment.date?.toISOString().split('T')[0]) || (time && time !== appointment.time);
+
   if (patient)   appointment.patient  = patient;
   if (doctor)    appointment.doctor   = doctor;
   if (dept)      appointment.dept     = dept;
   if (date)      appointment.date     = date;
   if (time)      appointment.time     = time;
+  
+  const statusChanged = (status && status !== appointment.status);
+  const doctorChanged = (doctorId && doctorId !== appointment.doctorId?.toString());
+
   if (status)    appointment.status   = status;
   if (reason)    appointment.reason   = reason;
   if (type)      appointment.type     = type;
   if (priority)  appointment.priority = priority;
+  if (patientId) appointment.patientId = patientId;
+  if (doctorId)  appointment.doctorId  = doctorId;
 
   appointment = await appointment.save();
+
+  // --- Reschedule Notification ---
+  if (isRescheduled) {
+    const msg = `Your appointment with Dr. ${appointment.doctor} has been rescheduled to ${new Date(appointment.date).toLocaleDateString()} at ${appointment.time}`;
+    if (appointment.patientId) {
+      await notificationService.notifyUser(appointment.patientId, "patient", msg, "booking", { id: appointment._id, model: "Appointment" });
+    }
+    await notificationService.notifyRoles(["reception", "admin"], `Appointment Rescheduled: ${appointment.patient} with Dr. ${appointment.doctor}`, "booking", { id: appointment._id, model: "Appointment" });
+  }
+
+  // --- Status Change Notification ---
+  if (statusChanged) {
+    const isCancel = appointment.status === "Cancelled";
+    const type = isCancel ? "cancellation" : "booking";
+    const msg = isCancel 
+      ? `Appointment CANCELLED: ${appointment.patient} with Dr. ${appointment.doctor}`
+      : `Appointment status updated: ${appointment.status} for ${appointment.patient}`;
+
+    const apptRef = { id: appointment._id, model: "Appointment" };
+    
+    // Notify Staff
+    await notificationService.notifyRoles(["reception", "admin"], msg, type, apptRef);
+    
+    // Notify Patient
+    if (appointment.patientId) {
+      const patientMsg = isCancel 
+        ? `Your appointment with Dr. ${appointment.doctor} has been CANCELLED`
+        : `Your appointment with Dr. ${appointment.doctor} is now ${appointment.status}`;
+      await notificationService.notifyUser(appointment.patientId, "patient", patientMsg, type, apptRef);
+    }
+
+    // Notify Doctor (Critical fix: Doctor must know if their slot is cancelled)
+    if (isCancel && appointment.doctorId) {
+      const doc = await require("../models/Doctor").findById(appointment.doctorId).populate("userId");
+      if (doc && doc.userId) {
+        await notificationService.notifyUser(doc.userId._id || doc.userId, "doctor", msg, type, apptRef);
+      }
+    }
+  }
+
+  // --- Doctor Assignment Notification ---
+  if (doctorChanged && appointment.doctorId) {
+    const doc = await require("../models/Doctor").findById(appointment.doctorId).populate("userId");
+    if (doc && doc.userId) {
+      const msg = `New patient assigned: ${appointment.patient} on ${new Date(appointment.date).toLocaleDateString()}`;
+      await notificationService.notifyUser(doc.userId._id || doc.userId, "doctor", msg, "booking", { id: appointment._id, model: "Appointment" });
+    }
+  }
 
   return res.status(200).json(
     new ApiResponse(200, appointment, "Appointment updated successfully")
@@ -252,18 +308,35 @@ exports.cancelAppointment = asyncHandler(async (req, res) => {
     const msg = `Appointment cancelled: ${appointment.patient} with Dr. ${appointment.doctor}`;
 
     if (cancellerRole === "doctor") {
-      // Doctor cancels → notify patient and reception
-      await notificationService.notifyRoles(["reception"], msg, "cancellation", apptRef);
+      // Doctor cancels → notify patient, reception, and admin
+      await notificationService.notifyRoles(["reception", "admin"], msg, "cancellation", apptRef);
       if (appointment.patientId) {
         const Patient = require("../models/Patient");
         const pat = await Patient.findById(appointment.patientId);
         if (pat && pat.userId) {
-          await notificationService.notifyUser(pat.userId, "patient", msg, "cancellation", apptRef);
+          await notificationService.notifyUser(pat.userId._id || pat.userId, "patient", msg, "cancellation", apptRef);
         }
       }
     } else {
-      // Anyone else cancels → notify reception and admin
+      // Anyone else cancels (like Patient) → notify reception, admin, and DOCTOR
       await notificationService.notifyRoles(["reception", "admin"], msg, "cancellation", apptRef);
+      
+      // Notify Patient (Confirmation for themselves or if Admin cancelled via this route)
+      if (appointment.patientId) {
+        const Patient = require("../models/Patient");
+        const pat = await Patient.findById(appointment.patientId);
+        if (pat && pat.userId) {
+          await notificationService.notifyUser(pat.userId._id || pat.userId, "patient", msg, "cancellation", apptRef);
+        }
+      }
+
+      if (appointment.doctorId) {
+        const Doctor = require("../models/Doctor");
+        const doc = await Doctor.findById(appointment.doctorId).populate("userId");
+        if (doc && doc.userId) {
+          await notificationService.notifyUser(doc.userId._id || doc.userId, "doctor", msg, "cancellation", apptRef);
+        }
+      }
     }
   }
 

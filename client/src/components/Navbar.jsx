@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import usePatients from '../hooks/usePatients'
 import useAuth from '../hooks/useAuth'
+import NotificationBell from './NotificationBell'
 
 // Always calls usePatients (hooks rules), but only returns data for staff roles.
 // The actual API fetch is guarded inside usePatients via the `enabled` flag.
@@ -170,9 +171,11 @@ function Navbar({ title, onToggle }) {
           <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{today}</p>
         </div>
 
+        <NotificationBell />
+
         <div
           onClick={() => navigate(userProfile.profilePath)}
-          className="flex items-center gap-4 pl-8 border-l border-slate-100 group cursor-pointer active:scale-95 transition-transform"
+          className="flex items-center gap-4 pl-4 border-l border-slate-100 group cursor-pointer active:scale-95 transition-transform"
         >
           <div className="flex flex-col text-right">
             <span className="text-xs font-black text-[#0F172A] tracking-tight group-hover:text-emerald-500 transition-colors">{userProfile.name}</span>

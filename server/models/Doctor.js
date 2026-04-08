@@ -6,7 +6,7 @@ const doctorSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
-      index: true, // 🔥 ADD (fast queries)
+      index: true,
     },
 
     name: {
@@ -20,7 +20,6 @@ const doctorSchema = new mongoose.Schema(
       required: [true, "Specialization is required"],
     },
 
-    // 🔥 ADD (for category filter in UI)
     category: {
       type: String,
       enum: [
@@ -35,7 +34,7 @@ const doctorSchema = new mongoose.Schema(
     },
 
     experience: {
-      type: String, // keep same (UI sends "12 Years")
+      type: String,
       required: [true, "Experience is required"],
     },
 
@@ -59,10 +58,9 @@ const doctorSchema = new mongoose.Schema(
       type: String,
       enum: ["Active", "On Leave", "Inactive"],
       default: "Active",
-      index: true, // 🔥 ADD (filter fast)
+      index: true,
     },
 
-    // 🔥 ADD (role management)
     roleLevel: {
       type: String,
       enum: [
@@ -76,20 +74,17 @@ const doctorSchema = new mongoose.Schema(
       default: "other",
     },
 
-    // 🔥 ADD (on-duty doctor list)
     isOnDuty: {
       type: Boolean,
       default: false,
     },
 
-    // 🔥 ADD (for clinical shifts roster)
     shift: {
       type: String,
       enum: ["Morning", "Afternoon", "Night", "On Call"],
       default: "Morning",
     },
 
-    // 🔥 ADD (for doctor search / listing)
     rating: {
       type: Number,
       default: 0,
@@ -97,19 +92,36 @@ const doctorSchema = new mongoose.Schema(
       max: 5,
     },
 
-    // existing
     patients: {
       type: Number,
       default: 0,
     },
 
-    // 🔥 ADD (for performance rankings)
     totalAppointments: {
       type: Number,
       default: 0,
     },
   },
-  { timestamps: true }
+  { 
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
+
+// 🕓 DYNAMIC: Duty status tracking
+doctorSchema.virtual('isCurrentlyOnShift').get(function() {
+  const currentHour = new Date().getHours();
+  if (this.shift === 'Morning')   return currentHour >= 8 && currentHour < 14;
+  if (this.shift === 'Afternoon') return currentHour >= 14 && currentHour < 20;
+  if (this.shift === 'Night')     return currentHour >= 20 || currentHour < 8;
+  if (this.shift === 'On Call')   return true;
+  return false;
+});
+
+// 🚀 PRODUCTION INDICES
+doctorSchema.index({ userId: 1 });
+doctorSchema.index({ specialization: 1, status: 1 });
+doctorSchema.index({ shift: 1 });
 
 module.exports = mongoose.model("Doctor", doctorSchema);

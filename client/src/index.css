@@ -33,3 +33,13 @@
     scrollbar-color: #e2e8f0 transparent;
   }
 }
+
+/* Notification Animations */
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s infinite;
+}

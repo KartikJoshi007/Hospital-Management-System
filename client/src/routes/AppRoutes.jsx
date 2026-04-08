@@ -15,6 +15,7 @@ import SignUp from '../modules/auth/SignUp'
 
 // Shared layout
 import DashboardLayout from '../components/DashboardLayout'
+import NotificationsPage from '../modules/notifications/NotificationsPage'
 import Dashboard from '../modules/dashboard/Dashboard'
 import Patients from '../modules/patients/Patients'
 import Appointments from '../modules/appointments/Appointments'
@@ -87,6 +88,7 @@ function AppRoutes() {
           <Route path="/admin/appointments" element={<AppointmentManagement />} />
           <Route path="/admin/billing" element={<RevenueDashboard />} />
           <Route path="/admin/profile" element={<AdminProfile />} />
+          <Route path="/admin/notifications" element={<NotificationsPage />} />
         </Route>
       </Route>
 
@@ -99,6 +101,7 @@ function AppRoutes() {
           <Route path="/doctor/patients" element={<PatientDetails />} />
           <Route path="/doctor/schedule" element={<Schedule />} />
           <Route path="/doctor/profile" element={<DoctorProfile />} />
+          <Route path="/doctor/notifications" element={<NotificationsPage />} />
         </Route>
       </Route>
 
@@ -113,6 +116,7 @@ function AppRoutes() {
           <Route path="/reception/appointments/book" element={<AppointmentHandler />} />
           <Route path="/reception/queue" element={<QueueManagement />} />
           <Route path="/reception/billing" element={<BillingSupport />} />
+          <Route path="/reception/notifications" element={<NotificationsPage />} />
         </Route>
       </Route>
 
@@ -125,6 +129,7 @@ function AppRoutes() {
           <Route path="/patient/appointments" element={<MyAppointments />} />
           <Route path="/patient/records" element={<MyRecords />} />
           <Route path="/patient/billing" element={<MyBills />} />
+          <Route path="/patient/notifications" element={<NotificationsPage />} />
         </Route>
       </Route>
 

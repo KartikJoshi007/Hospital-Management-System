@@ -13,6 +13,7 @@ const PAGE_TITLES = {
   '/admin/appointments': 'Appointment Management',
   '/admin/billing': 'Billing & Finance',
   '/admin/profile': 'My Profile',
+  '/admin/notifications': 'Notification Center',
 }
 
 const getTitle = (pathname) => {

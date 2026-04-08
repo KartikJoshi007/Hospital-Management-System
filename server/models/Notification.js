@@ -59,6 +59,11 @@ const notificationSchema = new mongoose.Schema(
 );
 
 // Compound index for fetching user's unread notifications fast
+// 🚀 PRODUCTION OPTIMIZATION
+// 1. Compound index for fetching user's unread notifications fast
 notificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
+
+// 2. Data Retention: Automatically delete notifications after 30 days
+notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
 
 module.exports = mongoose.model("Notification", notificationSchema);

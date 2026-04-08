@@ -135,7 +135,9 @@ function MyAppointments() {
         date: bookingForm.date,
         time: bookingForm.time,
         reason: bookingForm.reason || 'General Consultation',
-        status: 'Pending'
+        status: 'Pending',
+        patientId: patientData._id,
+        doctorId: selectedDoctor?._id
       }
       await createAppointment(payload)
       alert('Appointment scheduled successfully!')

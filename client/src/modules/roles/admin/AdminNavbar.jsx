@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuth from '../../../hooks/useAuth'
+import NotificationBell from '../../../components/NotificationBell'
 
 function AdminNavbar({ title, onToggle }) {
   const [searchTerm, setSearchTerm] = useState('')
@@ -87,6 +88,8 @@ function AdminNavbar({ title, onToggle }) {
         <div className="hidden lg:block text-right">
           <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{today}</p>
         </div>
+
+        <NotificationBell />
 
         <div className="flex items-center gap-2">
           <div

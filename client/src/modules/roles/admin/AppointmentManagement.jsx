@@ -87,6 +87,7 @@ function AppointmentManagement() {
       const doc = doctors.find(d => d._id === selectedDoctor)
       await api.put(`/appointments/${assignTarget._id}`, {
         doctor: doc?.name || selectedDoctor,
+        doctorId: doc?._id || selectedDoctor, // Fix: Ensure ID is sent for notifications
         status: 'Confirmed',
       })
       setAppointments(prev => prev.map(a =>

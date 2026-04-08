@@ -9,6 +9,7 @@ const PAGE_TITLES = {
   '/doctor/patients':     'My Patients',
   '/doctor/schedule':     'My Schedule',
   '/doctor/profile':      'My Profile',
+  '/doctor/notifications': 'Notification Center',
 }
 
 const getTitle = (pathname) => {
