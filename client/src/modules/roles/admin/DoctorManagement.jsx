@@ -11,18 +11,18 @@ const emptyForm = { name: '', specialization: '', experience: '', availability: 
 
 function DoctorManagement({ view }) {
   const navigate = useNavigate()
-  const [doctors, setDoctors]               = useState([])
-  const [loading, setLoading]               = useState(true)
-  const [error, setError]                   = useState(null)
-  const [search, setSearch]                 = useState('')
-  const [specFilter, setSpecFilter]         = useState('All')
-  const [isFormOpen, setIsFormOpen]         = useState(false)
-  const [editingDoc, setEditingDoc]         = useState(null)
+  const [doctors, setDoctors] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [search, setSearch] = useState('')
+  const [specFilter, setSpecFilter] = useState('All')
+  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [editingDoc, setEditingDoc] = useState(null)
   const [deleteCandidate, setDeleteCandidate] = useState(null)
-  const [selectedDoc, setSelectedDoc]       = useState(null)
-  const [formData, setFormData]             = useState(emptyForm)
-  const [message,    setMessage]   = useState({ text: '', error: false })
-  const [isSaving,   setIsSaving]   = useState(false)
+  const [selectedDoc, setSelectedDoc] = useState(null)
+  const [formData, setFormData] = useState(emptyForm)
+  const [message, setMessage] = useState({ text: '', error: false })
+  const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
   const notify = (text, error = false) => {
@@ -59,11 +59,11 @@ function DoctorManagement({ view }) {
 
   const filtered = useMemo(() => doctors.filter(d => {
     const bySearch = d.name.toLowerCase().includes(search.toLowerCase()) || d.specialization.toLowerCase().includes(search.toLowerCase())
-    const bySpec   = specFilter === 'All' || d.specialization === specFilter
+    const bySpec = specFilter === 'All' || d.specialization === specFilter
     return bySearch && bySpec
   }), [doctors, search, specFilter])
 
-  const openAdd  = () => { setEditingDoc(null); setFormData(emptyForm); setIsFormOpen(true) }
+  const openAdd = () => { setEditingDoc(null); setFormData(emptyForm); setIsFormOpen(true) }
   const openEdit = (doc) => { setEditingDoc(doc); setFormData({ ...doc }); setIsFormOpen(true) }
 
   const handleSave = async (e) => {
@@ -176,7 +176,7 @@ function DoctorManagement({ view }) {
                         onClick={() => setSelectedDoc({ ...doc, dept: doc.specialization })}
                         className="h-10 w-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black group-hover:bg-emerald-500 group-hover:text-white transition-all shrink-0 cursor-pointer"
                       >
-                        {doc.name.startsWith('Dr.') 
+                        {doc.name.startsWith('Dr.')
                           ? doc.name.split(' ').slice(1).map(n => n[0]).join('').toUpperCase() || 'D'
                           : doc.name.split(' ').map(n => n[0]).join('').toUpperCase() || 'D'}
                       </div>
@@ -247,11 +247,11 @@ function DoctorManagement({ view }) {
                 </div>
                 <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    { label: 'Full Name',    key: 'name',         type: 'text',  placeholder: 'Dr. Jane Doe' },
-                    { label: 'Experience',   key: 'experience',   type: 'text',  placeholder: '5 Years' },
-                    { label: 'Contact',      key: 'contact',      type: 'tel',   placeholder: '+91 98765 43210' },
-                    { label: 'Email',        key: 'email',        type: 'email', placeholder: 'doctor@hms.com' },
-                    { label: 'Availability', key: 'availability', type: 'text',  placeholder: 'Mon–Fri (10AM–2PM)' },
+                    { label: 'Full Name', key: 'name', type: 'text', placeholder: 'Dr. Jane Doe' },
+                    { label: 'Experience', key: 'experience', type: 'text', placeholder: '5 Years' },
+                    { label: 'Contact', key: 'contact', type: 'tel', placeholder: '+91 98765 43210' },
+                    { label: 'Email', key: 'email', type: 'email', placeholder: 'doctor@hms.com' },
+                    { label: 'Availability', key: 'availability', type: 'text', placeholder: 'Mon–Fri (10AM–2PM)' },
                   ].map(f => (
                     <div key={f.key}>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{f.label}</label>

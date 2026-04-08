@@ -50,7 +50,9 @@ exports.getAllPatients = asyncHandler(async (req, res) => {
     ];
   }
 
-  if (gender)     query.gender     = gender;
+  if (gender) {
+    query.gender = { $regex: `^${gender}$`, $options: "i" };
+  }
   if (status)     query.status     = status;
   if (department) query.department = department;
 

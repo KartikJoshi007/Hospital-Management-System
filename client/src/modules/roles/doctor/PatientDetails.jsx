@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Eye, Loader2, AlertCircle } from 'lucide-react'
+import { Search, Eye, Loader2, AlertCircle, ChevronDown } from 'lucide-react'
 import DoctorPatientModal from './DoctorPatientModal'
 import { getAllPatients } from '../../patients/patientApi'
 import { getPatientAppointments } from '../../appointments/appointmentApi'
@@ -16,14 +16,14 @@ function PatientDetails() {
   const [loading,   setLoading]   = useState(true)
   const [error,     setError]     = useState('')
   const [search,    setSearch]    = useState('')
-  const [status,    setStatus]    = useState('')
+  const [gender,    setGender]    = useState('')
   const [selected,  setSelected]  = useState(null)
 
   const fetchPatients = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const res  = await getAllPatients(1, 100, search, '', status)
+      const res  = await getAllPatients(1, 100, search, gender, '')
       const data = res?.data?.data ?? res?.data ?? {}
       const list = Array.isArray(data) ? data : (data?.patients ?? [])
       setPatients(list)
@@ -32,13 +32,13 @@ function PatientDetails() {
     } finally {
       setLoading(false)
     }
-  }, [search, status])
+  }, [search, gender])
 
   // debounce search, instant for status
   useEffect(() => {
     const t = setTimeout(() => fetchPatients(), search ? 400 : 0)
     return () => clearTimeout(t)
-  }, [fetchPatients])
+  }, [fetchPatients, search, gender])
 
   const openPatient = async (p) => {
     // start with '...' while we fetch, so modal opens instantly
@@ -86,23 +86,30 @@ function PatientDetails() {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        {/* Search */}
+        <div className="relative group">
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search patient or contact..."
-            className="pl-8 pr-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-blue-400 transition-all w-56" />
+            className="pl-8 pr-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all w-52" />
         </div>
-        <select value={status} onChange={e => setStatus(e.target.value)}
-          className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-blue-400 transition-all appearance-none min-w-32">
-          <option value="">All Status</option>
-          <option value="Active">Active</option>
-          <option value="Admitted">Admitted</option>
-          <option value="Discharged">Discharged</option>
-        </select>
-        {(search || status) && (
-          <button onClick={() => { setSearch(''); setStatus('') }}
-            className="px-4 py-2 rounded-xl bg-rose-50 text-rose-500 text-xs font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-500 hover:text-white transition-all">
-            Clear
+
+        {/* Gender Filter */}
+        <div className="relative group">
+          <select value={gender} onChange={e => setGender(e.target.value)}
+            className="pl-4 pr-10 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all appearance-none cursor-pointer min-w-[140px]">
+            <option value="">All Genders</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+          </select>
+          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-blue-500 transition-colors" />
+        </div>
+
+        {(search || gender) && (
+          <button onClick={() => { setSearch(''); setGender('') }}
+            className="px-4 py-2 rounded-xl bg-rose-50 text-rose-500 text-xs font-black uppercase tracking-widest border border-rose-100 hover:bg-rose-500 hover:text-white transition-all shadow-sm">
+            Reset Filters
           </button>
         )}
         <span className="ml-auto text-[10px] font-black text-slate-400 uppercase tracking-widest">
