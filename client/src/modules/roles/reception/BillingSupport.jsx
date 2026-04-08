@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { CreditCard, User, Activity, IndianRupee, Plus, Receipt, Trash2, Edit3, Save, Search, CheckCircle2, AlertCircle, Filter } from "lucide-react";
+import { CreditCard, User, Activity, IndianRupee, Plus, Receipt, Trash2, Edit3, Save, Search, CheckCircle2, AlertCircle, Filter, Download } from "lucide-react";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import API from "../../../api/axios";
 
 const BillingSupport = () => {
@@ -13,6 +15,9 @@ const BillingSupport = () => {
   });
 
   const [bills, setBills] = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [patientSearch, setPatientSearch] = useState("");
+  const [showPatientList, setShowPatientList] = useState(false);
   const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,8 +40,19 @@ const BillingSupport = () => {
     }
   };
 
+  const fetchPatients = async () => {
+    try {
+      const res = await API.get("/patients");
+      const pData = res.data?.data;
+      setPatients(Array.isArray(pData) ? pData : (pData?.patients || []));
+    } catch (err) {
+      console.error("Error fetching patients:", err);
+    }
+  };
+
   useEffect(() => {
     fetchBills();
+    fetchPatients();
   }, []);
 
   const handleChange = (e) => {
@@ -58,7 +74,8 @@ const BillingSupport = () => {
         alert("Invoice generated! ✅");
       }
       
-      setForm({ patientName: "", service: "", amount: "", type: "OPD", status: "Pending" });
+      setForm({ patientName: "", patientId: "", service: "", amount: "", type: "OPD", status: "Pending" });
+      setPatientSearch("");
       setEditId(null);
       fetchBills();
     } catch (err) {
@@ -70,15 +87,21 @@ const BillingSupport = () => {
   const handleEdit = (bill) => {
     setForm({
       patientName: bill.patientName,
+      patientId: bill.patientId?._id || bill.patientId || "",
       service: bill.service || bill.notes || "Medical Service",
       amount: bill.amount,
       type: bill.type || "OPD",
       status: bill.paymentStatus || "Pending",
     });
+    setPatientSearch(bill.patientName || "");
     setEditId(bill._id);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (e, id) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (window.confirm("Delete this invoice records permanently?")) {
       try {
         await API.delete(`/bills/${id}`);
@@ -96,6 +119,146 @@ const BillingSupport = () => {
       fetchBills();
     } catch (err) {
        console.error("Failed to mark as paid:", err);
+    }
+  };
+
+  const handleDownloadPDF = (bill) => {
+    try {
+      const doc = new jsPDF();
+      if (typeof autoTable !== 'function') {
+        throw new Error("PDF Table plugin not loaded (functional). Please refresh.");
+      }
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // -- Header Section --
+    doc.setFontSize(22);
+    doc.setTextColor(30, 41, 59); // Slate-800
+    doc.setFont("helvetica", "bold");
+    doc.text("LIFELINE HOSPITAL", 20, 30);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text("123 Health Ave, Medical District", 20, 38);
+    doc.text("Contact: +91 9876543210 | info@lifelinehospital.com", 20, 43);
+
+    // -- Invoice Label --
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(79, 70, 229); // Indigo-600
+    doc.text("INVOICE", pageWidth - 50, 30);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text(`No: #${(bill._id || "BILL").slice(-6).toUpperCase()}`, pageWidth - 50, 38);
+    doc.text(`Date: ${new Date(bill.createdAt || Date.now()).toLocaleDateString()}`, pageWidth - 50, 43);
+
+    // -- Separator --
+    doc.setDrawColor(241, 245, 249);
+    doc.line(20, 55, pageWidth - 20, 55);
+
+    // -- Patient Details --
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text("PATIENT NAME", 20, 68);
+    doc.setFont("helvetica", "normal");
+    doc.text(bill.patientName || "Anonymous", 20, 75);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("PAYMENT STATUS", pageWidth / 2, 68);
+    doc.setFont("helvetica", "normal");
+    
+    // Fix: Pass separate RGB arguments instead of an array
+    if (bill.paymentStatus === "Paid") {
+      doc.setTextColor(16, 185, 129);
+    } else {
+      doc.setTextColor(249, 115, 22);
+    }
+    
+    const statusText = (bill.paymentStatus || "PENDING").toString().toUpperCase();
+    doc.text(statusText, pageWidth / 2, 75);
+
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.text("DEPARTMENT", pageWidth - 60, 68);
+    doc.setFont("helvetica", "normal");
+    doc.text(bill.type || "General", pageWidth - 60, 75);
+
+    // -- Bill Table --
+    autoTable(doc, {
+      startY: 90,
+      head: [["Service Description", "Unit Price", "Qty", "Total Amount"]],
+      body: [
+        [
+          bill.service || "General Medical Care", 
+          `Rs. ${(bill.amount || 0).toLocaleString()}`, 
+          "1", 
+          `Rs. ${(bill.amount || 0).toLocaleString()}`
+        ]
+      ],
+      theme: 'grid',
+      headStyles: { 
+        fillColor: [30, 41, 59], 
+        textColor: [255, 255, 255], 
+        fontStyle: 'bold',
+        halign: 'left'
+      },
+      styles: {
+        fontSize: 10,
+        cellPadding: 5,
+      },
+      columnStyles: {
+        0: { cellWidth: 95 },
+        1: { halign: 'right' },
+        2: { halign: 'center' },
+        3: { halign: 'right', fontStyle: 'bold' }
+      }
+    });
+
+    // -- Summary Section --
+    const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 15 : 150;
+    
+    // Styled summary background
+    doc.setDrawColor(241, 245, 249);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(pageWidth - 95, finalY, 75, 22, 3, 3, 'FD');
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(100, 116, 139);
+    doc.text("GRAND TOTAL", pageWidth - 90, finalY + 13);
+
+    doc.setFontSize(13);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Rs. ${(bill.amount || 0).toLocaleString()}`, pageWidth - 25, finalY + 14, { align: "right" });
+
+    // -- Footer & Signature --
+    const footerY = 265;
+    doc.setDrawColor(241, 245, 249);
+    doc.line(20, footerY, pageWidth - 20, footerY);
+    
+    // Authorized Signature
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text("AUTHORIZED SIGNATORY", pageWidth - 60, footerY - 15);
+    doc.setDrawColor(200, 200, 200);
+    doc.line(pageWidth - 65, footerY - 20, pageWidth - 20, footerY - 20);
+
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont("helvetica", "italic");
+    doc.text("This is a computer-generated document. No physical signature required for internal use.", 20, footerY + 8);
+    doc.text("Thank you for choosing Lifeline Hospital - Your health is our priority.", pageWidth / 2, footerY + 15, { align: 'center' });
+
+    // -- Save PDF --
+    const fileName = `Invoice_${(bill.patientName || "PATIENT").replace(/\s+/g, '_')}_${(bill._id || "ID").slice(-4)}.pdf`;
+    doc.save(fileName);
+    } catch (err) {
+      console.error("PDF Export Error:", err);
+      alert("Failed to generate PDF: " + err.message);
     }
   };
 
@@ -154,19 +317,46 @@ const BillingSupport = () => {
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Patient Name</label>
+            <div className="space-y-1 relative">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Link Patient</label>
               <div className="relative group">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
                 <input
                   type="text"
-                  name="patientName"
-                  placeholder="Full Name"
-                  value={form.patientName}
-                  onChange={handleChange}
+                  placeholder="Search existing patient..."
+                  value={patientSearch}
+                  onChange={(e) => {
+                    setPatientSearch(e.target.value);
+                    setShowPatientList(true);
+                  }}
+                  onFocus={() => setShowPatientList(true)}
                   className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50"
                 />
               </div>
+              
+              {/* Patient Suggestions List */}
+              {showPatientList && patientSearch && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl max-h-48 overflow-y-auto custom-scrollbar animate-in slide-in-from-top-2 duration-200">
+                  {patients.filter(p => p.name.toLowerCase().includes(patientSearch.toLowerCase())).length > 0 ? (
+                    patients.filter(p => p.name.toLowerCase().includes(patientSearch.toLowerCase())).map(p => (
+                      <button
+                        key={p._id}
+                        onClick={() => {
+                          setForm({ ...form, patientName: p.name, patientId: p._id });
+                          setPatientSearch(p.name);
+                          setShowPatientList(false);
+                        }}
+                        className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-purple-50 hover:text-purple-600 border-b border-slate-50 last:border-0 transition-colors flex items-center justify-between"
+                      >
+                        <span>{p.name}</span>
+                        <span className="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded uppercase">ID: {p._id.slice(-6)}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-xs text-slate-400 font-bold italic">No matching patient found</div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -336,13 +526,20 @@ const BillingSupport = () => {
                            </button>
                         )}
                         <button
+                          onClick={() => handleDownloadPDF(bill)}
+                          title="Download PDF Invoice"
+                          className="p-2 rounded-xl bg-purple-50 text-purple-500 hover:bg-purple-500 hover:text-white transition-all shadow-sm active:scale-95"
+                        >
+                          <Download size={14} />
+                        </button>
+                        <button
                           onClick={() => handleEdit(bill)}
                           className="p-2 rounded-xl bg-blue-50 text-blue-500 hover:bg-blue-500 hover:text-white transition-all shadow-sm active:scale-95"
                         >
                           <Edit3 size={14} />
                         </button>
                         <button
-                          onClick={() => handleDelete(bill._id)}
+                          onClick={(e) => handleDelete(e, bill._id)}
                           className="p-2 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95"
                         >
                           <Trash2 size={14} />

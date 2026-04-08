@@ -4,12 +4,11 @@ import DoctorSidebar from './DoctorSidebar'
 import DoctorNavbar from './DoctorNavbar'
 
 const PAGE_TITLES = {
-  '/doctor/dashboard': 'Doctor Dashboard',
+  '/doctor/dashboard':    'Doctor Dashboard',
   '/doctor/appointments': 'My Appointments',
-  '/doctor/patients': 'My Patients',
-  '/doctor/schedule': 'My Schedule',
-  '/doctor/profile':   'My Profile',
-  '/doctor/medical-records': 'Medical Records',
+  '/doctor/patients':     'My Patients',
+  '/doctor/schedule':     'My Schedule',
+  '/doctor/profile':      'My Profile',
 }
 
 const getTitle = (pathname) => {

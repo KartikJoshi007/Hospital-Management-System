@@ -27,6 +27,14 @@ exports.patientValidator = [
   body("medicalHistory")
     .optional()
     .isString(),
+  body("height")
+    .optional()
+    .isFloat({ min: 30, max: 300 })
+    .withMessage("Height must be between 30 and 300 cm"),
+  body("weight")
+    .optional()
+    .isFloat({ min: 1, max: 500 })
+    .withMessage("Weight must be between 1 and 500 kg"),
 ];
 
 exports.patientUpdateValidator = [
@@ -37,6 +45,14 @@ exports.patientUpdateValidator = [
   body("bloodGroup").optional().isString(),
   body("address").optional().notEmpty(),
   body("status").optional().isIn(["Active", "Admitted", "Discharged"]),
+  body("height")
+    .optional()
+    .isFloat({ min: 30, max: 300 })
+    .withMessage("Height must be between 30 and 300 cm"),
+  body("weight")
+    .optional()
+    .isFloat({ min: 1, max: 500 })
+    .withMessage("Weight must be between 1 and 500 kg"),
 ];
 
 exports.patientIdParamValidator = [

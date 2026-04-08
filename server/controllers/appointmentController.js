@@ -1,4 +1,6 @@
 const Appointment = require("../models/Appointment");
+const Patient = require("../models/Patient");
+const Doctor = require("../models/Doctor");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
@@ -187,7 +189,6 @@ exports.getAppointmentStats = asyncHandler(async (req, res) => {
 // @desc    Get patient appointments
 // @route   GET /api/appointments/patient/:patientId
 exports.getPatientAppointments = asyncHandler(async (req, res) => {
-  const Patient = require("../models/Patient");
   const patient = await Patient.findById(req.params.patientId);
   if (!patient) throw new ApiError(404, "Patient not found");
 
@@ -207,7 +208,6 @@ exports.getPatientAppointments = asyncHandler(async (req, res) => {
 // @desc    Get doctor appointments
 // @route   GET /api/appointments/doctor/:doctorId
 exports.getDoctorAppointments = asyncHandler(async (req, res) => {
-  const Doctor = require("../models/Doctor");
   const doctor = await Doctor.findById(req.params.doctorId);
   if (!doctor) throw new ApiError(404, "Doctor not found");
 

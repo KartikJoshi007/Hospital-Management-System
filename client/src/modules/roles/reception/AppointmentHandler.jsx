@@ -1,35 +1,47 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import API from "../../../api/axios";
+import { updateAppointment } from "../../appointments/appointmentApi";
 import { motion } from "framer-motion";
-import { Calendar, Clock, User, Stethoscope, FileText, Trash2, CheckCircle2, Plus, LayoutGrid, AlertCircle, Loader2, ChevronDown } from "lucide-react";
+import { Calendar, Clock, User, Stethoscope, FileText, Trash2, CheckCircle2, Plus, LayoutGrid, Loader2, ChevronDown, CalendarClock, X } from "lucide-react";
 
 const AppointmentHandler = () => {
   const [form, setForm] = useState({
     patient: "",
+    patientId: "",
     doctor: "",
-    doctorId: "", // Added to store ID
+    doctorId: "",
     dept: "General",
     date: "",
     time: "",
     reason: "",
+    historicalReport: "",
   });
 
   const [appointments, setAppointments] = useState([]);
-  const [doctors, setDoctors] = useState([]); // Store real doctors
+  const [patients, setPatients] = useState([]);
+  const [patientSearch, setPatientSearch] = useState("");
+  const [showPatientList, setShowPatientList] = useState(false);
+  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchingDocs, setFetchingDocs] = useState(false);
+  const [rescheduleId, setRescheduleId] = useState(null);
+  const formRef = useRef(null);
 
   // 🔄 Fetch everything
   const fetchData = async () => {
     setLoading(true);
     setFetchingDocs(true);
     try {
-      const [appRes, docRes] = await Promise.all([
+      const [appRes, docRes, patRes] = await Promise.all([
         API.get("/appointments"),
-        API.get("/doctors")
+        API.get("/doctors"),
+        API.get("/patients")
       ]);
-      setAppointments(appRes.data?.data || []);
+      const apptsData = appRes.data?.data;
+      const patsData = patRes.data?.data;
+      setAppointments(Array.isArray(apptsData) ? apptsData : (apptsData?.appointments || []));
       setDoctors(docRes.data?.data || []);
+      setPatients(Array.isArray(patsData) ? patsData : (patsData?.patients || []));
     } catch (err) {
       console.error("Fetch failed:", err);
     } finally {
@@ -40,6 +52,9 @@ const AppointmentHandler = () => {
 
   useEffect(() => {
     fetchData();
+    const onFocus = () => fetchData();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
   }, []);
 
   // ✏️ Handle input
@@ -63,7 +78,31 @@ const AppointmentHandler = () => {
     setForm({ ...form, [name]: value });
   };
 
-  // ➕ Create appointment
+  const resetForm = () => {
+    setForm({ patient: "", patientId: "", doctor: "", doctorId: "", dept: "General", date: "", time: "", reason: "", historicalReport: "" });
+    setPatientSearch("");
+    setRescheduleId(null);
+  };
+
+  // 🔁 Pre-fill form for rescheduling a cancelled appointment
+  const handleReschedule = (appt) => {
+    setRescheduleId(appt._id);
+    setForm({
+      patient: appt.patient,
+      patientId: appt.patientId || "",
+      doctor: appt.doctor,
+      doctorId: appt.doctorId || "",
+      dept: appt.dept || "General",
+      date: "",
+      time: "",
+      reason: appt.reason || "",
+      historicalReport: "",
+    });
+    setPatientSearch(appt.patient);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // ➕ Create or reschedule appointment
   const handleSubmit = async () => {
     if (!form.patient || !form.doctor || !form.date) {
       alert("Please fill all required fields!");
@@ -71,19 +110,15 @@ const AppointmentHandler = () => {
     }
 
     try {
-      await API.post("/appointments", form);
+      if (rescheduleId) {
+        await updateAppointment(rescheduleId, { date: form.date, time: form.time, status: "Scheduled", reason: form.reason });
+        alert("Appointment rescheduled successfully! ✅");
+      } else {
+        await API.post("/appointments", form);
+        alert("Appointment scheduled successfully! ✅");
+      }
       fetchData();
-      alert("Appointment scheduled successfully! ✅");
-
-      setForm({
-        patient: "",
-        doctor: "",
-        doctorId: "",
-        dept: "General",
-        date: "",
-        time: "",
-        reason: "",
-      });
+      resetForm();
     } catch (err) {
       const errorData = err.response?.data;
       if (errorData?.errors && errorData.errors.length > 0) {
@@ -96,7 +131,11 @@ const AppointmentHandler = () => {
   };
 
   // ❌ Delete
-  const handleDelete = async (id) => {
+  const handleDelete = async (e, id) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!window.confirm("Are you sure?")) return;
     try {
       await API.delete(`/appointments/${id}`);
@@ -124,28 +163,63 @@ const AppointmentHandler = () => {
           animate={{ opacity: 1, x: 0 }}
           className="lg:col-span-4 bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 h-fit lg:sticky lg:top-24"
         >
-          <div className="flex items-center gap-2 mb-6">
-            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
-              <Plus size={18} />
+          <div ref={formRef} className="flex items-center justify-between gap-2 mb-6">
+            <div className="flex items-center gap-2">
+              <div className={`p-2 rounded-lg ${rescheduleId ? "bg-amber-50 text-amber-600" : "bg-purple-50 text-purple-600"}`}>
+                {rescheduleId ? <CalendarClock size={18} /> : <Plus size={18} />}
+              </div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">
+                {rescheduleId ? "Reschedule" : "New Booking"}
+              </h3>
             </div>
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">New Booking</h3>
+            {rescheduleId && (
+              <button onClick={resetForm} className="h-7 w-7 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-all">
+                <X size={13} />
+              </button>
+            )}
           </div>
 
           <div className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Patient Name</label>
+            <div className="space-y-1 relative">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Link Patient</label>
               <div className="relative group">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
                 <input
                   type="text"
-                  name="patient"
-                  placeholder="Full Name"
-                  required
-                  value={form.patient}
-                  onChange={handleChange}
+                  placeholder="Search existing patient..."
+                  value={patientSearch}
+                  onChange={(e) => {
+                    setPatientSearch(e.target.value);
+                    setShowPatientList(true);
+                  }}
+                  onFocus={() => setShowPatientList(true)}
                   className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200"
                 />
               </div>
+
+              {/* Suggestions List */}
+              {showPatientList && patientSearch && (
+                <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl max-h-48 overflow-y-auto custom-scrollbar animate-in slide-in-from-top-2 duration-200">
+                  {patients.filter(p => p.name.toLowerCase().includes(patientSearch.toLowerCase())).length > 0 ? (
+                    patients.filter(p => p.name.toLowerCase().includes(patientSearch.toLowerCase())).map(p => (
+                      <button
+                        key={p._id}
+                        onClick={() => {
+                          setForm({ ...form, patient: p.name, patientId: p._id });
+                          setPatientSearch(p.name);
+                          setShowPatientList(false);
+                        }}
+                        className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-purple-50 hover:text-purple-600 border-b border-slate-50 last:border-0 transition-colors flex items-center justify-between"
+                      >
+                        <span>{p.name}</span>
+                        <span className="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded uppercase font-mono">ID: {p._id.slice(-6)}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-xs text-slate-400 font-bold italic">No matching patient found</div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -217,13 +291,28 @@ const AppointmentHandler = () => {
             <div className="space-y-1">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Clinical Reason</label>
               <div className="relative group">
+                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <input
+                  type="text"
+                  name="reason"
+                  placeholder="Short reason"
+                  required
+                  value={form.reason}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Medical History (Optional)</label>
+              <div className="relative group">
                 <FileText className="absolute left-3 top-3 text-slate-400" size={14} />
                 <textarea
-                  name="reason"
-                  placeholder="Notes..."
-                  required
+                  name="historicalReport"
+                  placeholder="Reference clinical history..."
                   rows={2}
-                  value={form.reason}
+                  value={form.historicalReport}
                   onChange={handleChange}
                   className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 resize-none"
                 />
@@ -233,9 +322,13 @@ const AppointmentHandler = () => {
             <button
               onClick={handleSubmit}
               disabled={!form.doctorId}
-              className="w-full mt-4 bg-slate-900 text-white py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-purple-600 transition-all hover:shadow-xl hover:shadow-purple-500/20 active:scale-95 disabled:opacity-50 disabled:hover:bg-slate-900"
+              className={`w-full mt-4 text-white py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50 ${
+                rescheduleId
+                  ? "bg-amber-500 hover:bg-amber-600 hover:shadow-xl hover:shadow-amber-500/20 disabled:hover:bg-amber-500"
+                  : "bg-slate-900 hover:bg-purple-600 hover:shadow-xl hover:shadow-purple-500/20 disabled:hover:bg-slate-900"
+              }`}
             >
-              Confirm Appointment
+              {rescheduleId ? "Confirm Reschedule" : "Confirm Appointment"}
             </button>
           </div>
         </motion.div>
@@ -302,11 +395,25 @@ const AppointmentHandler = () => {
                     </div>
 
                     <div className="flex items-center gap-3 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
-                      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100 bg-emerald-50 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all`}>
-                        {a.status || 'Scheduled'}
+                      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${
+                        a.status === "Cancelled" ? "border-rose-100 bg-rose-50 text-rose-600" :
+                        a.status === "Completed" ? "border-emerald-100 bg-emerald-50 text-emerald-600" :
+                        a.status === "In Progress" ? "border-blue-100 bg-blue-50 text-blue-600" :
+                        "border-emerald-100 bg-emerald-50 text-emerald-600"
+                      }`}>
+                        {a.status || "Scheduled"}
                       </span>
+                      {a.status === "Cancelled" && (
+                        <button
+                          onClick={() => handleReschedule(a)}
+                          title="Reschedule this appointment"
+                          className="p-2 rounded-xl bg-amber-50 text-amber-500 hover:bg-amber-500 hover:text-white transition-all shadow-sm active:scale-95"
+                        >
+                          <CalendarClock size={14} />
+                        </button>
+                      )}
                       <button
-                        onClick={() => handleDelete(a._id)}
+                        onClick={(e) => handleDelete(e, a._id)}
                         className="p-2 rounded-xl bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm active:scale-95"
                       >
                         <Trash2 size={14} />

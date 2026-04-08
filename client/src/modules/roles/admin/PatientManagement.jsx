@@ -24,27 +24,28 @@ function PatientManagement() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [message, setMessage] = useState('')
+  const [isError,  setIsError]  = useState(false)
 
-  const showMsg = (msg) => {
+  const showMsg = (msg, error = false) => {
     setMessage(msg)
-    setTimeout(() => setMessage(''), 3000)
+    setIsError(error)
+    setTimeout(() => { setMessage(''); setIsError(false) }, 3000)
   }
 
   const fetchPatients = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const res = await getAllPatients(1, 100, search)
-      // backend returns { statusCode, data: { patients: [...], pagination: {} }, message }
-      const raw = res?.data ?? res
-      const list = Array.isArray(raw) ? raw : (raw?.patients ?? raw?.data?.patients ?? [])
+      const res  = await getAllPatients(1, 100, search, genderFilter, statusFilter)
+      const data = res?.data?.data ?? res?.data ?? {}
+      const list = Array.isArray(data) ? data : (data?.patients ?? [])
       setPatients(list)
     } catch (err) {
       setError(err?.message || 'Failed to load patients')
     } finally {
       setLoading(false)
     }
-  }, [search])
+  }, [search, genderFilter, statusFilter])
 
   // debounce search
   useEffect(() => {
@@ -52,12 +53,8 @@ function PatientManagement() {
     return () => clearTimeout(t)
   }, [fetchPatients])
 
-  // client-side gender + status filter
-  const filtered = patients.filter(p => {
-    const byGender = genderFilter ? p.gender?.toLowerCase() === genderFilter.toLowerCase() : true
-    const byStatus = statusFilter ? p.status === statusFilter : true
-    return byGender && byStatus
-  })
+  // client-side filter only used as fallback if backend doesn't filter
+  const filtered = patients
 
   const openEdit = (p) => {
     setEditPatient(p)
@@ -68,13 +65,13 @@ function PatientManagement() {
     e.preventDefault()
     setSaving(true)
     try {
-      const res = await updatePatient(editPatient._id, formData)
-      const updated = res?.data ?? res
+      const res     = await updatePatient(editPatient._id, formData)
+      const updated = res?.data?.data ?? res?.data ?? {}
       setPatients(prev => prev.map(p => p._id === editPatient._id ? { ...p, ...updated } : p))
       setEditPatient(null)
       showMsg('Patient updated successfully')
     } catch (err) {
-      showMsg(err?.message || 'Update failed')
+      showMsg(err?.message || 'Update failed', true)
     } finally {
       setSaving(false)
     }
@@ -88,7 +85,7 @@ function PatientManagement() {
       setDeleteCandidate(null)
       showMsg('Patient removed successfully')
     } catch (err) {
-      showMsg(err?.message || 'Delete failed')
+      showMsg(err?.message || 'Delete failed', true)
     } finally {
       setDeleting(false)
     }
@@ -105,8 +102,8 @@ function PatientManagement() {
 
       {message && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-          className={`px-5 py-3 rounded-2xl text-xs font-black border ${message.includes('failed') || message.includes('Failed') ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
-          {message.includes('failed') || message.includes('Failed') ? '✕' : '✓'} {message}
+          className={`px-5 py-3 rounded-2xl text-xs font-black border ${isError ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-700'}`}>
+          {isError ? '✕' : '✓'} {message}
         </motion.div>
       )}
 

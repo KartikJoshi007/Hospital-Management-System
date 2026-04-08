@@ -32,7 +32,6 @@ import PatientManagement from '../modules/roles/admin/PatientManagement'
 import AppointmentManagement from '../modules/roles/admin/AppointmentManagement'
 import RevenueDashboard from '../modules/roles/admin/RevenueDashboard'
 import AdminProfile from '../modules/roles/admin/AdminProfile'
-import ReportsDashboard from '../modules/roles/admin/ReportsDashboard'
 
 // Doctor
 import DoctorLayout from '../modules/roles/doctor/DoctorLayout'
@@ -41,7 +40,6 @@ import DoctorAppointments from '../modules/roles/doctor/DoctorAppointments'
 import PatientDetails from '../modules/roles/doctor/PatientDetails'
 import Schedule from '../modules/roles/doctor/Schedule'
 import DoctorProfile from '../modules/roles/doctor/DoctorProfile'
-import MedicalRecords from '../modules/roles/doctor/MedicalRecords'
 
 // Reception
 import ReceptionLayout from '../modules/roles/reception/ReceptionLayout'
@@ -88,7 +86,6 @@ function AppRoutes() {
           <Route path="/admin/patients" element={<PatientManagement />} />
           <Route path="/admin/appointments" element={<AppointmentManagement />} />
           <Route path="/admin/billing" element={<RevenueDashboard />} />
-          <Route path="/admin/reports" element={<ReportsDashboard />} />
           <Route path="/admin/profile" element={<AdminProfile />} />
         </Route>
       </Route>
@@ -102,7 +99,6 @@ function AppRoutes() {
           <Route path="/doctor/patients" element={<PatientDetails />} />
           <Route path="/doctor/schedule" element={<Schedule />} />
           <Route path="/doctor/profile" element={<DoctorProfile />} />
-          <Route path="/doctor/medical-records" element={<MedicalRecords />} />
         </Route>
       </Route>
 

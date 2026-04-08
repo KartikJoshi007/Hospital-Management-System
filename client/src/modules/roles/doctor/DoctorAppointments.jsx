@@ -30,7 +30,7 @@ function RescheduleModal({ appointment, onClose, onConfirm }) {
   })
   const [submitting, setSubmitting] = useState(false)
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const valid = form.date && form.time && form.reason && !submitting
+  const valid = form.date && form.time && form.reason && !(form.reason === 'Other' && !form.note.trim()) && !submitting
 
   const handleConfirm = async () => {
     setSubmitting(true)
@@ -83,6 +83,15 @@ function RescheduleModal({ appointment, onClose, onConfirm }) {
                     }`}>{r}</button>
                 ))}
               </div>
+              {form.reason === 'Other' && (
+                <textarea
+                  value={form.note}
+                  onChange={e => set('note', e.target.value)}
+                  placeholder="Please describe the reason..."
+                  rows={2}
+                  className="mt-2 w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:border-blue-400 transition-all bg-white resize-none placeholder:text-slate-300"
+                />
+              )}
             </div>
           </div>
 

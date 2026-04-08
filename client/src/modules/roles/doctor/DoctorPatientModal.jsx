@@ -1,7 +1,19 @@
-import { useState } from 'react'
-import { X, User, FileText, Pill, Calendar, Activity, Eye, Phone, MapPin, AlertTriangle, DollarSign, ClipboardList, Droplets, Download, Filter, Scissors, Clock, ChevronLeft, ChevronRight, Plus, Check } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, User, FileText, Pill, Calendar, Activity, Eye, Phone, MapPin, AlertTriangle, DollarSign, Droplets, Download, Scissors, Clock, ChevronLeft, ChevronRight, Plus, Check, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { addScheduleEvent } from './scheduleStore'
+import useAuth from '../../../hooks/useAuth'
+import { getDoctorByUserId } from '../../doctors/doctorApi'
+import { createScheduleEvent } from './scheduleApi'
+import { getBillsByPatient } from '../../billing/billingApi'
+import { getPatientRecords, createRecord } from '../../patients/medicalRecordApi'
+import jsPDF from 'jspdf'
+
+const HOSPITAL = {
+  name:    'City Care Hospital',
+  timing:  'Mon – Sat: 8:00 AM – 9:00 PM  |  Sun: 9:00 AM – 2:00 PM',
+  address: '42, MG Road, Mumbai, Maharashtra – 400001',
+  phone:   '+91 98001 11222',
+}
 
 const TABS = [
   { key: 'overview',     label: 'Overview',     icon: User        },
@@ -20,8 +32,10 @@ const RESULT_COLORS = {
 }
 
 const BILL_COLORS = {
-  Paid:   'bg-emerald-50 text-emerald-600 border-emerald-100',
-  Unpaid: 'bg-rose-50 text-rose-500 border-rose-100',
+  Paid:    'bg-emerald-50 text-emerald-600 border-emerald-100',
+  Pending: 'bg-amber-50 text-amber-600 border-amber-100',
+  Overdue: 'bg-rose-50 text-rose-500 border-rose-100',
+  Unpaid:  'bg-rose-50 text-rose-500 border-rose-100',
 }
 
 const RECORD_STATUS_COLORS = {
@@ -47,99 +61,66 @@ const EVENT_COLORS = {
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
-const MOCK = {
-  address:   '42, MG Road, Mumbai, Maharashtra',
-  emergency: '+91 98001 11222',
-  allergies: ['Penicillin', 'Dust', 'Pollen'],
-  nextVisit: '2024-07-15',
-  calendarEvents: [
-    { id: 'E-001', date: '2024-07-15', type: 'appointment', title: 'Follow-up Consultation', time: '10:00 AM', note: 'Review HbA1c results' },
-    { id: 'E-002', date: '2024-07-22', type: 'surgery',     title: 'Knee Arthroscopy',        time: '08:30 AM', note: 'Pre-op fasting required' },
-    { id: 'E-003', date: '2024-07-28', type: 'upcoming',    title: 'Upcoming Appointment',    time: '11:00 AM', note: 'Routine check-up' },
-    { id: 'E-004', date: '2024-08-05', type: 'followup',    title: 'Post-Surgery Follow-up',  time: '09:00 AM', note: 'Wound inspection' },
-  ],
-  reports: [
-    {
-      id: 'R-001', name: 'Blood Test Report', date: '2024-06-08', type: 'Lab', result: 'Normal',
-      summary: 'Complete Blood Count within normal range.',
-      findings: [
-        { label: 'Hemoglobin',     value: '14.2 g/dL', status: 'Normal' },
-        { label: 'WBC Count',      value: '7,200 /µL', status: 'Normal' },
-        { label: 'Platelet Count', value: '2.5 L /µL', status: 'Normal' },
-        { label: 'RBC Count',      value: '5.1 M/µL',  status: 'Normal' },
-      ],
-      doctor: 'Dr. Aryan Mehta', lab: 'Central Lab',
-    },
-    {
-      id: 'R-002', name: 'X-Ray Chest', date: '2024-05-20', type: 'Radiology', result: 'Clear',
-      summary: 'Lungs clear. No consolidation or pleural effusion.',
-      findings: [
-        { label: 'Lung Fields', value: 'Clear',       status: 'Normal' },
-        { label: 'Heart Size',  value: 'Normal',      status: 'Normal' },
-        { label: 'Pleura',      value: 'No effusion', status: 'Normal' },
-        { label: 'Bones',       value: 'Intact',      status: 'Normal' },
-      ],
-      doctor: 'Dr. Rahul Patil', lab: 'Radiology Dept',
-    },
-    {
-      id: 'R-003', name: 'HbA1c Test', date: '2024-06-01', type: 'Lab', result: 'High',
-      summary: 'HbA1c elevated at 8.1%. Indicates poor glycemic control.',
-      findings: [
-        { label: 'HbA1c',           value: '8.1%',      status: 'High'   },
-        { label: 'Fasting Glucose', value: '148 mg/dL', status: 'High'   },
-        { label: 'Post-meal',       value: '210 mg/dL', status: 'High'   },
-        { label: 'Insulin',         value: 'Normal',    status: 'Normal' },
-      ],
-      doctor: 'Dr. Sneha Verma', lab: 'Central Lab',
-    },
-  ],
-  prescriptions: [
-    {
-      id: 'Rx-001', date: '2024-06-10', doctor: 'Dr. Aryan Mehta',
-      medicines: [
-        { name: 'Metformin 500mg', dose: '1 tablet',  freq: 'Twice daily', duration: '30 days', instructions: 'After meals'  },
-        { name: 'Amlodipine 5mg',  dose: '1 tablet',  freq: 'Once daily',  duration: '30 days', instructions: 'Morning'      },
-        { name: 'Aspirin 75mg',    dose: '1 tablet',  freq: 'Once daily',  duration: '30 days', instructions: 'After dinner' },
-      ],
-      notes: 'Avoid high-sodium diet. Monitor BP weekly. Follow-up in 4 weeks.',
-    },
-    {
-      id: 'Rx-002', date: '2024-05-01', doctor: 'Dr. Sneha Verma',
-      medicines: [
-        { name: 'Pantoprazole 40mg', dose: '1 tablet',  freq: 'Once daily', duration: '14 days', instructions: 'Before meals' },
-        { name: 'Vitamin D3 60K',    dose: '1 capsule', freq: 'Weekly',     duration: '8 weeks', instructions: 'With milk'    },
-      ],
-      notes: 'Increase calcium-rich food intake.',
-    },
-  ],
-  vitals: {
-    bp: '140/90 mmHg', heartRate: '82 bpm', temp: '98.6°F',
-    spo2: '97%', weight: '78 kg', height: '172 cm', bmi: '26.4', lastUpdated: '2024-06-10', lastUpdatedTime: '09:45 AM',
-  },
-  records: [
-    { id: 'R-001', type: 'Prescription',  date: '2024-06-10', diagnosis: 'Hypertension',        status: 'Final'   },
-    { id: 'R-002', type: 'Lab Report',    date: '2024-06-11', diagnosis: 'Migraine',             status: 'Final'   },
-    { id: 'R-003', type: 'Discharge Note',date: '2024-06-09', diagnosis: 'Diabetes Type 2',      status: 'Draft'   },
-    { id: 'R-004', type: 'Imaging',       date: '2024-06-08', diagnosis: 'Rheumatoid Arthritis', status: 'Pending' },
-  ],
-  billing: [
-    { id: 'B-001', desc: 'OPD Consultation', date: '2024-06-10', amount: '₹500',  status: 'Paid'   },
-    { id: 'B-002', desc: 'Blood Test (CBC)',  date: '2024-06-08', amount: '₹800',  status: 'Paid'   },
-    { id: 'B-003', desc: 'X-Ray Chest',       date: '2024-05-20', amount: '₹1200', status: 'Paid'   },
-    { id: 'B-004', desc: 'HbA1c Test',        date: '2024-06-01', amount: '₹650',  status: 'Unpaid' },
-    { id: 'B-005', desc: 'Follow-up Visit',   date: '2024-06-15', amount: '₹300',  status: 'Unpaid' },
-  ],
-}
-
 const EMPTY_MED = { name: '', dose: '', freq: '', duration: '', instructions: '' }
 
+const EMPTY_FINDING = { label: '', value: '', status: 'Normal' }
+
 function PrescriptionTab({ patient }) {
-  const [prescriptions, setPrescriptions] = useState(MOCK.prescriptions)
+  const { user } = useAuth()
+  const [prescriptions, setPrescriptions] = useState([])
+  const [loading, setLoading]             = useState(false)
   const [showForm, setShowForm]           = useState(false)
   const [medicines, setMedicines]         = useState([{ ...EMPTY_MED }])
   const [notes, setNotes]                 = useState('')
   const [error, setError]                 = useState('')
-  const [confirmDel, setConfirmDel]       = useState(null) // rx to delete
+  const [confirmDel, setConfirmDel]       = useState(null)
+  const [doctorProfile, setDoctorProfile] = useState(null)
+
+  // Fetch Doctor Profile
+  useEffect(() => {
+    if (user?.id) {
+      getDoctorByUserId(user.id)
+        .then(res => setDoctorProfile(res?.data?.data || res?.data))
+        .catch(err => console.error("Failed to fetch doctor profile:", err))
+    }
+  }, [user?.id])
+
+  // Fetch Patient Prescriptions
+  const fetchRx = async () => {
+    if (!patient?._id) return
+    setLoading(true)
+    try {
+      const res = await getPatientRecords(patient._id)
+      const list = res?.data || []
+      const rxOnly = list
+        .filter(r => r.type === 'Prescription')
+        .map(r => {
+          let meds = []
+          try {
+             meds = JSON.parse(r.description)
+          } catch {
+             meds = [{ name: r.title, dose: '—', freq: '—', duration: '—', instructions: r.description }]
+          }
+          return {
+            id:       r._id?.slice(-8).toUpperCase() || 'Rx-NEW',
+            dbId:     r._id,
+            date:     new Date(r.date).toISOString().slice(0, 10),
+            doctor:   r.doctorId?.fullName || r.doctorId?.name || 'Doctor',
+            medicines: meds,
+            notes:     r.title === 'Prescription' ? '' : r.title, // Simplified notes handling
+          }
+        })
+      setPrescriptions(rxOnly)
+    } catch (err) {
+      console.error("Failed to fetch prescriptions:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchRx()
+  }, [patient?._id])
 
   const updateMed = (i, field, val) =>
     setMedicines(prev => prev.map((m, idx) => idx === i ? { ...m, [field]: val } : m))
@@ -148,24 +129,177 @@ function PrescriptionTab({ patient }) {
 
   const removeMedRow = (i) => setMedicines(prev => prev.filter((_, idx) => idx !== i))
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const filled = medicines.filter(m => m.name.trim())
     if (!filled.length) { setError('Add at least one medicine.'); return }
-    const newRx = {
-      id:       `Rx-${String(prescriptions.length + 1).padStart(3, '0')}`,
-      date:     new Date().toISOString().slice(0, 10),
-      doctor:   'Dr. (You)',
-      medicines: filled,
-      notes,
+    if (!doctorProfile?._id) { setError('Doctor profile not loaded yet.'); return }
+
+    setLoading(true)
+    try {
+      const recordData = {
+        patientId: patient._id,
+        doctorId:  doctorProfile._id,
+        type:      'Prescription',
+        title:     notes || 'General Prescription',
+        description: JSON.stringify(filled)
+      }
+
+      await createRecord(recordData)
+      setShowForm(false)
+      setMedicines([{ ...EMPTY_MED }])
+      setNotes('')
+      setError('')
+      fetchRx() // Refresh list
+    } catch (err) {
+      setError(err?.message || 'Failed to save record.')
+    } finally {
+      setLoading(false)
     }
-    setPrescriptions(prev => [newRx, ...prev])
-    setShowForm(false)
-    setMedicines([{ ...EMPTY_MED }])
-    setNotes('')
-    setError('')
   }
 
   const inputCls = 'w-full px-2.5 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 focus:outline-none focus:border-blue-400 bg-white placeholder:text-slate-300'
+
+  const downloadPDF = (rx) => {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+    const pw = doc.internal.pageSize.getWidth()
+    let y = 0
+
+    // ── Header background ──
+    doc.setFillColor(37, 99, 235)
+    doc.rect(0, 0, pw, 38, 'F')
+
+    // Hospital name
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(20)
+    doc.setTextColor(255, 255, 255)
+    doc.text(HOSPITAL.name, pw / 2, 14, { align: 'center' })
+
+    // Timing
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.text(HOSPITAL.timing, pw / 2, 21, { align: 'center' })
+
+    // Doctor degree / name
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.text(rx.doctor, pw / 2, 28, { align: 'center' })
+
+    // Divider line
+    doc.setDrawColor(255, 255, 255)
+    doc.setLineWidth(0.3)
+    doc.line(14, 33, pw - 14, 33)
+
+    // Rx ID + Date
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Rx ID: ${rx.id}`, 14, 37)
+    doc.text(`Date: ${rx.date}`, pw - 14, 37, { align: 'right' })
+
+    y = 50
+
+    // ── Patient info ──
+    doc.setTextColor(30, 41, 59)
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Patient:', 14, y)
+    doc.setFont('helvetica', 'normal')
+    doc.text(patient.name, 35, y)
+    y += 6
+
+    // ── Divider ──
+    doc.setDrawColor(203, 213, 225)
+    doc.setLineWidth(0.3)
+    doc.line(14, y, pw - 14, y)
+    y += 8
+
+    // ── Rx symbol ──
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(16)
+    doc.setTextColor(37, 99, 235)
+    doc.text('Rx', 14, y)
+    y += 8
+
+    // ── Medicine table header ──
+    const cols = { med: 14, dose: 72, freq: 100, dur: 130, inst: 158 }
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(100, 116, 139)
+    doc.text('MEDICINE',     cols.med,  y)
+    doc.text('DOSE',         cols.dose, y)
+    doc.text('FREQUENCY',    cols.freq, y)
+    doc.text('DURATION',     cols.dur,  y)
+    doc.text('INSTRUCTIONS', cols.inst, y)
+    y += 3
+
+    doc.setDrawColor(203, 213, 225)
+    doc.line(14, y, pw - 14, y)
+    y += 6
+
+    // ── Medicine rows ──
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(30, 41, 59)
+    rx.medicines.forEach((m, idx) => {
+      // alternating row bg
+      if (idx % 2 === 0) {
+        doc.setFillColor(248, 250, 252)
+        doc.rect(14, y - 4, pw - 28, 8, 'F')
+      }
+      doc.setFontSize(8.5)
+      doc.setFont('helvetica', 'bold')
+      doc.text(m.name        || '—', cols.med,  y)
+      doc.setFont('helvetica', 'normal')
+      doc.text(m.dose        || '—', cols.dose, y)
+      doc.text(m.freq        || '—', cols.freq, y)
+      doc.text(m.duration    || '—', cols.dur,  y)
+      doc.text(m.instructions|| '—', cols.inst, y)
+      y += 9
+    })
+
+    y += 4
+    doc.setDrawColor(203, 213, 225)
+    doc.line(14, y, pw - 14, y)
+    y += 8
+
+    // ── Notes ──
+    if (rx.notes) {
+      doc.setFillColor(255, 251, 235)
+      const noteLines = doc.splitTextToSize(`Notes: ${rx.notes}`, pw - 28)
+      const noteH = noteLines.length * 5 + 6
+      doc.rect(14, y - 4, pw - 28, noteH, 'F')
+      doc.setFontSize(8.5)
+      doc.setFont('helvetica', 'italic')
+      doc.setTextColor(120, 83, 8)
+      doc.text(noteLines, 17, y)
+      y += noteH + 4
+    }
+
+    // ── Doctor signature line ──
+    y += 6
+    doc.setDrawColor(148, 163, 184)
+    doc.line(pw - 60, y, pw - 14, y)
+    y += 5
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8)
+    doc.setTextColor(30, 41, 59)
+    doc.text(rx.doctor, pw - 14, y, { align: 'right' })
+    y += 4
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(100, 116, 139)
+    doc.text('Signature', pw - 14, y, { align: 'right' })
+
+    // ── Footer ──
+    const pageH = doc.internal.pageSize.getHeight()
+    doc.setFillColor(37, 99, 235)
+    doc.rect(0, pageH - 18, pw, 18, 'F')
+    doc.setFontSize(8)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(255, 255, 255)
+    doc.text(HOSPITAL.address, pw / 2, pageH - 10, { align: 'center' })
+    doc.text(`Tel: ${HOSPITAL.phone}`, pw / 2, pageH - 5, { align: 'center' })
+
+    doc.save(`Prescription_${rx.id}_${patient.name.replace(/\s+/g, '_')}.pdf`)
+  }
 
   return (
     <div className="space-y-4">
@@ -262,6 +396,12 @@ function PrescriptionTab({ patient }) {
             <div className="flex items-center gap-2">
               <Pill size={15} className="text-blue-400" />
               <button
+                onClick={() => downloadPDF(rx)}
+                title="Download PDF"
+                className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-blue-500 hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all">
+                <Download size={13} />
+              </button>
+              <button
                 onClick={() => setConfirmDel(rx)}
                 className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-all">
                 <X size={13} />
@@ -350,6 +490,165 @@ function PrescriptionTab({ patient }) {
   )
 }
 
+function ReportsTab({ patient }) {
+  const [reports, setReports] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [viewReport, setViewReport] = useState(null)
+
+  const fetchReports = async () => {
+    if (!patient?._id) return
+    setLoading(true)
+    try {
+      const res = await getPatientRecords(patient._id)
+      const list = Array.isArray(res?.data) ? res.data : (res?.data?.records || [])
+      const reportsOnly = list
+        .filter(r => r.type === 'Lab Report' || r.type === 'Imaging')
+        .map(r => {
+          let findings = []
+          try {
+            findings = JSON.parse(r.description)
+          } catch {
+            findings = [{ label: 'Observation', value: r.description, status: 'Normal' }]
+          }
+          return {
+            id: r._id?.slice(-8).toUpperCase() || 'R-NEW',
+            name: r.title,
+            date: new Date(r.date).toISOString().slice(0, 10),
+            type: r.type,
+            result: r.title.toLowerCase().includes('normal') ? 'Normal' : 'Final',
+            doctor: r.doctorId?.fullName || r.doctorId?.name || 'Lab Physician',
+            lab: r.clinicName || 'Central Lab',
+            summary: r.title,
+            findings: findings,
+          }
+        })
+      setReports(reportsOnly)
+    } catch (err) {
+      console.error("Failed to fetch reports:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchReports()
+  }, [patient?._id])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20 gap-3 text-slate-400">
+        <Loader2 size={18} className="animate-spin" />
+        <span className="text-xs font-black uppercase tracking-widest">Accessing laboratory records...</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{reports.length} report(s) available</p>
+      {reports.map((r, i) => (
+        <motion.div key={r.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+          className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition-all">
+          <div className="flex items-center gap-4">
+            <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+              <FileText size={16} className="text-blue-500" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-slate-900">{r.name}</p>
+              <p className="text-[10px] font-bold text-slate-400">{r.type} • {r.date}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${RESULT_COLORS[r.result] || 'bg-slate-50 text-slate-500 border-slate-100'}`}>
+              {r.result}
+            </span>
+            <button onClick={() => setViewReport(r)}
+              className="p-2 rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100 transition-all">
+              <Eye size={13} />
+            </button>
+          </div>
+        </motion.div>
+      ))}
+
+      {reports.length === 0 && (
+        <div className="py-16 text-center text-xs font-bold text-slate-400 flex flex-col items-center gap-3">
+          <FileText size={24} className="text-slate-200" />
+          No laboratory reports or imaging found for this patient.
+        </div>
+      )}
+
+      {/* Report Detail Sub-Modal */}
+      <AnimatePresence>
+        {viewReport && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden"
+            >
+              <div className="px-8 pt-6 pb-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shadow-sm">
+                    <FileText size={16} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">{viewReport.name}</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{viewReport.type} • {viewReport.date}</p>
+                  </div>
+                </div>
+                <button onClick={() => setViewReport(null)}
+                  className="h-9 w-9 flex items-center justify-center rounded-xl bg-white text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all border border-slate-200 shadow-sm">
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="px-8 py-6 space-y-5 max-h-[60vh] overflow-y-auto">
+                <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100">
+                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Record Summary</p>
+                  <p className="text-sm font-bold text-slate-800 leading-relaxed">{viewReport.name}</p>
+                </div>
+
+                <div>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Laboratory Findings</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {Array.isArray(viewReport.findings) ? viewReport.findings.map((f, i) => (
+                      <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{f.label}</p>
+                        <p className="text-sm font-black text-slate-900">{f.value}</p>
+                        {f.status && (
+                          <span className={`mt-1 inline-block px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${RESULT_COLORS[f.status] || 'bg-slate-50 text-slate-500 border-slate-100'}`}>
+                            {f.status}
+                          </span>
+                        )}
+                      </div>
+                    )) : (
+                      <div className="col-span-2 p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs text-slate-600">
+                        {viewReport.findings}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Medical Professional</p>
+                    <p className="text-xs font-black text-slate-900 mt-0.5">{viewReport.doctor}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Clinic / Laboratory</p>
+                    <p className="text-xs font-black text-slate-900 mt-0.5">{viewReport.lab}</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 function fmt12(time24) {
   if (!time24) return ''
   const [h, m] = time24.split(':').map(Number)
@@ -380,29 +679,58 @@ function CalendarTab({ events, onBookSurgery, patient }) {
     .filter(e => e.type === 'appointment' || e.type === 'surgery')
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const handleSave = () => {
-    if (!form.date || !form.time) return
+  const { user } = useAuth()
+  const [doctorProfile, setDoctorProfile] = useState(null)
+
+  useEffect(() => {
+    const fetchDoc = async () => {
+      if (!user?.id) return
+      try {
+        const res = await getDoctorByUserId(user.id)
+        setDoctorProfile(res.data)
+      } catch (err) {
+        console.error("Failed to load doctor profile in modal:", err)
+      }
+    }
+    fetchDoc()
+  }, [user?.id])
+
+  const handleSave = async () => {
+    if (!form.date || !form.time || !doctorProfile?._id) return
     const titles  = { surgery: 'Schedule Procedure', appointment: 'Next Appointment' }
     const typeMap  = { surgery: 'procedure', appointment: 'upcoming' }
     const timeDisp = fmt12(form.time)
-    const newEvent = {
-      id: `E-${Date.now()}`, date: form.date, type: modal.type,
-      title: titles[modal.type], time: timeDisp, note: form.note,
-    }
-    setLocalEvents(prev => [...prev, newEvent])
-    addScheduleEvent({
-      id:    newEvent.id,
-      date:  newEvent.date,
-      type:  typeMap[modal.type],
+    
+    const eventParams = {
+      doctorId: doctorProfile._id,
+      date: form.date,
+      type: typeMap[modal.type],
       title: `${patient.name} — ${titles[modal.type]}`,
-      time:  timeDisp,
-      note:  form.note || patient.name,
-    })
-    if (modal.type === 'surgery' && onBookSurgery) {
-      onBookSurgery(newEvent)
+      time: timeDisp,
+      note: form.note || patient.name,
     }
-    setModal(null)
-    setForm({ date: '', time: '', note: '' })
+
+    try {
+      const res = await createScheduleEvent(eventParams)
+      if (res.success) {
+        const newEvent = {
+          ...res.data,
+          id: res.data._id || res.data.id
+        }
+        setLocalEvents(prev => [...prev, newEvent])
+        
+        // Notify other components (like Schedule.jsx) that schedule has updated
+        window.dispatchEvent(new Event('scheduleUpdated'))
+        
+        if (modal.type === 'surgery' && onBookSurgery) {
+          onBookSurgery(newEvent)
+        }
+        setModal(null)
+        setForm({ date: '', time: '', note: '' })
+      }
+    } catch (err) {
+      console.error("Failed to save schedule event from modal:", err)
+    }
   }
 
   const selectedDateStr = selected
@@ -606,8 +934,21 @@ function CalendarTab({ events, onBookSurgery, patient }) {
 }
 
 function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
-  const [activeTab, setActiveTab] = useState('overview')
-  const [viewReport, setViewReport] = useState(null)
+  const [activeTab,   setActiveTab]   = useState('overview')
+  const [viewReport,  setViewReport]  = useState(null)
+  const [bills,       setBills]       = useState([])
+  const [billsLoading, setBillsLoading] = useState(false)
+  const [billsError,  setBillsError]  = useState('')
+
+  useEffect(() => {
+    if (activeTab !== 'billing' || !patient._id) return
+    setBillsLoading(true)
+    setBillsError('')
+    getBillsByPatient(patient._id)
+      .then(data => setBills(Array.isArray(data) ? data : []))
+      .catch(() => setBillsError('Failed to load billing records'))
+      .finally(() => setBillsLoading(false))
+  }, [activeTab, patient._id])
 
   return (
     <>
@@ -636,9 +977,11 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${patient.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
                       {patient.status}
                     </span>
-                    <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border bg-purple-50 text-purple-600 border-purple-100">
-                      <Calendar size={9} /> Next: {MOCK.nextVisit}
-                    </span>
+                    {patient.nextVisit && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border bg-purple-50 text-purple-600 border-purple-100">
+                        <Calendar size={9} /> Next: {patient.nextVisit}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -666,7 +1009,7 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
 
             {/* OVERVIEW */}
             {activeTab === 'overview' && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
                     { label: 'Age',    value: `${patient.age} yrs` },
@@ -681,6 +1024,30 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
                   ))}
                 </div>
 
+                {/* Quick Vitals in Overview (Height & Weight only) */}
+                {(patient.vitals?.height || patient.vitals?.weight) && (
+                   <div className="grid grid-cols-2 gap-4 max-w-sm">
+                      {patient.vitals.height ? (
+                        <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 flex items-center gap-3">
+                           <div className="h-8 w-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shrink-0 shadow-sm"><Activity size={14} /></div>
+                           <div>
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Height</p>
+                              <p className="text-sm font-black text-slate-900">{patient.vitals.height} cm</p>
+                           </div>
+                        </div>
+                      ) : null}
+                      {patient.vitals.weight ? (
+                        <div className="p-4 rounded-2xl bg-orange-50/50 border border-orange-100 flex items-center gap-3">
+                           <div className="h-8 w-8 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm"><Activity size={14} /></div>
+                           <div>
+                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Weight</p>
+                              <p className="text-sm font-black text-slate-900">{patient.vitals.weight} kg</p>
+                           </div>
+                        </div>
+                      ) : null}
+                   </div>
+                )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                     <div className="flex items-center gap-2 mb-1">
@@ -694,14 +1061,7 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
                       <MapPin size={12} className="text-slate-400" />
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Address</p>
                     </div>
-                    <p className="text-sm font-bold text-slate-900">{MOCK.address}</p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Phone size={12} className="text-rose-400" />
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Emergency Contact</p>
-                    </div>
-                    <p className="text-sm font-bold text-slate-900">{MOCK.emergency}</p>
+                    <p className="text-sm font-bold text-slate-900">{patient.address}</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                     <div className="flex items-center gap-2 mb-1">
@@ -715,58 +1075,23 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
                 <div className="p-4 rounded-2xl bg-rose-50 border border-rose-100">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertTriangle size={12} className="text-rose-500" />
-                    <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest">Known Allergies</p>
+                    <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest">Medical History / Known Allergies</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {MOCK.allergies.map(a => (
-                      <span key={a} className="px-3 py-1 rounded-full bg-white border border-rose-200 text-rose-600 text-[10px] font-black">{a}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100">
-                  <div className="flex items-center gap-2 mb-2">
-                    <ClipboardList size={12} className="text-amber-500" />
-                    <p className="text-[9px] font-black text-amber-500 uppercase tracking-widest">Doctor Notes</p>
-                  </div>
-                  <p className="text-sm font-bold text-amber-900 leading-relaxed">{patient.notes}</p>
+                  <p className="text-sm font-bold text-rose-900 leading-relaxed">
+                    {patient.medicalHistory || 'No known conditions or allergies recorded.'}
+                  </p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100">
                   <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Current Condition</p>
-                  <p className="text-sm font-black text-blue-900">{patient.condition}</p>
+                  <p className="text-sm font-black text-blue-900">{patient.status}</p>
                 </div>
               </div>
             )}
 
             {/* REPORTS */}
             {activeTab === 'reports' && (
-              <div className="space-y-3">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{MOCK.reports.length} reports available</p>
-                {MOCK.reports.map((r, i) => (
-                  <motion.div key={r.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition-all">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
-                        <FileText size={16} className="text-blue-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-slate-900">{r.name}</p>
-                        <p className="text-[10px] font-bold text-slate-400">{r.type} • {r.date}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${RESULT_COLORS[r.result] || 'bg-slate-50 text-slate-500 border-slate-100'}`}>
-                        {r.result}
-                      </span>
-                      <button onClick={() => setViewReport(r)}
-                        className="p-2 rounded-lg bg-white border border-slate-200 text-slate-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100 transition-all">
-                        <Eye size={13} />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+              <ReportsTab patient={patient} />
             )}
 
             {/* PRESCRIPTION */}
@@ -775,140 +1100,130 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
             )}
 
             {/* VITALS */}
-            {activeTab === 'vitals' && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  <Clock size={11} />
-                  Last updated: {MOCK.vitals.lastUpdated} at {MOCK.vitals.lastUpdatedTime}
+            {activeTab === 'vitals' && (() => {
+              const v = patient.vitals || {}
+              const rows = [
+                { label: 'Height', value: v.height, unit: 'cm', icon: <Activity size={14} />, color: 'bg-blue-500' },
+                { label: 'Weight', value: v.weight, unit: 'kg', icon: <Activity size={14} />, color: 'bg-orange-500' },
+              ].filter(r => r.value && r.value !== 0)
+
+              return (
+                <div className="space-y-6">
+                  {rows.length === 0 ? (
+                    <div className="py-20 text-center space-y-3">
+                       <Activity className="h-10 w-10 text-slate-200 mx-auto" />
+                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No clinical vitals recorded yet.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto">
+                      {rows.map((row, i) => (
+                        <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                          className="p-8 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center">
+                          <div className={`h-14 w-14 rounded-3xl ${row.color} text-white flex items-center justify-center mb-4 shadow-lg shadow-black/5`}>
+                             {row.icon}
+                          </div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{row.label}</p>
+                          <p className="text-2xl font-black text-slate-900">{row.value} <span className="text-xs text-slate-400 font-bold ml-1">{row.unit}</span></p>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {[
-                    { label: 'Blood Pressure', value: MOCK.vitals.bp        },
-                    { label: 'Heart Rate',      value: MOCK.vitals.heartRate },
-                    { label: 'Temperature',     value: MOCK.vitals.temp      },
-                    { label: 'SpO2',            value: MOCK.vitals.spo2      },
-                    { label: 'Weight',          value: MOCK.vitals.weight    },
-                    { label: 'Height',          value: MOCK.vitals.height    },
-                    { label: 'BMI',             value: MOCK.vitals.bmi       },
-                  ].map((v, i) => (
-                    <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                      className="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">{v.label}</p>
-                      <p className="text-sm font-black text-slate-900">{v.value}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            )}
+              )
+            })()}
 
             {/* CALENDAR */}
             {activeTab === 'calendar' && (
-              <CalendarTab events={MOCK.calendarEvents} patient={patient} onBookSurgery={(ev) => onBookSurgery && onBookSurgery({ ...ev, patient: patient.name })} />
+              <CalendarTab
+                events={(patient.appointments || []).map(a => ({
+                  id:    a._id,
+                  date:  new Date(a.date).toISOString().slice(0, 10),
+                  type:  a.status === 'Completed' ? 'followup' : 'appointment',
+                  title: `${a.patient} — ${a.type}`,
+                  time:  a.time,
+                  note:  a.reason,
+                }))
+                }
+                patient={patient}
+                onBookSurgery={(ev) => onBookSurgery && onBookSurgery({ ...ev, patient: patient.name })}
+              />
             )}
 
             {/* BILLING */}
             {activeTab === 'billing' && (
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  {[
-                    { label: 'Total Paid',   value: MOCK.billing.filter(b => b.status === 'Paid').length,   cls: 'bg-emerald-50 border-emerald-100 text-emerald-600' },
-                    { label: 'Total Unpaid', value: MOCK.billing.filter(b => b.status === 'Unpaid').length, cls: 'bg-rose-50 border-rose-100 text-rose-500'         },
-                  ].map((s, i) => (
-                    <div key={i} className={`p-4 rounded-2xl border text-center ${s.cls}`}>
-                      <p className="text-2xl font-black">{s.value}</p>
-                      <p className="text-[9px] font-black uppercase tracking-widest mt-1 opacity-70">{s.label}</p>
+                {billsLoading ? (
+                  <div className="flex items-center justify-center py-16 gap-3 text-slate-400">
+                    <Loader2 size={18} className="animate-spin" />
+                    <span className="text-xs font-bold">Loading billing records...</span>
+                  </div>
+                ) : billsError ? (
+                  <div className="flex items-center justify-center py-16 gap-2 text-rose-400">
+                    <AlertTriangle size={16} />
+                    <span className="text-xs font-bold">{billsError}</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      {[
+                        {
+                          label: 'Total Paid',
+                          value: bills.filter(b => b.paymentStatus === 'Paid' || b.status === 'Paid').length,
+                          cls: 'bg-emerald-50 border-emerald-100 text-emerald-600',
+                        },
+                        {
+                          label: 'Pending / Overdue',
+                          value: bills.filter(b => b.paymentStatus !== 'Paid' && b.status !== 'Paid').length,
+                          cls: 'bg-rose-50 border-rose-100 text-rose-500',
+                        },
+                      ].map((s, i) => (
+                        <div key={i} className={`p-4 rounded-2xl border text-center ${s.cls}`}>
+                          <p className="text-2xl font-black">{s.value}</p>
+                          <p className="text-[9px] font-black uppercase tracking-widest mt-1 opacity-70">{s.label}</p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-                {MOCK.billing.map((b, i) => (
-                  <motion.div key={b.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition-all">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
-                        <DollarSign size={16} className="text-slate-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-black text-slate-900">{b.desc}</p>
-                        <p className="text-[10px] font-bold text-slate-400">{b.id} • {b.date}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0">
-                      <p className="text-sm font-black text-slate-900">{b.amount}</p>
-                      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${BILL_COLORS[b.status]}`}>
-                        {b.status}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
+
+                    {bills.length === 0 ? (
+                      <div className="py-10 text-center text-xs font-bold text-slate-400">No billing records found for this patient.</div>
+                    ) : bills.map((b, i) => {
+                      const status    = b.paymentStatus || b.status || 'Pending'
+                      const statusCls = BILL_COLORS[status] || BILL_COLORS['Pending']
+                      const desc      = b.service || b.type || 'Consultation'
+                      const date      = b.date ? new Date(b.date).toLocaleDateString('en-IN') : '—'
+                      const amount    = `₹${Number(b.amount || 0).toLocaleString('en-IN')}`
+                      return (
+                        <motion.div key={b._id || i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
+                          className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition-all">
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
+                              <DollarSign size={16} className="text-slate-400" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-slate-900">{desc}</p>
+                              <p className="text-[10px] font-bold text-slate-400">
+                                {b._id?.slice(-6).toUpperCase()} • {date}
+                                {b.paymentMethod ? ` • ${b.paymentMethod}` : ''}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <p className="text-sm font-black text-slate-900">{amount}</p>
+                            <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${statusCls}`}>
+                              {status}
+                            </span>
+                          </div>
+                        </motion.div>
+                      )
+                    })}
+                  </>
+                )}
               </div>
             )}
 
           </div>
         </motion.div>
       </div>
-
-      {/* Report Detail Sub-Modal */}
-      <AnimatePresence>
-        {viewReport && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden"
-            >
-              <div className="px-8 pt-6 pb-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center">
-                    <FileText size={16} className="text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-black text-slate-900">{viewReport.name}</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{viewReport.type} • {viewReport.date}</p>
-                  </div>
-                </div>
-                <button onClick={() => setViewReport(null)}
-                  className="h-9 w-9 flex items-center justify-center rounded-xl bg-white text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all border border-slate-200">
-                  <X size={16} />
-                </button>
-              </div>
-
-              <div className="px-8 py-6 space-y-5">
-                <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100">
-                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Summary</p>
-                  <p className="text-sm font-bold text-slate-800 leading-relaxed">{viewReport.summary}</p>
-                </div>
-
-                <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Findings</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {viewReport.findings.map((f, i) => (
-                      <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{f.label}</p>
-                        <p className="text-sm font-black text-slate-900">{f.value}</p>
-                        <span className={`mt-1 inline-block px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${RESULT_COLORS[f.status] || 'bg-slate-50 text-slate-500 border-slate-100'}`}>
-                          {f.status}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                  <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Reviewed By</p>
-                    <p className="text-xs font-black text-slate-900 mt-0.5">{viewReport.doctor}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Lab / Dept</p>
-                    <p className="text-xs font-black text-slate-900 mt-0.5">{viewReport.lab}</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </>
   )
 }

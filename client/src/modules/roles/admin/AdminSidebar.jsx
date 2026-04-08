@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, Users, ShieldCheck, Stethoscope,
-  ClipboardList, CalendarCheck, CreditCard, LogOut, BarChart2
+  ClipboardList, CalendarCheck, CreditCard, LogOut
 } from 'lucide-react'
 import useAuth from '../../../hooks/useAuth'
 
@@ -14,7 +14,6 @@ const navigation = [
   { to: '/admin/patients',     label: 'Patient Management', icon: <ClipboardList className="h-4 w-4" /> },
   { to: '/admin/appointments', label: 'Appointments',       icon: <CalendarCheck className="h-4 w-4" /> },
   { to: '/admin/billing',      label: 'Billing & Finance',  icon: <CreditCard className="h-4 w-4" /> },
-  { to: '/admin/reports',      label: 'Reports',            icon: <BarChart2 className="h-4 w-4" /> },
 ]
 
 function AdminSidebar({ collapsed, onToggle }) {

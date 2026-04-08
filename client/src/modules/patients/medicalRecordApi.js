@@ -9,3 +9,13 @@ export const getPatientRecords = async (patientId) => {
     throw error.response?.data || error.message;
   }
 };
+
+// Create a new medical record
+export const createRecord = async (recordData) => {
+  try {
+    const response = await axios.post(`/records`, recordData);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
