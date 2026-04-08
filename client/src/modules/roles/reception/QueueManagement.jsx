@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Clock, User, Activity, Trash2, Edit3, Save, Plus, Search, CheckCircle2, Loader2, PlayCircle, SkipForward, Hash } from "lucide-react";
+import { toast } from "react-toastify";
 import API from "../../../api/axios";
 
 const QueueManagement = () => {
@@ -39,17 +40,17 @@ const QueueManagement = () => {
 
   const handleSubmit = async () => {
     if (!form.name) {
-      alert("Patient name is required!");
+      toast.warning("Patient name is required!");
       return;
     }
 
     try {
       if (editId !== null) {
         await API.put(`/queue/${editId}`, { status: form.status });
-        alert("Status updated! ✅");
+        toast.success("Status updated! ✅");
       } else {
         await API.post("/queue", form);
-        alert("Added to live queue! ✅");
+        toast.success("Added to live queue! ✅");
       }
       
       setForm({ name: "", status: "Waiting", doctorName: "", department: "General" });
@@ -57,7 +58,7 @@ const QueueManagement = () => {
       fetchQueue();
     } catch (err) {
       console.error("Queue action failed:", err);
-      alert(err.response?.data?.message || "Operation failed.");
+      toast.error(err.response?.data?.message || "Operation failed.");
     }
   };
 

@@ -4,6 +4,7 @@ import { Search, CheckCircle2, Circle, AlertCircle, Clock, Filter, X, CalendarCl
 import useAuth from '../../../hooks/useAuth'
 import { getDoctorByUserId } from '../../doctors/doctorApi'
 import { getDoctorAppointments, updateAppointment, cancelAppointment as apiCancelAppointment } from '../../appointments/appointmentApi'
+import { toast } from 'react-toastify'
 
 const TABS = ['All', 'Today', 'Upcoming', 'Completed']
 
@@ -267,7 +268,10 @@ function DoctorAppointments() {
     try {
       await updateAppointment(id, { status: 'Completed' })
       setAppointments(prev => prev.map(a => a._id === id ? { ...a, status: 'Completed' } : a))
-    } catch (err) { alert('Failed to update status') }
+      toast.success('Appointment marked as completed')
+    } catch (err) {
+      toast.error('Failed to update status')
+    }
   }
 
   const handleReschedule = async (form) => {
@@ -275,7 +279,10 @@ function DoctorAppointments() {
        await updateAppointment(reschedule._id, { date: form.date, time: form.time, type: form.type, status: 'Scheduled' })
        setAppointments(prev => prev.map(a => a._id === reschedule._id ? { ...a, ...form, status: 'Scheduled' } : a))
        setReschedule(null)
-    } catch (err) { alert('Reschedule failed') }
+       toast.success('Appointment rescheduled successfully')
+    } catch (err) {
+       toast.error('Reschedule failed')
+    }
   }
 
   const handleCancel = async ({ reason }) => {
@@ -283,7 +290,10 @@ function DoctorAppointments() {
         await apiCancelAppointment(cancelAppt._id)
         setAppointments(prev => prev.map(a => a._id === cancelAppt._id ? { ...a, status: 'Cancelled' } : a))
         setCancelAppt(null)
-     } catch (err) { alert('Cancellation failed') }
+        toast.info('Appointment cancelled')
+     } catch (err) {
+        toast.error('Cancellation failed')
+     }
   }
 
   const filtered = useMemo(() => {

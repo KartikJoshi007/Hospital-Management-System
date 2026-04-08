@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Search, Check, X, UserCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'react-toastify'
 import api from '../../../api/axios'
 
 const STATUS_COLORS = {
@@ -16,18 +17,12 @@ function AppointmentManagement() {
   const [appointments,  setAppointments]  = useState([])
   const [doctors,       setDoctors]       = useState([])
   const [loading,       setLoading]       = useState(true)
-  const [message,       setMessage]       = useState({ text: '', type: '' })
   const [search,        setSearch]        = useState('')
   const [statusFilter,  setStatusFilter]  = useState('')
   const [dateFilter,    setDateFilter]    = useState('')
   const [assignTarget,  setAssignTarget]  = useState(null)
   const [selectedDoctor,setSelectedDoctor]= useState('')
   const [saving,        setSaving]        = useState(false)
-
-  const notify = (text, type = 'success') => {
-    setMessage({ text, type })
-    setTimeout(() => setMessage({ text: '', type: '' }), 3000)
-  }
 
   // GET /api/appointments
   const fetchAppointments = async () => {
@@ -37,7 +32,7 @@ function AppointmentManagement() {
       const raw = res.data.data
       setAppointments(Array.isArray(raw) ? raw : (raw?.appointments ?? []))
     } catch {
-      notify('Failed to load appointments.', 'error')
+      toast.error('Failed to load appointments.')
     } finally {
       setLoading(false)
     }
@@ -73,9 +68,9 @@ function AppointmentManagement() {
     try {
       await api.put(`/appointments/${id}`, { status })
       setAppointments(prev => prev.map(a => a._id === id ? { ...a, status } : a))
-      notify(`Appointment ${status.toLowerCase()} successfully`)
+      toast.success(`Appointment ${status.toLowerCase()} successfully`)
     } catch {
-      notify('Failed to update appointment.', 'error')
+      toast.error('Failed to update appointment.')
     }
   }
 
@@ -95,11 +90,11 @@ function AppointmentManagement() {
           ? { ...a, doctor: doc?.name || selectedDoctor, status: 'Confirmed' }
           : a
       ))
-      notify(`Doctor assigned: ${doc?.name || selectedDoctor}`)
+      toast.success(`Doctor assigned: ${doc?.name || selectedDoctor}`)
       setAssignTarget(null)
       setSelectedDoctor('')
     } catch {
-      notify('Failed to assign doctor.', 'error')
+      toast.error('Failed to assign doctor.')
     } finally {
       setSaving(false)
     }
@@ -114,19 +109,6 @@ function AppointmentManagement() {
         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 pl-5">View, approve, cancel and assign doctors to appointments</p>
       </div>
 
-      {/* Toast */}
-      <AnimatePresence>
-        {message.text && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className={`px-5 py-3 rounded-2xl text-xs font-black border ${
-              message.type === 'error'
-                ? 'bg-rose-50 border-rose-100 text-rose-600'
-                : 'bg-emerald-50 border-emerald-100 text-emerald-700'
-            }`}>
-            {message.type === 'error' ? '✗' : '✓'} {message.text}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">

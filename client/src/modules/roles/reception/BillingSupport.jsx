@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { CreditCard, User, Activity, IndianRupee, Plus, Receipt, Trash2, Edit3, Save, Search, CheckCircle2, AlertCircle, Filter, Download } from "lucide-react";
+import { toast } from "react-toastify";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import API from "../../../api/axios";
@@ -61,17 +62,17 @@ const BillingSupport = () => {
 
   const handleSubmit = async () => {
     if (!form.patientName || !form.service || !form.amount) {
-      alert("All basic fields are required!");
+      toast.warning("All basic fields are required!");
       return;
     }
 
     try {
       if (editId !== null) {
         await API.put(`/bills/${editId}`, form);
-        alert("Invoice updated! ✅");
+        toast.success("Invoice updated! ✅");
       } else {
         await API.post("/bills", form);
-        alert("Invoice generated! ✅");
+        toast.success("Invoice generated! ✅");
       }
       
       setForm({ patientName: "", patientId: "", service: "", amount: "", type: "OPD", status: "Pending" });
@@ -80,7 +81,7 @@ const BillingSupport = () => {
       fetchBills();
     } catch (err) {
       console.error("Error saving bill:", err);
-      alert(err.response?.data?.message || "Failed to save invoice.");
+      toast.error(err.response?.data?.message || "Failed to save invoice.");
     }
   };
 
@@ -115,7 +116,7 @@ const BillingSupport = () => {
   const handleMarkAsPaid = async (id) => {
     try {
       await API.patch(`/bills/${id}/pay`, { paymentMethod: "cash" });
-      alert("Marked as Paid! ✅");
+      toast.success("Marked as Paid! ✅");
       fetchBills();
     } catch (err) {
        console.error("Failed to mark as paid:", err);
@@ -258,7 +259,7 @@ const BillingSupport = () => {
     doc.save(fileName);
     } catch (err) {
       console.error("PDF Export Error:", err);
-      alert("Failed to generate PDF: " + err.message);
+      toast.error("Failed to generate PDF: " + err.message);
     }
   };
 

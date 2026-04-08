@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import { Mail, Lock, User, Phone, Activity, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { registerUser } from './authApi'
@@ -35,17 +36,22 @@ function SignUp() {
         role: 'patient'
       }
 
-      // 🛡️ FRONTEND VALIDATION: Prevent email in phone field
+      // 🛡️ FRONTEND VALIDATION
       if (payload.phone.includes('@')) {
-        setError('Double check: You have entered an email in the "Phone Number" field.')
-        setLoading(false)
-        return
+        const msg = 'Double check: You have entered an email in the "Phone Number" field.';
+        setError(msg);
+        toast.error(msg);
+        setLoading(false);
+        return;
       }
 
       await registerUser(payload)
+      toast.success("Account created! Please sign in.");
       navigate('/login')
     } catch (err) {
-      setError(err.message || 'Something went wrong during registration')
+      const msg = err?.response?.data?.message || err.message || 'Something went wrong during registration';
+      setError(msg)
+      toast.error(msg);
     } finally {
       setLoading(false)
     }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { User, Phone, MapPin, Hash, Users, Edit3, Trash2, Save, UserPlus, Search, Activity, Droplet } from "lucide-react";
+import { toast } from "react-toastify";
 import API from "../../../api/axios";
 
 const PatientHandler = () => {
@@ -49,7 +50,7 @@ const PatientHandler = () => {
     const { name, age, contact } = form;
 
     if (!name || !age || !contact) {
-      alert("Name, Age and Contact are required!");
+      toast.warning("Name, Age and Contact are required!");
       return;
     }
 
@@ -57,11 +58,11 @@ const PatientHandler = () => {
       if (editId !== null) {
         // Update existing patient
         await API.put(`/patients/${editId}`, form);
-        alert("Patient record updated! ✅");
+        toast.success("Patient record updated! ✅");
       } else {
         // Create new patient
         await API.post("/patients", form);
-        alert("Patient registered successfully! ✅");
+        toast.success("Patient registered successfully! ✅");
       }
 
       // Reset form and refresh list
@@ -78,7 +79,7 @@ const PatientHandler = () => {
       fetchPatients();
     } catch (err) {
       console.error("Error saving patient:", err);
-      alert(err.response?.data?.message || "Failed to save patient record.");
+      toast.error(err.response?.data?.message || "Failed to save patient record.");
     }
   };
 
@@ -102,7 +103,7 @@ const PatientHandler = () => {
         fetchPatients();
       } catch (err) {
         console.error("Error deleting patient:", err);
-        alert(err.response?.data?.message || "Unauthorized or Error deleting.");
+        toast.error(err.response?.data?.message || "Unauthorized or Error deleting.");
       }
     }
   };

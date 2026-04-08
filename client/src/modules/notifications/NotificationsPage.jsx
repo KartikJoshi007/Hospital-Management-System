@@ -11,11 +11,11 @@ const NotificationsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredNotifications = notifications.filter(n => {
-        const matchesSearch = n.message.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             n.type.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesFilter = filter === 'all' || 
-                             (filter === 'unread' && !n.isRead) ||
-                             (n.type === filter);
+        const matchesSearch = n.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            n.type.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesFilter = filter === 'all' ||
+            (filter === 'unread' && !n.isRead) ||
+            (n.type === filter);
         return matchesSearch && matchesFilter;
     });
 
@@ -33,7 +33,7 @@ const NotificationsPage = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <button 
+                    <button
                         onClick={() => navigate(-1)}
                         className="p-2 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-all shadow-sm"
                     >
@@ -45,13 +45,13 @@ const NotificationsPage = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button 
+                    <button
                         onClick={markAllAsRead}
                         className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm"
                     >
                         <CheckCircle size={14} /> Mark All as Read
                     </button>
-                    <button 
+                    <button
                         onClick={refresh}
                         className="px-4 py-2 bg-blue-600 rounded-xl text-xs font-black text-white hover:bg-blue-700 transition-all flex items-center gap-2 shadow-blue-200 shadow-lg"
                     >
@@ -64,8 +64,8 @@ const NotificationsPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-2 relative group">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={16} />
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         placeholder="Search your activity history..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -74,7 +74,7 @@ const NotificationsPage = () => {
                 </div>
                 <div className="relative">
                     <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <select 
+                    <select
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                         className="w-full bg-white border border-slate-200 rounded-2xl py-3 pl-12 pr-4 text-sm font-bold text-slate-900 appearance-none outline-none focus:ring-4 focus:ring-blue-50 focus:border-blue-200 transition-all"
@@ -108,7 +108,7 @@ const NotificationsPage = () => {
                 ) : (
                     <div className="divide-y divide-slate-50">
                         {filteredNotifications.map((n, idx) => (
-                            <motion.div 
+                            <motion.div
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: idx * 0.03 }}
@@ -118,7 +118,7 @@ const NotificationsPage = () => {
                                 {!n.isRead && (
                                     <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500" />
                                 )}
-                                
+
                                 <div className={`h-12 w-12 rounded-2xl shrink-0 flex items-center justify-center border transition-transform group-hover:scale-110 ${getTypeStyles(n.type)}`}>
                                     <Bell size={20} />
                                 </div>
@@ -137,7 +137,7 @@ const NotificationsPage = () => {
                                     </h4>
                                     <div className="flex items-center gap-4 pt-2">
                                         {!n.isRead && (
-                                            <button 
+                                            <button
                                                 onClick={() => markAsRead(n._id)}
                                                 className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline"
                                             >
@@ -145,7 +145,7 @@ const NotificationsPage = () => {
                                             </button>
                                         )}
                                         {n.referenceId && (
-                                            <button 
+                                            <button
                                                 onClick={() => navigate(n.role === 'admin' ? '/admin/appointments' : '/doctor/appointments')}
                                                 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest hover:underline"
                                             >

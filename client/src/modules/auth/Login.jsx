@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'react-toastify'
 import { Mail, Lock, Activity, ArrowRight, Eye, EyeOff } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { loginUser } from './authApi'
+import useAuth from '../../hooks/useAuth'
 
 const ROLE_HOME = {
   admin:     '/admin/dashboard',
@@ -20,6 +22,7 @@ const ROLE_HOME = {
 // ]
 
 function Login() {
+  const { login } = useAuth()
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [loading,      setLoading]      = useState(false)
@@ -75,21 +78,23 @@ function Login() {
     // }
 
     // 3. Try real API
-   try {
-  const res = await loginUser(formData);
+    try {
+      const res = await loginUser(formData);
+      const { token, user: userData } = res.data ? res.data : res;
 
-const { token, user } = res.data ? res.data : res; // safe
+      // ✅ Use global login context to wake up all providers (Notifications, etc)
+      login(userData, token);
 
-  localStorage.setItem("token", token);
-  localStorage.setItem("user", JSON.stringify(user));
+      toast.success("Welcome back! Signing you in...");
+      navigate(ROLE_HOME[userData.role] || "/login", { replace: true });
 
-  navigate(ROLE_HOME[user.role] || "/login", { replace: true });
-
-} catch (err) {
-  setError(err?.message || "Invalid credentials");
-} finally {
-  setLoading(false);
-}
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || "Invalid credentials";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
