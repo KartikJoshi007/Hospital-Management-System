@@ -19,3 +19,17 @@ export const createRecord = async (recordData) => {
     throw error.response?.data || error.message;
   }
 };
+
+// Upload a report for a patient
+export const uploadPatientReport = async (formData) => {
+  try {
+    const response = await axios.post(`/records/upload-report`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};

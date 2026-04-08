@@ -10,13 +10,16 @@ import {
    Loader2,
    X,
    Activity,
-   Eye
+   Eye,
+   Upload,
+   Plus,
+   File
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import ModernTable from './ModernTable'
 import useAuth from '../../../hooks/useAuth'
-import { getPatientRecords } from '../../patients/medicalRecordApi'
+import { getPatientRecords, uploadPatientReport } from '../../patients/medicalRecordApi'
 import { getPatientByUserId } from '../../patients/patientApi'
 
 function MyRecords() {
@@ -33,6 +36,15 @@ function MyRecords() {
    const [isFilterOpen, setIsFilterOpen] = useState(false)
    const [downloadingId, setDownloadingId] = useState(null)
    const [isDownloadingAll, setIsDownloadingAll] = useState(false)
+   
+   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+   const [isUploading, setIsUploading] = useState(false)
+   const [uploadForm, setUploadForm] = useState({
+      title: '',
+      description: '',
+      date: new Date().toISOString().split('T')[0],
+      file: null
+   })
 
    const categories = ['All', 'Prescription', 'Lab Report', 'Clinical Note']
    const departments = ['All', 'Cardiology', 'Orthopedics', 'Neurology', 'Dermatology', 'General']
@@ -49,11 +61,13 @@ function MyRecords() {
             title: r.title,
             type: r.type,
             date: r.date,
+            source: r.source || 'Hospital',
             description: r.description,
-            doctor: r.doctorId?.fullName || r.doctorId?.name || 'External Doctor',
-            dept: r.clinicName || 'General',
+            doctor: r.doctorId?.fullName || r.doctorId?.name || (r.source === 'External' ? 'N/A' : 'External Doctor'),
+            dept: r.clinicName || (r.source === 'External' ? 'Self Uploaded' : 'General'),
             status: 'Ready',
-            size: r.attachments?.length ? 'Has Attachments' : 'Note'
+            size: r.attachments?.length ? `${r.attachments.length} Document(s)` : 'Note',
+            attachments: r.attachments || []
          }))
          setMedicalRecords(formattedRecords)
       } catch (error) {
@@ -133,6 +147,34 @@ function MyRecords() {
       setIsDownloadingAll(false)
    }
 
+   const handleUploadReport = async (e) => {
+      e.preventDefault()
+      if (!uploadForm.file) return alert('Please select a file')
+      
+      try {
+         setIsUploading(true)
+         const pRes = await getPatientByUserId(user.id)
+         const patientId = pRes.data?._id
+         
+         const formData = new FormData()
+         formData.append('patientId', patientId)
+         formData.append('title', uploadForm.title)
+         formData.append('description', uploadForm.description)
+         formData.append('date', uploadForm.date)
+         formData.append('report', uploadForm.file)
+         
+         await uploadPatientReport(formData)
+         setIsUploadModalOpen(false)
+         setUploadForm({ title: '', description: '', date: new Date().toISOString().split('T')[0], file: null })
+         fetchRecords()
+      } catch (error) {
+         console.error("Upload failed:", error)
+         alert("Failed to upload report")
+      } finally {
+         setIsUploading(false)
+      }
+   }
+
    const handleViewDetail = (record) => {
       setSelectedRecord(record)
    }
@@ -182,7 +224,7 @@ function MyRecords() {
    );
 
    return (
-      <div className="space-y-6 pb-10 animate-in fade-in duration-700 w-full px-2 sm:px-4 max-w-[100vw] overflow-x-hidden">
+      <div className="space-y-6 pb-10 animate-in fade-in duration-700 w-full px-2 sm:px-4 max-w-[100vw] overflow-x-hidden text-center">
          {/* Loading State Overlay */}
          {isLoading && (
             <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
@@ -202,6 +244,10 @@ function MyRecords() {
                   <p className="text-slate-400 text-xs font-bold mt-4 opacity-80 decoration-emerald-500/30 underline underline-offset-4">Access lab reports, prescriptions and practitioner notes.</p>
                </div>
                <div className="flex items-center gap-3">
+                  <button onClick={() => setIsUploadModalOpen(true)} className="flex items-center gap-3 px-8 py-4 bg-white text-slate-900 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all shadow-2xl active:scale-95 border-none">
+                     <Upload size={16} strokeWidth={4} className="text-emerald-500" />
+                     Upload Report
+                  </button>
                   <button onClick={handleDownloadAll} disabled={isDownloadingAll || filteredRecords.length === 0} className="flex items-center gap-3 px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-2xl active:scale-95 border-none">
                      {isDownloadingAll ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} strokeWidth={4} />}
                      Export All
@@ -253,7 +299,7 @@ function MyRecords() {
 
          {/* 🧾 Table Card */}
          <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden min-h-[400px]">
-            <div className="px-8 py-5 border-b border-slate-50 flex items-center gap-3 bg-slate-50/30">
+            <div className="px-8 py-5 border-b border-slate-50 flex items-center gap-3 bg-slate-50/30 text-left">
                <Activity size={16} className="text-emerald-500" strokeWidth={3} />
                <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest leading-none">Diagnostic History</h3>
             </div>
@@ -289,7 +335,7 @@ function MyRecords() {
                            <div className={`h-12 w-12 rounded-2xl flex items-center justify-center text-white shadow-lg ${selectedRecord.type === 'Prescription' ? 'bg-blue-500' : 'bg-emerald-500'}`}>
                               {selectedRecord.type === 'Prescription' ? <Activity size={20} strokeWidth={3} /> : <FileText size={20} strokeWidth={3} />}
                            </div>
-                           <div>
+                           <div className="text-left">
                               <h2 className="text-lg font-black text-slate-900 leading-tight">{selectedRecord.title}</h2>
                               <div className="flex items-center gap-2 mt-1">
                                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{selectedRecord.type}</span>
@@ -303,18 +349,20 @@ function MyRecords() {
                         </button>
                      </div>
 
-                     <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide">
-                        {/* Info Grid */}
-                        <div className="grid grid-cols-2 gap-6 p-6 rounded-3xl bg-slate-50 border border-slate-100">
-                           <div>
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Practitioner / Doctor</p>
-                              <p className="text-sm font-black text-slate-900">{selectedRecord.doctor}</p>
+                     <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide text-left">
+                        {/* Info Grid - Only show if Hospital Sourced */}
+                        {selectedRecord.source !== 'External' && (
+                           <div className="grid grid-cols-2 gap-6 p-6 rounded-3xl bg-slate-50 border border-slate-100 text-left">
+                              <div>
+                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Practitioner / Doctor</p>
+                                 <p className="text-sm font-black text-slate-900">{selectedRecord.doctor}</p>
+                              </div>
+                              <div>
+                                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Clinic / Department</p>
+                                 <p className="text-sm font-black text-slate-900">{selectedRecord.dept}</p>
+                              </div>
                            </div>
-                           <div>
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Clinic / Department</p>
-                              <p className="text-sm font-black text-slate-900">{selectedRecord.dept}</p>
-                           </div>
-                        </div>
+                        )}
 
                         {/* Content */}
                         <div className="space-y-4">
@@ -355,7 +403,7 @@ function MyRecords() {
                                  </div>
                               </div>
                            ) : (
-                              <div className="space-y-4">
+                              <div className="space-y-4 text-left">
                                  <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
                                     <span className="h-2 w-2 rounded-full bg-emerald-500" /> Documentation & Notes
                                  </p>
@@ -364,15 +412,108 @@ function MyRecords() {
                                  </div>
                               </div>
                            )}
+
+                           {/* Attachments Section */}
+                           {selectedRecord.attachments && selectedRecord.attachments.length > 0 && (
+                              <div className="space-y-4 pt-4 border-t border-slate-100">
+                                 <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                                    <span className="h-2 w-2 rounded-full bg-emerald-500" /> Attached Documents
+                                 </p>
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {selectedRecord.attachments.map((file, idx) => (
+                                       <a key={idx} href={`http://localhost:5000${file.fileUrl}`} target="_blank" rel="noopener noreferrer"
+                                          className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-slate-50 transition-all group no-underline text-slate-900 shadow-sm hover:shadow-md">
+                                          <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-all">
+                                             <FileText size={18} strokeWidth={3} />
+                                          </div>
+                                          <div className="min-w-0 flex-1">
+                                             <p className="text-xs font-black truncate">{file.fileName}</p>
+                                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">View / Download</p>
+                                          </div>
+                                          <Eye size={16} className="text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                                       </a>
+                                    ))}
+                                 </div>
+                              </div>
+                           )}
                         </div>
                      </div>
 
                      <div className="px-8 py-6 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
-                        <p className="text-[10px] font-bold text-slate-400 italic">Validated by {selectedRecord.doctor} on HMS Cloud</p>
+                        <p className="text-[10px] font-bold text-slate-400 italic">
+                           {selectedRecord.source === 'External' ? 'Digital Copy · Encrypted for Privacy' : `Validated by ${selectedRecord.doctor} on HMS Cloud`}
+                        </p>
                         <button onClick={() => handleDownload(selectedRecord)} className="px-6 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2">
                            <Download size={14} strokeWidth={3} /> Save Offline
                         </button>
                      </div>
+                  </motion.div>
+               </div>
+            )}
+         </AnimatePresence>
+
+         {/* Report Upload Modal */}
+         <AnimatePresence>
+            {isUploadModalOpen && (
+               <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md">
+                  <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                     className="w-full max-w-lg bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden flex flex-col">
+                     
+                     <div className="px-8 py-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between shadow-sm shrink-0">
+                        <div className="flex items-center gap-4">
+                           <div className="h-12 w-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                              <Upload size={20} strokeWidth={3} />
+                           </div>
+                           <div className="text-left">
+                              <h2 className="text-lg font-black text-slate-900 leading-tight">Upload Lab Report</h2>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">External Documentation</p>
+                           </div>
+                        </div>
+                        <button onClick={() => setIsUploadModalOpen(false)} className="h-10 w-10 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-rose-500 hover:transition-all flex items-center justify-center">
+                           <X size={18} strokeWidth={3} />
+                        </button>
+                     </div>
+
+                     <form onSubmit={handleUploadReport} className="p-8 space-y-6">
+                        <div className="space-y-4 text-left">
+                           <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Report Title</label>
+                              <input type="text" required value={uploadForm.title} onChange={(e) => setUploadForm({...uploadForm, title: e.target.value})}
+                                 placeholder="e.g. Blood Test Report - Q1" className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50/50 transition-all text-sm font-bold text-slate-900 outline-none" />
+                           </div>
+                           
+                           <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">File Selection</label>
+                              <div className="relative">
+                                 <input type="file" required onChange={(e) => setUploadForm({...uploadForm, file: e.target.files[0]})}
+                                    className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                 <div className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 flex items-center gap-2 overflow-hidden">
+                                    <File size={16} className="text-emerald-500 shrink-0" />
+                                    <span className="truncate">{uploadForm.file ? uploadForm.file.name : 'Choose PDF/Image'}</span>
+                                 </div>
+                              </div>
+                           </div>
+
+                           <div>
+                              <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Description / Notes</label>
+                              <textarea rows="3" value={uploadForm.description} onChange={(e) => setUploadForm({...uploadForm, description: e.target.value})}
+                                 placeholder="Briefly describe the report content..."
+                                 className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50/50 transition-all text-sm font-bold text-slate-900 outline-none resize-none" />
+                           </div>
+                        </div>
+
+                        <div className="pt-4 flex gap-3">
+                           <button type="button" onClick={() => setIsUploadModalOpen(false)} 
+                              className="flex-1 px-8 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-slate-200 transition-all">
+                              Cancel
+                           </button>
+                           <button type="submit" disabled={isUploading}
+                              className="flex-[2] flex items-center justify-center gap-3 px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-50">
+                              {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} strokeWidth={4} />}
+                              {isUploading ? 'Uploading...' : 'Confirm Upload'}
+                           </button>
+                        </div>
+                     </form>
                   </motion.div>
                </div>
             )}

@@ -63,7 +63,7 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 
 const EMPTY_MED = { name: '', dose: '', freq: '', duration: '', instructions: '' }
 
-const EMPTY_FINDING = { label: '', value: '', status: 'Normal' }
+const EMPTY_FINDING = { label: '', value: '', status: '' }
 
 function PrescriptionTab({ patient }) {
   const { user } = useAuth()
@@ -508,7 +508,7 @@ function ReportsTab({ patient }) {
           try {
             findings = JSON.parse(r.description)
           } catch {
-            findings = [{ label: 'Observation', value: r.description, status: 'Normal' }]
+            findings = [{ label: 'Documentation & Notes', value: r.description, status: '' }]
           }
           return {
             id: r._id?.slice(-8).toUpperCase() || 'R-NEW',
@@ -520,6 +520,7 @@ function ReportsTab({ patient }) {
             lab: r.clinicName || 'Central Lab',
             summary: r.title,
             findings: findings,
+            attachments: r.attachments || [],
           }
         })
       setReports(reportsOnly)
@@ -605,7 +606,7 @@ function ReportsTab({ patient }) {
 
               <div className="px-8 py-6 space-y-5 max-h-[60vh] overflow-y-auto">
                 <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100">
-                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Record Summary</p>
+                  <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1.5">Record Title</p>
                   <p className="text-sm font-bold text-slate-800 leading-relaxed">{viewReport.name}</p>
                 </div>
 
@@ -616,7 +617,7 @@ function ReportsTab({ patient }) {
                       <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-100">
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{f.label}</p>
                         <p className="text-sm font-black text-slate-900">{f.value}</p>
-                        {f.status && (
+                        {f.status && f.status !== 'Normal' && (
                           <span className={`mt-1 inline-block px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border ${RESULT_COLORS[f.status] || 'bg-slate-50 text-slate-500 border-slate-100'}`}>
                             {f.status}
                           </span>
@@ -630,16 +631,30 @@ function ReportsTab({ patient }) {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                  <div>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Medical Professional</p>
-                    <p className="text-xs font-black text-slate-900 mt-0.5">{viewReport.doctor}</p>
+                {/* Attachments Section */}
+                {viewReport.attachments && viewReport.attachments.length > 0 && (
+                  <div className="space-y-4 pt-4 border-t border-slate-100">
+                    <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                       <span className="h-2 w-2 rounded-full bg-blue-500" /> Attached Documents
+                    </p>
+                    <div className="grid grid-cols-1 gap-3">
+                      {viewReport.attachments.map((file, idx) => (
+                        <a key={idx} href={`http://localhost:5000${file.fileUrl}`} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-4 p-4 rounded-2xl border border-slate-100 bg-white hover:bg-slate-50 transition-all group no-underline text-slate-900 shadow-sm">
+                          <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                            <FileText size={18} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-black truncate">{file.fileName}</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">View / Download</p>
+                          </div>
+                          <Eye size={16} className="text-slate-300 group-hover:text-blue-500 transition-colors" />
+                        </a>
+                      ))}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Clinic / Laboratory</p>
-                    <p className="text-xs font-black text-slate-900 mt-0.5">{viewReport.lab}</p>
-                  </div>
-                </div>
+                )}
+
               </div>
             </motion.div>
           </div>

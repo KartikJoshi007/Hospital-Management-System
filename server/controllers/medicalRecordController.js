@@ -45,3 +45,35 @@ exports.createRecord = asyncHandler(async (req, res) => {
 
   res.status(201).json(new ApiResponse(201, record, "Record created successfully"));
 });
+
+// @desc    Upload an external medical report (Patient role)
+// @route   POST /api/records/upload-report
+exports.uploadReport = asyncHandler(async (req, res) => {
+  const { patientId, title, description, date } = req.body;
+
+  if (!req.file) {
+    throw new ApiError(400, "No report file uploaded");
+  }
+
+  const patient = await Patient.findById(patientId);
+  if (!patient) {
+    throw new ApiError(404, "Patient not found");
+  }
+
+  const record = await MedicalRecord.create({
+    patientId,
+    type: "Lab Report",
+    source: "External",
+    title: title || "Uploaded Report",
+    description: description || "",
+    attachments: [
+      {
+        fileName: req.file.originalname,
+        fileUrl: "/uploads/" + req.file.filename,
+      },
+    ],
+    date: date || Date.now(),
+  });
+
+  res.status(201).json(new ApiResponse(201, record, "Report uploaded successfully"));
+});
