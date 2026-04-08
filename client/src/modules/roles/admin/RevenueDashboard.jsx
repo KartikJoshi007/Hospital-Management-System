@@ -8,26 +8,26 @@ import api from '../../../api/axios'
 const CATEGORIES = ['Machine', 'Equipment', 'Furniture', 'Medicine', 'Salary', 'Other']
 
 const CATEGORY_COLORS = {
-  Machine:   'bg-purple-50 text-purple-600 border-purple-100',
+  Machine: 'bg-purple-50 text-purple-600 border-purple-100',
   Equipment: 'bg-blue-50 text-blue-600 border-blue-100',
   Furniture: 'bg-amber-50 text-amber-600 border-amber-100',
-  Medicine:  'bg-emerald-50 text-emerald-600 border-emerald-100',
-  Salary:    'bg-rose-50 text-rose-500 border-rose-100',
-  Other:     'bg-slate-50 text-slate-600 border-slate-100',
+  Medicine: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  Salary: 'bg-rose-50 text-rose-500 border-rose-100',
+  Other: 'bg-slate-50 text-slate-600 border-slate-100',
 }
 
 const EMPTY_FORM = { item: '', category: 'Machine', amount: '', date: '' }
 
 function RevenueDashboard() {
-  const [expenses,       setExpenses]       = useState([])
-  const [stats,          setStats]          = useState(null)   // { total, breakdown }
-  const [loading,        setLoading]        = useState(true)
-  const [message,        setMessage]        = useState({ text: '', type: '' })
-  const [addOpen,        setAddOpen]        = useState(false)
-  const [form,           setForm]           = useState(EMPTY_FORM)
-  const [submitting,     setSubmitting]     = useState(false)
+  const [expenses, setExpenses] = useState([])
+  const [stats, setStats] = useState(null)   // { total, breakdown }
+  const [loading, setLoading] = useState(true)
+  const [message, setMessage] = useState({ text: '', type: '' })
+  const [addOpen, setAddOpen] = useState(false)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [submitting, setSubmitting] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState('')
-  const [chartTab,       setChartTab]       = useState('year')
+  const [chartTab, setChartTab] = useState('year')
 
   const notify = (text, type = 'success') => {
     setMessage({ text, type })
@@ -68,10 +68,10 @@ function RevenueDashboard() {
     if (!expenses.length) return []
     const map = {}
     expenses.forEach(e => {
-      const d     = new Date(e.date)
-      const year  = d.getFullYear()
+      const d = new Date(e.date)
+      const year = d.getFullYear()
       const month = d.getMonth()
-      const key   = `${year}-${String(month + 1).padStart(2, '0')}`
+      const key = `${year}-${String(month + 1).padStart(2, '0')}`
       const label = d.toLocaleString('default', { month: 'short' })
       if (!map[key]) map[key] = { key, label, amount: 0 }
       map[key].amount += e.amount
@@ -82,8 +82,8 @@ function RevenueDashboard() {
   const chartData = buildChartData()
 
   // ── Summary values ──
-  const totalExpenses  = stats?.total ?? expenses.reduce((s, e) => s + e.amount, 0)
-  const currentMonth   = new Date().getMonth()
+  const totalExpenses = stats?.total ?? expenses.reduce((s, e) => s + e.amount, 0)
+  const currentMonth = new Date().getMonth()
   const thisMonthTotal = expenses
     .filter(e => new Date(e.date).getMonth() === currentMonth)
     .reduce((s, e) => s + e.amount, 0)
@@ -141,11 +141,10 @@ function RevenueDashboard() {
       <AnimatePresence>
         {message.text && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className={`px-5 py-3 rounded-2xl text-xs font-black border ${
-              message.type === 'error'
+            className={`px-5 py-3 rounded-2xl text-xs font-black border ${message.type === 'error'
                 ? 'bg-rose-50 border-rose-100 text-rose-600'
                 : 'bg-emerald-50 border-emerald-100 text-emerald-700'
-            }`}>
+              }`}>
             {message.type === 'error' ? '✗' : '✓'} {message.text}
           </motion.div>
         )}
@@ -154,9 +153,9 @@ function RevenueDashboard() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {[
-          { label: 'Total Expenses',     value: `₹${(totalExpenses / 100000).toFixed(1)}L`,  icon: TrendingDown },
-          { label: 'This Month',         value: `₹${(thisMonthTotal / 100000).toFixed(1)}L`, icon: Wrench       },
-          { label: 'Total Items',        value: expenses.length,                              icon: Wrench       },
+          { label: 'Total Expenses', value: `₹${(totalExpenses / 100000).toFixed(1)}L`, icon: TrendingDown },
+          { label: 'This Month', value: `₹${(thisMonthTotal / 100000).toFixed(1)}L`, icon: Wrench },
+          { label: 'Total Items', value: expenses.length, icon: Wrench },
         ].map((s, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
             className="p-6 rounded-2xl bg-white border border-slate-100 shadow-sm">
@@ -179,9 +178,8 @@ function RevenueDashboard() {
           <div className="flex gap-1">
             {[{ key: 'month', label: 'Month' }, { key: 'year', label: 'Year' }].map(t => (
               <button key={t.key} onClick={() => setChartTab(t.key)}
-                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                  chartTab === t.key ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
-                }`}>{t.label}</button>
+                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${chartTab === t.key ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+                  }`}>{t.label}</button>
             ))}
           </div>
         </div>

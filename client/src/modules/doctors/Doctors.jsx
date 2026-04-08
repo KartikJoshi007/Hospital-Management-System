@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Search, Filter, MoreVertical, Star, Clock, Phone, Mail, Edit, Trash2, X, User, AlertCircle, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'react-toastify'
 import { getAllDoctors, createDoctor, updateDoctor, deleteDoctor } from './doctorApi'
 
 const specializationsList = [
@@ -118,16 +119,16 @@ function Doctors() {
     try {
       if (editingDoctor) {
         await updateDoctor(editingDoctor._id, formData)
-        alert('Doctor record updated successfully!')
+        toast.success('Doctor record updated successfully! ✅')
       } else {
         await createDoctor(formData)
-        alert('New doctor added successfully!')
+        toast.success('New doctor added successfully! ✅')
       }
       setIsFormOpen(false)
       fetchDoctors()
     } catch (err) {
       console.error('Error saving doctor:', err)
-      alert(err.message || 'Error saving doctor data')
+      toast.error(err.message || 'Error saving doctor data')
     } finally {
       setIsSaving(false)
     }
@@ -138,10 +139,10 @@ function Doctors() {
       await deleteDoctor(deleteCandidate._id)
       setDeleteCandidate(null)
       fetchDoctors()
-      alert('Doctor record deleted successfully!')
+      toast.success('Doctor record deleted successfully! ✅')
     } catch (err) {
       console.error('Error deleting doctor:', err)
-      alert(err.message || 'Error deleting record')
+      toast.error(err.message || 'Error deleting record')
     }
   }
 

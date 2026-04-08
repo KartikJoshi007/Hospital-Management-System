@@ -8,38 +8,38 @@ import DoctorProfileModal from './DoctorProfileModal'
 import api from '../../../api/axios'
 
 const CHART_TABS = [
-  { key: 'day',   label: 'Day'   },
-  { key: 'week',  label: 'Week'  },
+  { key: 'day', label: 'Day' },
+  { key: 'week', label: 'Week' },
   { key: 'month', label: 'Month' },
-  { key: 'year',  label: 'Year'  },
+  { key: 'year', label: 'Year' },
 ]
 
 const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4']
 
 const STATUS_COLORS = {
-  Active:     'bg-emerald-50 text-emerald-600 border-emerald-100',
-  Admitted:   'bg-blue-50 text-blue-600 border-blue-100',
+  Active: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+  Admitted: 'bg-blue-50 text-blue-600 border-blue-100',
   Discharged: 'bg-slate-50 text-slate-500 border-slate-100',
   'On Leave': 'bg-orange-50 text-orange-600 border-orange-100',
-  Inactive:   'bg-rose-50 text-rose-500 border-rose-100',
+  Inactive: 'bg-rose-50 text-rose-500 border-rose-100',
 }
 
 function AdminDashboard() {
   const navigate = useNavigate()
 
-  const [dashData,        setDashData]        = useState(null)
-  const [loading,         setLoading]         = useState(true)
-  const [chartTab,        setChartTab]        = useState('week')
-  const [chartCache,      setChartCache]      = useState({})
-  const [chartLoading,    setChartLoading]    = useState(false)
+  const [dashData, setDashData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [chartTab, setChartTab] = useState('week')
+  const [chartCache, setChartCache] = useState({})
+  const [chartLoading, setChartLoading] = useState(false)
   const [selectedPatient, setSelectedPatient] = useState(null)
-  const [selectedDoctor,  setSelectedDoctor]  = useState(null)
+  const [selectedDoctor, setSelectedDoctor] = useState(null)
 
   // GET /api/dashboard/stats
   useEffect(() => {
     api.get('/dashboard/stats')
       .then(res => setDashData(res.data.data))
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false))
   }, [])
 
@@ -54,9 +54,9 @@ function AdminDashboard() {
   }, [chartTab])
 
   const stats = [
-    { label: 'Total Patients',     value: dashData?.totalPatients     ?? '—', icon: Users,         color: 'emerald', path: '/admin/patients'     },
-    { label: 'Total Doctors',      value: dashData?.totalDoctors      ?? '—', icon: Stethoscope,   color: 'blue',    path: '/admin/doctors'      },
-    { label: 'Appointments Today', value: dashData?.appointmentsToday ?? '—', icon: CalendarCheck, color: 'orange',  path: '/admin/appointments' },
+    { label: 'Total Patients', value: dashData?.totalPatients ?? '—', icon: Users, color: 'emerald', path: '/admin/patients' },
+    { label: 'Total Doctors', value: dashData?.totalDoctors ?? '—', icon: Stethoscope, color: 'blue', path: '/admin/doctors' },
+    { label: 'Appointments Today', value: dashData?.appointmentsToday ?? '—', icon: CalendarCheck, color: 'orange', path: '/admin/appointments' },
     {
       label: 'Total Expenses',
       value: dashData?.totalRevenue != null ? `₹${(dashData.totalRevenue / 100000).toFixed(1)}L` : '—',
@@ -65,13 +65,13 @@ function AdminDashboard() {
   ]
 
   const revenueData = (dashData?.revenueByDept || []).map((d, i) => ({
-    name:  d.name || d._id || 'Other',
+    name: d.name || d._id || 'Other',
     value: d.value,
     color: PIE_COLORS[i % PIE_COLORS.length],
   }))
 
   const recentPatients = dashData?.recentPatients || []
-  const onDutyDoctors  = dashData?.onDutyDoctors  || []
+  const onDutyDoctors = dashData?.onDutyDoctors || []
 
   return (
     <div className="space-y-8 pb-10 animate-in fade-in duration-500">
@@ -119,9 +119,8 @@ function AdminDashboard() {
           <div className="flex gap-1 mb-5">
             {CHART_TABS.map(t => (
               <button key={t.key} onClick={() => setChartTab(t.key)}
-                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                  chartTab === t.key ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
-                }`}>{t.label}</button>
+                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${chartTab === t.key ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+                  }`}>{t.label}</button>
             ))}
           </div>
           <div className="h-56">
@@ -283,7 +282,7 @@ function AdminDashboard() {
       </div>
 
       {selectedPatient && <PatientProfileModal patient={selectedPatient} onClose={() => setSelectedPatient(null)} />}
-      {selectedDoctor  && <DoctorProfileModal  doctor={selectedDoctor}   onClose={() => setSelectedDoctor(null)}  />}
+      {selectedDoctor && <DoctorProfileModal doctor={selectedDoctor} onClose={() => setSelectedDoctor(null)} />}
 
     </div>
   )

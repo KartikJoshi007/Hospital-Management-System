@@ -9,6 +9,7 @@ import {
    TrendingUp,
    Wallet
 } from 'lucide-react'
+import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
 import ModernTable from './ModernTable'
 import useAuth from '../../../hooks/useAuth'
@@ -110,7 +111,7 @@ function MyBills() {
          doc.save(`Invoice_${(bill.patientName || "Patient").replace(/\s+/g, '_')}_${(bill._id || "ID").slice(-4)}.pdf`)
       } catch (err) {
          console.error("PDF Export failed:", err)
-         alert("Failed to generate PDF. Please try again.")
+         toast.error("Failed to generate PDF. Please try again.")
       }
    }
 

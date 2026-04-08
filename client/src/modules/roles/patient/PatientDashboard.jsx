@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'react-toastify'
 import {
   ArrowRight,
   Plus,
@@ -101,9 +102,10 @@ function PatientDashboard() {
       const pRes = await getPatientByUserId(user.id)
       setPatientData(pRes.data)
       setShowOnboarding(false)
+      toast.success('Clinical profiles initialized successfully! ✅');
     } catch (err) {
       console.error('Onboarding update failed:', err)
-      alert('Failed to update profile. Please try again.')
+      toast.error('Failed to update profile. Please try again.')
     } finally {
       setSubmittingOnboarding(false)
     }

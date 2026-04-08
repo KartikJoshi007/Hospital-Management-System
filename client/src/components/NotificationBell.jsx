@@ -95,7 +95,7 @@ const NotificationBell = () => {
 
             {/* Footer */}
             <div className="p-3 bg-slate-50/50 text-center border-t border-slate-50">
-              <button 
+              <button
                 onClick={() => {
                   setIsOpen(false);
                   const rolePath = (user?.role || 'patient').toLowerCase();

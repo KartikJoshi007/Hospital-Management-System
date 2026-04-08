@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { toast } from 'react-toastify'
 import ModernTable from './ModernTable'
 import useAuth from '../../../hooks/useAuth'
 import { getPatientRecords, uploadPatientReport } from '../../patients/medicalRecordApi'
@@ -149,7 +150,10 @@ function MyRecords() {
 
    const handleUploadReport = async (e) => {
       e.preventDefault()
-      if (!uploadForm.file) return alert('Please select a file')
+      if (!uploadForm.file) {
+         toast.warning('Please select a file');
+         return;
+      }
       
       try {
          setIsUploading(true)
@@ -164,12 +168,13 @@ function MyRecords() {
          formData.append('report', uploadForm.file)
          
          await uploadPatientReport(formData)
+         toast.success("Medical report uploaded successfully! ✅");
          setIsUploadModalOpen(false)
          setUploadForm({ title: '', description: '', date: new Date().toISOString().split('T')[0], file: null })
          fetchRecords()
       } catch (error) {
          console.error("Upload failed:", error)
-         alert("Failed to upload report")
+         toast.error("Failed to upload report. Please try again.")
       } finally {
          setIsUploading(false)
       }

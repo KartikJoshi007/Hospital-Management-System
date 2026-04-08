@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import API from "../../../api/axios";
 import { updateAppointment } from "../../appointments/appointmentApi";
 import { motion } from "framer-motion";
+import { toast } from "react-toastify";
 import { Calendar, Clock, User, Stethoscope, FileText, Trash2, CheckCircle2, Plus, LayoutGrid, Loader2, ChevronDown, CalendarClock, X } from "lucide-react";
 
 const AppointmentHandler = () => {
@@ -105,17 +106,17 @@ const AppointmentHandler = () => {
   // ➕ Create or reschedule appointment
   const handleSubmit = async () => {
     if (!form.patient || !form.doctor || !form.date) {
-      alert("Please fill all required fields!");
+      toast.warning("Please fill all required fields!");
       return;
     }
 
     try {
       if (rescheduleId) {
         await updateAppointment(rescheduleId, { date: form.date, time: form.time, status: "Scheduled", reason: form.reason });
-        alert("Appointment rescheduled successfully! ✅");
+        toast.success("Appointment rescheduled successfully! ✅");
       } else {
         await API.post("/appointments", form);
-        alert("Appointment scheduled successfully! ✅");
+        toast.success("Appointment scheduled successfully! ✅");
       }
       fetchData();
       resetForm();
@@ -123,9 +124,9 @@ const AppointmentHandler = () => {
       const errorData = err.response?.data;
       if (errorData?.errors && errorData.errors.length > 0) {
         const errorMsg = errorData.errors.map(e => e.msg).join(", ");
-        alert(`⚠️ BACKEND ERROR: ${errorMsg}`);
+        toast.error(`⚠️ BACKEND ERROR: ${errorMsg}`);
       } else {
-        alert(errorData?.message || "Booking failed: Please check console.");
+        toast.error(errorData?.message || "Booking failed: Please check console.");
       }
     }
   };

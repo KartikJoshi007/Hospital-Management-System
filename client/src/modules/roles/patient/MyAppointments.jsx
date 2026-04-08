@@ -24,6 +24,7 @@ import useAuth from '../../../hooks/useAuth'
 import { getPatientByUserId } from '../../patients/patientApi'
 import { getPatientAppointments, createAppointment, cancelAppointment } from '../../appointments/appointmentApi'
 import { getAllDoctors } from '../../doctors/doctorApi'
+import { toast } from 'react-toastify'
 
 const departments = ['All', 'Cardiology', 'Neurology', 'Orthopedics', 'Dermatology']
 
@@ -112,9 +113,9 @@ function MyAppointments() {
         await cancelAppointment(id)
         setAppointments(prev => prev.map(apt => apt.id === id ? { ...apt, status: 'Cancelled' } : apt))
         setActiveMenu(null)
-        alert('Appointment cancelled successfully.')
+        toast.success('Appointment cancelled successfully.')
       } catch (err) {
-        alert(err.message || 'Failed to cancel appointment')
+        toast.error(err.message || 'Failed to cancel appointment')
       }
     }
   }
@@ -122,7 +123,7 @@ function MyAppointments() {
   const handleBooking = async (e) => {
     e.preventDefault()
     if (!bookingForm.doctorId || !bookingForm.date) {
-      alert('Please fill in required fields')
+      toast.warning('Please fill in all required fields')
       return
     }
     try {
@@ -140,18 +141,42 @@ function MyAppointments() {
         doctorId: selectedDoctor?._id
       }
       await createAppointment(payload)
-      alert('Appointment scheduled successfully!')
+      toast.success('Appointment scheduled successfully!')
       setView('list')
-      window.location.reload()
+      // Refresh list
+      const aRes = await getPatientAppointments(patientData._id)
+      const apts = aRes.data.appointments || aRes.data || []
+      const formatted = apts.map(apt => ({
+          id: apt._id,
+          doctor: apt.doctor || 'N/A',
+          dept: apt.dept || 'General',
+          date: apt.date ? apt.date.split('T')[0] : 'N/A',
+          time: apt.time || 'N/A',
+          status: apt.status ? (apt.status.charAt(0).toUpperCase() + apt.status.slice(1)) : 'Pending',
+          type: apt.type || 'In-Clinic',
+          location: apt.location || 'Hospital Clinic'
+        }))
+        setAppointments(formatted)
     } catch (err) {
-      alert(err.message || 'Failed to book appointment')
+      toast.error(err.message || 'Failed to book appointment')
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleViewDetails = (apt) => {
-    alert(`Appointment Details:\nDoctor: ${apt.doctor}\nDept: ${apt.dept}\nDate: ${apt.date}\nTime: ${apt.time}\nLocation: ${apt.location}`)
+    toast.info(
+      <div>
+        <h4 className="font-black text-[11px] uppercase tracking-widest mb-2 border-b border-blue-100 pb-1 text-slate-900">Appointment Ledger</h4>
+        <div className="space-y-1 text-[10px] font-bold text-slate-600">
+           <p><span className="text-slate-400">DOCTOR:</span> {apt.doctor}</p>
+           <p><span className="text-slate-400">UNIT:</span> {apt.dept}</p>
+           <p><span className="text-slate-400">SCHEDULE:</span> {new Date(apt.date).toDateString()} @ {apt.time}</p>
+           <p><span className="text-slate-400">LOC:</span> {apt.location || 'Clinical Wing A'}</p>
+        </div>
+      </div>,
+      { icon: <Activity size={18} className="text-blue-500" /> }
+    )
     setActiveMenu(null)
   }
 
