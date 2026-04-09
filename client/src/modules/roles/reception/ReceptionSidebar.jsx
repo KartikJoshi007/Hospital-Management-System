@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
-  LayoutDashboard, Users, CalendarCheck, CreditCard, LogOut, Clock, ClipboardList
+  LayoutDashboard, Users, CalendarCheck, CreditCard, LogOut, Clock, ClipboardList, User
 } from 'lucide-react'
 import useAuth from '../../../hooks/useAuth'
 

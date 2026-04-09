@@ -137,12 +137,19 @@ function MyBills() {
       a.click(); URL.revokeObjectURL(url)
    }
 
-   const tableHeaders = ['Ref ID', 'Description / Service', 'Date', 'Amount', 'Status']
+   const tableHeaders = ['Patient Details', 'Description / Service', 'Date', 'Amount', 'Status']
 
    const renderBillRow = (bill) => (
       <tr key={bill._id} className="hover:bg-slate-50/50 transition-all group">
-         <td className="px-6 py-4 text-[11px] font-black text-slate-400 leading-none truncate max-w-[80px] text-center">
-           #{bill._id?.slice(-8).toUpperCase() || 'INV-0000'}
+         <td className="px-6 py-4 border-none text-left min-w-[180px]">
+            <div className="flex flex-col items-center">
+               <p className="text-xs font-black text-slate-900 leading-tight truncate max-w-[150px]">
+                  {bill.patientName || user?.fullName || "Patient"}
+               </p>
+               <p className="text-[10px] font-bold text-slate-400 mt-1 leading-none italic unselectable">
+                  {user?.email || "N/A"}
+               </p>
+            </div>
          </td>
          <td className="px-6 py-4">
             <div className="flex flex-col items-center text-center">
@@ -179,19 +186,15 @@ function MyBills() {
    return (
       <div className="space-y-6 pb-10 animate-in fade-in duration-700 w-full px-2 sm:px-4 max-w-[100vw] overflow-x-hidden">
          
-         {/* 🏙️ Billing Hero Area */}
-         <div className="bg-slate-900 px-8 py-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-               <div>
-                  <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2 leading-none">Financial Desk</p>
-                  <h1 className="text-3xl sm:text-4xl font-black text-white leading-none tracking-tight">Billing & Invoices</h1>
-                  <p className="text-slate-400 text-xs font-bold mt-4 opacity-80 decoration-emerald-500/30 underline underline-offset-4">Manage settlements and download clinical invoices.</p>
-               </div>
-               <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors shrink-0 outline-none">
-                  <ArrowLeft size={16} strokeWidth={3} /> Back
-               </button>
+         {/* 🏙️ Billing Header */}
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
+            <div>
+               <h1 className="text-2xl font-black tracking-tight text-slate-900 border-l-4 border-emerald-500 pl-4">Billing & Invoices</h1>
+               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 pl-5">Manage settlements and download clinical invoices</p>
             </div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-20 -mt-20 group-hover:bg-emerald-500/20 transition-all duration-700" />
+            <button onClick={() => navigate(-1)} className="flex items-center gap-2 px-5 py-3 bg-slate-50 text-slate-400 hover:text-slate-900 rounded-xl hover:bg-slate-100 transition-all font-black text-[10px] uppercase tracking-widest border border-slate-100 shadow-sm active:scale-95 shrink-0">
+               <ArrowLeft size={16} strokeWidth={3} /> Back
+            </button>
          </div>
 
          {loading ? (

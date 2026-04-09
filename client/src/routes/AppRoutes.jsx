@@ -49,6 +49,8 @@ import PatientHandler from '../modules/roles/reception/PatientHandler'
 import AppointmentHandler from '../modules/roles/reception/AppointmentHandler'
 import QueueManagement from '../modules/roles/reception/QueueManagement'
 import BillingSupport from '../modules/roles/reception/BillingSupport'
+import ReceptionProfile from '../modules/roles/reception/ReceptionProfile'
+
 
 function AppRoutes() {
   return (
@@ -116,6 +118,7 @@ function AppRoutes() {
           <Route path="/reception/appointments/book" element={<AppointmentHandler />} />
           <Route path="/reception/queue" element={<QueueManagement />} />
           <Route path="/reception/billing" element={<BillingSupport />} />
+          <Route path="/reception/profile" element={<ReceptionProfile />} />
           <Route path="/reception/notifications" element={<NotificationsPage />} />
         </Route>
       </Route>

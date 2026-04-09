@@ -8,7 +8,7 @@ const { body } = require("express-validator");
 // @desc    Create patient
 // @route   POST /api/patients
 exports.createPatient = asyncHandler(async (req, res) => {
-  const { userId, name, email, password, age, gender, contact, bloodGroup, status, address, medicalHistory, height, weight } = req.body;
+  const { userId, name, email, password, dob, age, gender, contact, bloodGroup, status, address, medicalHistory, height, weight } = req.body;
 
   // Check if patient profile already exists for this name (simple check for mock-like data)
   const existingPatient = await Patient.findOne({ $or: [{ contact }, (email ? { email } : { _id: null })] });
@@ -38,7 +38,8 @@ exports.createPatient = asyncHandler(async (req, res) => {
     userId: finalUserId || null,
     name,
     email,
-    age,
+    dob: dob || new Date(),
+    age: dob ? Math.max(1, Math.floor((new Date() - new Date(dob)) / 31557600000)) : (Math.max(1, parseInt(age) || 1)),
     gender,
     contact,
     bloodGroup,
@@ -151,7 +152,7 @@ exports.getPatientByUserId = asyncHandler(async (req, res) => {
 // @desc    Update patient
 // @route   PUT /api/patients/:id
 exports.updatePatient = asyncHandler(async (req, res) => {
-  const { name, email, age, gender, contact, bloodGroup, status, address, medicalHistory, height, weight } = req.body;
+  const { name, email, dob, age, gender, contact, bloodGroup, status, address, medicalHistory, height, weight } = req.body;
 
   let patient = await Patient.findById(req.params.id);
 
@@ -162,7 +163,12 @@ exports.updatePatient = asyncHandler(async (req, res) => {
   // Update fields
   if (name) patient.name = name;
   if (email) patient.email = email;
-  if (age) patient.age = age;
+  if (dob) {
+    patient.dob = dob;
+    patient.age = Math.max(1, Math.floor((new Date() - new Date(dob)) / 31557600000));
+  } else if (age) {
+    patient.age = Math.max(1, parseInt(age) || 1);
+  }
   if (gender) patient.gender = gender;
   if (contact) patient.contact = contact;
   if (bloodGroup) patient.bloodGroup = bloodGroup;

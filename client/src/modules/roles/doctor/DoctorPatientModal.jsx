@@ -985,7 +985,7 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
                 <div>
                   <h2 className="text-xl font-black text-slate-900">{patient.name}</h2>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{patient.id}</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{patient.email || 'No Email'}</span>
                     <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
                       <Droplets size={10} className="text-rose-400" />{patient.blood}
                     </span>

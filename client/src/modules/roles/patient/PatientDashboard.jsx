@@ -58,7 +58,7 @@ function PatientDashboard() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const pRes = await getPatientByUserId(user.id)
+        const pRes = await getPatientByUserId(user?.id)
         const p = pRes.data
         setPatientData(p)
 
@@ -87,7 +87,7 @@ function PatientDashboard() {
       }
     }
     if (user?.id) fetchData()
-  }, [user.id])
+  }, [user?.id])
 
   const handleOnboardingSubmit = async (e) => {
     e.preventDefault()
@@ -98,6 +98,7 @@ function PatientDashboard() {
         height: Number(onboardingForm.height),
         weight: Number(onboardingForm.weight)
       }
+      if (!patientData?._id || !user?.id) throw new Error('Authentication or profile data missing.');
       await updatePatient(patientData._id, payload)
       const pRes = await getPatientByUserId(user.id)
       setPatientData(pRes.data)
@@ -145,33 +146,28 @@ function PatientDashboard() {
     <div className="space-y-8 pb-10 animate-in fade-in duration-700 px-2 sm:px-4 max-w-[100vw] overflow-x-hidden">
       
       {/* 🚀 Header & Welcome Bar */}
-      <div className="bg-slate-900 px-6 sm:px-10 py-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
-            <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Welcome Back</p>
-            <h1 className="text-3xl sm:text-4xl font-black text-white leading-none tracking-tight">
-              Hello, {user?.fullName?.split(' ')[0] || user?.name?.split(' ')[0] || 'Patient'}
-            </h1>
-            <p className="text-slate-400 text-xs font-bold mt-2 opacity-80">Track your clinical health and manage medical schedules.</p>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-               onClick={() => navigate('/patient/profile')}
-               className="p-3 bg-white/10 hover:bg-emerald-500 text-white rounded-2xl transition-all active:scale-95 border border-white/5 shadow-xl flex items-center justify-center group/profile"
-            >
-              <User size={20} strokeWidth={3} className="text-white group-hover/profile:text-white" />
-            </button>
-            <button
-               onClick={() => navigate('/patient/appointments')}
-               className="flex items-center gap-3 px-8 py-3.5 bg-emerald-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-2xl active:scale-95 border-none"
-            >
-              <Plus size={16} strokeWidth={4} />
-              Book New Visit
-            </button>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight text-slate-900 border-l-4 border-emerald-500 pl-4">Patient Dashboard</h1>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 pl-5">
+            Hello, {user?.fullName?.split(' ')[0] || user?.name?.split(' ')[0] || 'Patient'} • Track your clinical health
+          </p>
         </div>
-        {/* Background Decor */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-20 -mt-20 group-hover:bg-emerald-500/20 transition-all duration-700" />
+        <div className="flex items-center gap-3 shrink-0">
+          <button
+            onClick={() => navigate('/patient/profile')}
+            className="p-3 bg-slate-50 hover:bg-emerald-50 text-slate-400 hover:text-emerald-500 rounded-xl transition-all border border-slate-100 shadow-sm active:scale-95"
+          >
+            <User size={20} strokeWidth={3} />
+          </button>
+          <button
+            onClick={() => navigate('/patient/appointments')}
+            className="flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-xl hover:bg-emerald-500 transition-all font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95"
+          >
+            <Plus size={16} strokeWidth={3} />
+            Book New Visit
+          </button>
+        </div>
       </div>
 
       {/* 📊 Vital Stats Ribbon - Compact & Integrated */}
@@ -319,17 +315,7 @@ function PatientDashboard() {
 
       </div>
 
-      {/* 🔐 Security Badge Bar */}
-      <div className="bg-slate-50 border border-slate-200 px-8 py-5 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-4">
-         <div className="flex items-center gap-3">
-            <div className="p-2 bg-white rounded-xl shadow-sm"><Lock size={16} className="text-slate-400" strokeWidth={3} /></div>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.15em] text-center md:text-left">Your health data is protected by hospital-grade encryption standards.</p>
-         </div>
-         <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest shadow-lg shadow-emerald-500/20">Active Secured Connection</span>
-         </div>
-      </div>
+
 
       {/* 📝 Onboarding Modal - Compact & Modern */}
       <AnimatePresence>

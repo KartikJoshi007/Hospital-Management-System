@@ -9,6 +9,7 @@ const PAGE_TITLES = {
   '/reception/appointments': 'Appointment Handling',
   '/reception/billing': 'Billing & Invoicing',
   '/reception/queue': 'Queue Management',
+  '/reception/profile': 'My Profile',
   '/reception/notifications': 'Notification Center',
 }
 

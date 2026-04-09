@@ -240,29 +240,22 @@ function MyRecords() {
             </div>
          )}
          
-         {/* 🏙️ Hero Area */}
-         <div className="bg-slate-900 px-8 py-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-               <div className="text-left">
-                  <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2 leading-none">Diagnostic Center</p>
-                  <h1 className="text-3xl sm:text-4xl font-black text-white leading-none tracking-tight">Clinical Documentation</h1>
-                  <p className="text-slate-400 text-xs font-bold mt-4 opacity-80 decoration-emerald-500/30 underline underline-offset-4">Access lab reports, prescriptions and practitioner notes.</p>
-               </div>
-               <div className="flex items-center gap-3">
-                  <button onClick={() => setIsUploadModalOpen(true)} className="flex items-center gap-3 px-8 py-4 bg-white text-slate-900 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all shadow-2xl active:scale-95 border-none">
-                     <Upload size={16} strokeWidth={4} className="text-emerald-500" />
-                     Upload Report
-                  </button>
-                  <button onClick={handleDownloadAll} disabled={isDownloadingAll || filteredRecords.length === 0} className="flex items-center gap-3 px-8 py-4 bg-emerald-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-2xl active:scale-95 border-none">
-                     {isDownloadingAll ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} strokeWidth={4} />}
-                     Export All
-                  </button>
-                  <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-colors shrink-0 outline-none">
-                     <ArrowLeft size={16} strokeWidth={3} /> Back
-                  </button>
-               </div>
+         {/* 🏙️ Clinical Documentation Header */}
+         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
+            <div>
+               <h1 className="text-2xl font-black tracking-tight text-slate-900 border-l-4 border-emerald-500 pl-4">Clinical Documentation</h1>
+               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 pl-5">Access lab reports, prescriptions and practitioner notes</p>
             </div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-20 -mt-20 group-hover:bg-emerald-500/20 transition-all duration-700" />
+            <div className="flex items-center gap-3">
+               <button onClick={() => setIsUploadModalOpen(true)} className="flex items-center gap-2 px-5 py-3 bg-slate-50 text-slate-900 rounded-xl hover:bg-emerald-50 transition-all font-black text-[10px] uppercase tracking-widest border border-slate-100 shadow-sm active:scale-95">
+                  <Upload size={16} strokeWidth={3} className="text-emerald-500" />
+                  Upload Report
+               </button>
+               <button onClick={handleDownloadAll} disabled={isDownloadingAll || filteredRecords.length === 0} className="flex items-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-xl hover:bg-emerald-500 transition-all font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 disabled:opacity-40">
+                  {isDownloadingAll ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} strokeWidth={3} />}
+                  Export All
+               </button>
+            </div>
          </div>
 
          {/* 🔍 Filters */}
@@ -319,14 +312,7 @@ function MyRecords() {
             </div>
          </div>
 
-         {/* 🔐 Security Note */}
-         <div className="bg-blue-50/30 border border-blue-100/50 p-10 rounded-[2.5rem] flex flex-col sm:flex-row gap-6 items-center shadow-sm">
-            <div className="h-14 w-14 rounded-2xl bg-white flex items-center justify-center text-blue-500 shadow-xl shadow-blue-500/10 shrink-0"><ShieldCheck size={28} strokeWidth={3} /></div>
-            <div className="text-left">
-               <p className="text-[11px] text-blue-900 uppercase tracking-widest font-black leading-relaxed">Secure Health Information Technology</p>
-               <p className="text-[10px] text-blue-600 font-bold mt-2 opacity-80">All records are dual-encrypted under HIPAA-aligned protocols. Practitioner access is logged and verified via clinical identifiers.</p>
-            </div>
-         </div>
+
 
          {/* Record Detail Modal */}
          <AnimatePresence>

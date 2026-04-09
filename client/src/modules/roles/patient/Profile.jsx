@@ -207,26 +207,26 @@ function PatientProfile() {
         )}
       </AnimatePresence>
 
-      {/* 🏙️ Hero Header */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="h-32 bg-slate-900 relative flex items-center justify-between px-8">
-          <div className="flex items-center gap-6">
-            <div className="h-20 w-20 rounded-[1.5rem] bg-emerald-500 flex items-center justify-center text-white text-2xl font-black border-4 border-white/20 shadow-2xl">
-               {profileForm.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-            </div>
-            <div>
-              <h1 className="text-2xl font-black text-white leading-none tracking-tight">{profileForm.name}</h1>
-              <p className="text-xs font-bold text-emerald-400 mt-2 uppercase tracking-widest opacity-80">Patient Profile</p>
-            </div>
+      {/* 🏙️ Profile Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
+        <div className="flex items-center gap-6">
+          <div className="h-16 w-16 rounded-2xl bg-emerald-500 flex items-center justify-center text-white text-xl font-black border border-emerald-400 shadow-lg shrink-0">
+             {profileForm.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'P'}
           </div>
-          <button onClick={() => { setEditMode(!editMode); if(!editMode) setTimeout(() => editSectionRef.current?.scrollIntoView({ behavior: 'smooth' }), 100); }} 
-            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${editMode ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-emerald-500 text-white hover:bg-emerald-400'}`}>
-            {editMode ? <X size={14} strokeWidth={3} /> : <Edit2 size={14} strokeWidth={3} />}
-            {editMode ? 'Cancel Edit' : 'Edit Profile'}
-          </button>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 border-l-4 border-emerald-500 pl-4">{profileForm.name || 'Patient Profile'}</h1>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 pl-5">Manage your personal and clinical information</p>
+          </div>
         </div>
+        <button onClick={() => { setEditMode(!editMode); if(!editMode) setTimeout(() => editSectionRef.current?.scrollIntoView({ behavior: 'smooth' }), 100); }} 
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-lg ${editMode ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-emerald-500'}`}>
+          {editMode ? <X size={14} strokeWidth={3} /> : <Edit2 size={14} strokeWidth={3} />}
+          {editMode ? 'Cancel Edit' : 'Edit Profile'}
+        </button>
+      </div>
 
-        {/* 📊 Rapid Vitals Ribbon */}
+      {/* 📊 Rapid Vitals & Account Overview */}
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-8 py-6 border-b border-slate-50 bg-slate-50/20">
           <div className="flex flex-wrap items-center justify-between gap-y-6">
             {stats.map((s, i) => (
@@ -241,7 +241,6 @@ function PatientProfile() {
           </div>
         </div>
 
-        {/* 📋 Account Overview */}
         <div className="p-8">
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div>

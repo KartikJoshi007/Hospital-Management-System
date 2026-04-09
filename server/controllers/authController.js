@@ -18,7 +18,7 @@ const generateToken = (id) => {
 
 // ================= REGISTER =================
 exports.register = asyncHandler(async (req, res) => {
-  const { fullName, email, password, phone, role } = req.body;
+  const { fullName, email, password, phone, role, dob } = req.body;
 
   // ✅ Check if user already exists
   const existingUser = await User.findOne({ email });
@@ -40,7 +40,8 @@ exports.register = asyncHandler(async (req, res) => {
     await Patient.create({
       userId: user._id,
       name: user.fullName,
-      age: 0, // Default, can be updated later
+      dob: dob || new Date(), // Use provided dob or fallback
+      age: dob ? Math.max(1, Math.floor((new Date() - new Date(dob)) / 31557600000)) : 1, 
       gender: "Other",
       contact: user.phone || "Not Provided",
       bloodGroup: "O+",

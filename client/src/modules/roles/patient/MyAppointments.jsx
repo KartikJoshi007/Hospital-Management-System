@@ -252,7 +252,6 @@ function MyAppointments() {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-black text-slate-900 leading-tight truncate max-w-[200px]">{apt.doctor}</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">ID: {apt.id.slice(-6).toUpperCase()}</p>
             </div>
           </div>
         </td>
@@ -325,22 +324,21 @@ function MyAppointments() {
   return (
     <div className="space-y-6 pb-10 animate-in fade-in duration-700 w-full px-2 sm:px-4 max-w-[100vw] overflow-x-hidden">
 
-      {/* 🏙️ Hero Selection Area */}
-      <div className="bg-slate-900 px-8 py-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2 leading-none">Management Center</p>
-            <h1 className="text-3xl sm:text-4xl font-black text-white leading-none tracking-tight">Visit Schedule</h1>
-            <p className="text-slate-400 text-xs font-bold mt-4 opacity-80">Oversee and coordinate your clinical consultations.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setView(view === 'list' ? 'book' : 'list')} className={`flex items-center gap-3 px-8 py-4 ${view === 'list' ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-white/10 hover:bg-white/20'} text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-2xl active:scale-95 border-none`}>
-              {view === 'list' ? <Plus size={16} strokeWidth={4} /> : <ArrowLeft size={16} strokeWidth={4} />}
-              {view === 'list' ? 'Book New Visit' : 'Back to Records'}
-            </button>
-          </div>
+      {/* 🏙️ Visit Schedule Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight text-slate-900 border-l-4 border-emerald-500 pl-4">Visit Schedule</h1>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 pl-5">Oversee and coordinate your clinical consultations</p>
         </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-20 -mt-20 group-hover:bg-emerald-500/20 transition-all duration-700" />
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setView(view === 'list' ? 'book' : 'list')} 
+            className={`flex items-center gap-2 px-5 py-3 ${view === 'list' ? 'bg-slate-900 hover:bg-emerald-500' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'} text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95`}
+          >
+            {view === 'list' ? <Plus size={16} strokeWidth={3} /> : <ArrowLeft size={16} strokeWidth={3} />}
+            {view === 'list' ? 'Book New Visit' : 'Back to Records'}
+          </button>
+        </div>
       </div>
 
       <AnimatePresence mode="wait">

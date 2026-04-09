@@ -118,7 +118,7 @@ const QueueManagement = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Queue Monitor</h2>
-          <p className="text-slate-500 font-medium text-xs mt-1">Live synchronized status for front desk operations.</p>
+
         </div>
         
         <div className="flex flex-wrap items-center gap-2">

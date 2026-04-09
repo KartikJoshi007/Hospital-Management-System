@@ -56,7 +56,14 @@ function PatientManagement() {
 
   const openEdit = (p) => {
     setEditPatient(p)
-    setFormData({ name: p.name, email: p.email || '', age: p.age, contact: p.contact, address: p.address, medicalHistory: p.medicalHistory })
+    setFormData({ 
+      name: p.name, 
+      email: p.email || '', 
+      dob: p.dob ? new Date(p.dob).toISOString().split('T')[0] : '', 
+      contact: p.contact, 
+      address: p.address, 
+      medicalHistory: p.medicalHistory 
+    })
   }
 
   const handleSave = async (e) => {
@@ -158,6 +165,7 @@ function PatientManagement() {
                         </div>
                         <div>
                           <p className="text-xs font-black text-slate-900">{p.name}</p>
+                          <p className="text-[10px] font-bold text-slate-400">{p.email || 'No Email'}</p>
 
                         </div>
                       </div>
@@ -204,7 +212,7 @@ function PatientManagement() {
                   {[
                     { label: 'Full Name', key: 'name', type: 'text' },
                     { label: 'Email', key: 'email', type: 'email' },
-                    { label: 'Age', key: 'age', type: 'number' },
+                    { label: 'Date of Birth', key: 'dob', type: 'date' },
                     { label: 'Contact', key: 'contact', type: 'tel' },
                     { label: 'Address', key: 'address', type: 'text' },
                     { label: 'Medical History', key: 'medicalHistory', type: 'text' },

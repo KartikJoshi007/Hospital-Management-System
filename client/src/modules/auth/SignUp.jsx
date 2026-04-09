@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { Mail, Lock, User, Phone, Activity, ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, User, Phone, Activity, ArrowRight, Eye, EyeOff, Calendar } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { registerUser } from './authApi'
 
@@ -9,7 +9,7 @@ function SignUp() {
   const navigate = useNavigate()
 
   const [formData, setFormData] = useState({
-    fullName: '', email: '', phone: '', password: '', confirmPassword: '',
+    fullName: '', email: '', phone: '', password: '', confirmPassword: '', dob: '',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -33,7 +33,8 @@ function SignUp() {
         email: formData.email.toLowerCase(),
         phone: formData.phone.trim(),
         password: formData.password,
-        role: 'patient'
+        role: 'patient',
+        dob: formData.dob
       }
 
       // 🛡️ FRONTEND VALIDATION
@@ -135,6 +136,15 @@ function SignUp() {
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
                 <input type="tel" name="phone" required placeholder="+91 98765 43210"
                   value={formData.phone} onChange={handleChange} className={inp} />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Date of Birth</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
+                <input type="date" name="dob" required max={new Date().toISOString().split('T')[0]}
+                  value={formData.dob} onChange={handleChange} className={inp} />
               </div>
             </div>
 

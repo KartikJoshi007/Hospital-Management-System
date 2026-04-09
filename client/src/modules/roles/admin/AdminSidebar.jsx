@@ -7,13 +7,13 @@ import {
 import useAuth from '../../../hooks/useAuth'
 
 const navigation = [
-  { to: '/admin/dashboard',    label: 'Dashboard',          icon: <LayoutDashboard className="h-4 w-4" /> },
-  { to: '/admin/users',        label: 'User Management',    icon: <Users className="h-4 w-4" /> },
-  { to: '/admin/roles',        label: 'Role Management',    icon: <ShieldCheck className="h-4 w-4" /> },
-  { to: '/admin/doctors',      label: 'Doctor Management',  icon: <Stethoscope className="h-4 w-4" /> },
-  { to: '/admin/patients',     label: 'Patient Management', icon: <ClipboardList className="h-4 w-4" /> },
-  { to: '/admin/appointments', label: 'Appointments',       icon: <CalendarCheck className="h-4 w-4" /> },
-  { to: '/admin/billing',      label: 'Billing & Finance',  icon: <CreditCard className="h-4 w-4" /> },
+  { to: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard className="h-4 w-4" /> },
+  { to: '/admin/users', label: 'User Management', icon: <Users className="h-4 w-4" /> },
+  { to: '/admin/roles', label: 'Role Management', icon: <ShieldCheck className="h-4 w-4" /> },
+  { to: '/admin/doctors', label: 'Doctor Management', icon: <Stethoscope className="h-4 w-4" /> },
+  { to: '/admin/patients', label: 'Patient Management', icon: <ClipboardList className="h-4 w-4" /> },
+  { to: '/admin/appointments', label: 'Appointments', icon: <CalendarCheck className="h-4 w-4" /> },
+  { to: '/admin/billing', label: 'Billing & Finance', icon: <CreditCard className="h-4 w-4" /> },
 ]
 
 function AdminSidebar({ collapsed, onToggle }) {
@@ -43,11 +43,10 @@ function AdminSidebar({ collapsed, onToggle }) {
             <div key={item.to} className="relative group">
               <NavLink
                 to={item.to}
-                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
-                  isActive
-                    ? 'bg-emerald-50 text-emerald-500 border border-emerald-100'
-                    : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900'
-                }`}
+                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ${isActive
+                  ? 'bg-emerald-50 text-emerald-500 border border-emerald-100'
+                  : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
               >
                 {item.icon}
               </NavLink>
@@ -98,10 +97,9 @@ function AdminSidebar({ collapsed, onToggle }) {
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 ${
-                isActive
-                  ? 'bg-emerald-50 text-emerald-600 shadow-sm border border-emerald-100'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+              `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 ${isActive
+                ? 'bg-emerald-50 text-emerald-600 shadow-sm border border-emerald-100'
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`
             }
           >

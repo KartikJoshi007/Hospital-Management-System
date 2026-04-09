@@ -275,7 +275,7 @@ const BillingSupport = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Billing & Finance</h2>
-          <p className="text-slate-500 font-medium text-xs mt-1">Live HMS Financial Dashboard Integrated with Backend.</p>
+
         </div>
 
         <div className="flex items-center gap-4">
@@ -313,7 +313,7 @@ const BillingSupport = () => {
               {editId !== null ? <Edit3 size={18} /> : <Receipt size={18} />}
             </div>
             <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">
-              {editId !== null ? "Edit Document" : "Generator"}
+              {editId !== null ? "Edit Invoice" : "Invoice Creation"}
             </h3>
           </div>
 
@@ -455,7 +455,7 @@ const BillingSupport = () => {
         >
           <div className="flex flex-col sm:flex-row items-center justify-between px-8 py-6 border-b border-slate-50 gap-4">
             <div>
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Database Ledger</h3>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Billing Lists</h3>
               <p className="text-[10px] font-bold text-slate-400 mt-0.5">{filteredBills.length} Invoices available</p>
             </div>
             

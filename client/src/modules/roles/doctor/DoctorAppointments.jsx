@@ -379,7 +379,7 @@ function DoctorAppointments() {
                         </div>
                         <div>
                           <p className="text-xs font-black text-slate-900">{a.patient}</p>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ID: {a._id.slice(-6).toUpperCase()}</p>
+
                         </div>
                       </div>
                     </td>

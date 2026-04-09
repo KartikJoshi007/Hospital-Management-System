@@ -255,7 +255,7 @@ function DoctorDashboard() {
                         </div>
                         <div>
                           <p className="text-xs font-black text-slate-900">{a.patient}</p>
-                          <p className="text-[9px] font-bold text-slate-400">{a.type} · {a._id.slice(-6).toUpperCase()}</p>
+                          <p className="text-[9px] font-bold text-slate-400">{a.type}</p>
                         </div>
                       </div>
                     </td>

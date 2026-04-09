@@ -155,6 +155,7 @@ function PatientDetails() {
                         </div>
                         <div>
                           <p className="text-xs font-black text-slate-900 whitespace-nowrap">{p.name}</p>
+                          <p className="text-[10px] font-bold text-slate-400">{p.email || 'No Email'}</p>
                         </div>
                       </div>
                     </td>

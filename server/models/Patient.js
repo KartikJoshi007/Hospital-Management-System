@@ -27,6 +27,11 @@ const patientSchema = new mongoose.Schema(
       required: [true, "Age is required"],
     },
 
+    dob: {
+      type: Date,
+      required: [true, "Date of birth is required"],
+    },
+
     gender: {
       type: String,
       enum: ["Male", "Female", "Other", "male", "female", "other"],

@@ -90,18 +90,21 @@ function ReceptionNavbar({ title, onToggle }) {
 
         <NotificationBell />
 
-        <div className="flex items-center gap-2">
-          <div className="text-right mr-2 hidden sm:block">
-            <p className="text-xs font-black text-slate-900">{user?.fullName || 'Reception'}</p>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Medical Front Desk</p>
+        <div
+          onClick={() => navigate('/reception/profile')}
+          className="flex items-center gap-3 cursor-pointer group active:scale-95 transition-all"
+        >
+          <div className="flex flex-col text-right hidden sm:flex">
+            <span className="text-xs font-black text-[#0F172A] tracking-tight group-hover:text-purple-500 transition-colors">
+              {user?.fullName || 'Reception'}
+            </span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Front Desk Access</span>
           </div>
-          <div
-            className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs border border-slate-200 hover:border-purple-500 hover:scale-105 transition-all cursor-pointer overflow-hidden group shadow-sm"
-          >
+          <div className="h-10 w-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shadow-sm hover:border-purple-500 transition-all">
             <img
               src={`https://ui-avatars.com/api/?name=${user?.fullName || 'Reception'}&background=8b5cf6&color=fff&bold=true`}
               alt="Profile"
-              className="h-full w-full object-cover grayscale group-hover:grayscale-0 transition-all"
+              className="h-full w-full object-cover p-1 opacity-90 group-hover:opacity-100 transition-opacity"
             />
           </div>
         </div>

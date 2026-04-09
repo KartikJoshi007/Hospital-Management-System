@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { User, Phone, MapPin, Hash, Users, Edit3, Trash2, Save, UserPlus, Search, Activity, Droplet, Mail, Lock } from "lucide-react";
+import { User, Phone, MapPin, Hash, Users, Edit3, Trash2, Save, UserPlus, Search, Activity, Droplet, Mail, Lock, Eye, EyeOff, Calendar, Cake } from "lucide-react";
 import { toast } from "react-toastify";
 import API from "../../../api/axios";
 
@@ -9,6 +9,7 @@ const PatientHandler = () => {
     name: "",
     email: "",
     password: "",
+    dob: "",
     age: "",
     gender: "Male",
     contact: "",
@@ -21,14 +22,13 @@ const PatientHandler = () => {
   const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // 🔄 Fetch patients from backend
   const fetchPatients = async () => {
     setLoading(true);
     try {
       const res = await API.get("/patients");
-      // The backend returns new ApiResponse(200, patients, "...")
-      // and axios instance doesn't have a response interceptor that unwraps 'data' completely
       const patientsData = res.data?.data;
       setPatients(Array.isArray(patientsData) ? patientsData : (patientsData?.patients || []));
     } catch (err) {
@@ -44,15 +44,25 @@ const PatientHandler = () => {
 
   // Handle input change
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    let updatedForm = { ...form, [name]: value };
+
+    // Automatically calculate age if DOB is changed
+    if (name === 'dob' && value) {
+      const birthDate = new Date(value);
+      const age = Math.floor((new Date() - birthDate) / 31557600000);
+      updatedForm.age = age >= 1 ? age : "1"; // Ensure min age is 1
+    }
+
+    setForm(updatedForm);
   };
 
   // Add / Update patient
   const handleSubmit = async () => {
-    const { name, age, contact } = form;
+    const { name, email, dob, age, contact, address, bloodGroup, medicalHistory } = form;
 
-    if (!name || !age || !contact) {
-      toast.warning("Name, Age and Contact are required!");
+    if (!name || !email || !dob || !age || !contact || !address || !bloodGroup || !medicalHistory || (editId === null && !form.password)) {
+      toast.warning("All fields are required to complete registration!");
       return;
     }
 
@@ -72,6 +82,7 @@ const PatientHandler = () => {
         name: "",
         email: "",
         password: "",
+        dob: "",
         age: "",
         gender: "Male",
         contact: "",
@@ -91,7 +102,8 @@ const PatientHandler = () => {
     setForm({
       name: patient.name,
       email: patient.email || "",
-      age: patient.age,
+      dob: patient.dob ? new Date(patient.dob).toISOString().split('T')[0] : "",
+      age: patient.age || "",
       gender: patient.gender,
       contact: patient.contact,
       address: patient.address || "",
@@ -120,7 +132,7 @@ const PatientHandler = () => {
         try {
           const res = await API.get(`/patients/search/${searchTerm}`);
           const patientsData = res.data?.data;
-      setPatients(Array.isArray(patientsData) ? patientsData : (patientsData?.patients || []));
+          setPatients(Array.isArray(patientsData) ? patientsData : (patientsData?.patients || []));
         } catch (err) {
           console.error("Search failed:", err);
         }
@@ -139,7 +151,6 @@ const PatientHandler = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Patient Registry</h2>
-          <p className="text-slate-500 font-medium text-xs mt-1">Integrated with Hospital HMS Cloud Database.</p>
         </div>
 
         {/* Search Bar - Backend Integrated */}
@@ -172,97 +183,64 @@ const PatientHandler = () => {
             </h3>
           </div>
 
-          <div className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Full Name</label>
-              <div className="relative group">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Patient Name"
-                  value={form.name}
-                  onChange={handleChange}
-                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50"
-                />
-              </div>
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+               <div className="space-y-1">
+                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Full Name</label>
+                 <div className="relative group">
+                   <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
+                   <input type="text" name="name" required placeholder="Patient Name" value={form.name} onChange={handleChange}
+                     className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50" />
+                 </div>
+               </div>
+               <div className="space-y-1">
+                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Email</label>
+                 <div className="relative group">
+                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
+                   <input type="email" name="email" required placeholder="email@example.com" value={form.email} onChange={handleChange}
+                     className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50" />
+                 </div>
+               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Email (For account)</label>
-              <div className="relative group">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="email@example.com"
-                  value={form.email}
-                  onChange={handleChange}
-                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50"
-                />
-              </div>
+            <div className="grid grid-cols-2 gap-4">
+               <div className="space-y-1">
+                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Date of Birth</label>
+                 <div className="relative group">
+                   <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
+                   <input type="date" name="dob" required max={new Date().toISOString().split('T')[0]} value={form.dob} onChange={handleChange}
+                     className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50" />
+                 </div>
+               </div>
+               <div className="space-y-1">
+                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Current Age</label>
+                 <div className="relative group">
+                   <Cake className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
+                   <input type="number" name="age" required min="1" placeholder="Age" value={form.age} onChange={handleChange}
+                     className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50" />
+                 </div>
+               </div>
             </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Password</label>
-              <div className="relative group">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="Set initial password"
-                  value={form.password}
-                  onChange={handleChange}
-                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50"
-                />
-              </div>
-            </div>
-
-            <input
-              type="number"
-              name="age"
-              placeholder="Age"
-              value={form.age}
-              onChange={handleChange}
-              className="border p-2 rounded"
-            />
-
-            <select
-              name="gender"
-              value={form.gender}
-              onChange={handleChange}
-              className="border p-2 rounded"
-            >
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Phone</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Gender</label>
                 <div className="relative group">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
-                  <input
-                    type="text"
-                    name="contact"
-                    placeholder="Contact"
-                    value={form.contact}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50"
-                  />
+                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
+                  <select name="gender" required value={form.gender} onChange={handleChange}
+                    className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 appearance-none">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Blood Group</label>
                 <div className="relative group">
                   <Droplet className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
-                  <select
-                    name="bloodGroup"
-                    value={form.bloodGroup}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 appearance-none"
-                  >
+                  <select name="bloodGroup" required value={form.bloodGroup} onChange={handleChange}
+                    className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 appearance-none">
                     <option value="A+">A+</option>
                     <option value="A-">A-</option>
                     <option value="B+">B+</option>
@@ -276,53 +254,55 @@ const PatientHandler = () => {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Contact No.</label>
+                <div className="relative group">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
+                  <input type="text" name="contact" required placeholder="Contact" value={form.contact} onChange={handleChange}
+                    className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Setup Password</label>
+                <div className="relative group">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
+                  <input type={showPassword ? "text" : "password"} name="password" required={editId === null} placeholder={editId === null ? "Password" : "••••••••"} value={form.password} onChange={handleChange}
+                    className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-10 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-purple-500 transition-colors">
+                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Full Address</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Residential Address</label>
               <div className="relative group">
                 <MapPin className="absolute left-3 top-3 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
-                <textarea
-                  name="address"
-                  placeholder="Street, City..."
-                  rows={2}
-                  value={form.address}
-                  onChange={handleChange}
-                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 resize-none"
-                />
+                <textarea name="address" required placeholder="Street, City, State..." rows={2} value={form.address} onChange={handleChange}
+                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 resize-none" />
               </div>
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Condition / Note</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Medical Background</label>
               <div className="relative group">
                 <Activity className="absolute left-3 top-3 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
-                <textarea
-                  name="medicalHistory"
-                  placeholder="Medical notes..."
-                  rows={2}
-                  value={form.medicalHistory}
-                  onChange={handleChange}
-                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 resize-none"
-                />
+                <textarea name="medicalHistory" required placeholder="Allergies, conditions, etc." rows={2} value={form.medicalHistory} onChange={handleChange}
+                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 resize-none" />
               </div>
             </div>
 
-            <button
-              onClick={handleSubmit}
-              className={`w-full mt-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:shadow-xl active:scale-95 flex items-center justify-center gap-2 ${editId !== null ? "bg-purple-600 text-white shadow-purple-500/20" : "bg-slate-900 text-white"
-                }`}
-            >
-              {editId !== null ? <Save size={14} /> : <UserPlus size={14} />}
-              {editId !== null ? "Update Cloud Record" : "Register to Cloud"}
+            <button onClick={handleSubmit}
+              className={`w-full mt-4 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-[0.1em] transition-all hover:shadow-xl active:scale-[0.98] flex items-center justify-center gap-3 ${editId !== null ? "bg-purple-600 text-white shadow-purple-500/20" : "bg-slate-900 text-white shadow-lg shadow-slate-900/10"}`}>
+              {editId !== null ? <Save size={16} /> : <UserPlus size={16} />}
+              {editId !== null ? "Update Record" : "Confirm Registration"}
             </button>
             {editId !== null && (
-              <button
-                onClick={() => {
-                  setEditId(null);
-                  setForm({ name: "", age: "", gender: "Male", contact: "", address: "", bloodGroup: "O+", medicalHistory: "" });
-                }}
-                className="w-full py-3 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50"
-              >
-                Cancel Edit
+              <button onClick={() => { setEditId(null); setForm({ name: "", email: "", password: "", dob: "", age: "", gender: "Male", contact: "", address: "", bloodGroup: "O+", medicalHistory: "" }); }}
+                className="w-full py-3 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 transition-colors">
+                Cancel Update
               </button>
             )}
           </div>
@@ -336,7 +316,7 @@ const PatientHandler = () => {
         >
           <div className="flex items-center justify-between px-8 py-6 border-b border-slate-50">
             <div>
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Global Master Data</h3>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Patient Records</h3>
               <p className="text-[10px] font-bold text-slate-400 mt-0.5">{patients.length} records in Database</p>
             </div>
             <div className="p-2 rounded-xl bg-purple-50 text-purple-600">

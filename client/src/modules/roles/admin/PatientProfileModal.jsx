@@ -110,7 +110,7 @@ function PatientProfileModal({ patient, onClose }) {
                 <div>
                   <h2 className="text-xl font-black text-slate-900">{patient.name}</h2>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{patient._id?.slice(-6).toUpperCase()}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{patient.email || 'No Email'}</p>
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${STATUS_COLORS[patient.status] || ''}`}>
                       {patient.status}
                     </span>
@@ -153,12 +153,13 @@ function PatientProfileModal({ patient, onClose }) {
                 {activeTab === 'overview' && (
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      {[
-                        { label: 'Age', value: `${patient.age} yrs` },
-                        { label: 'Gender', value: patient.gender },
-                        { label: 'Blood Group', value: patient.bloodGroup || 'N/A' },
-                        { label: 'Status', value: patient.status },
-                      ].map((item, i) => (
+                        {[
+                          { label: 'Age', value: `${patient.age} yrs` },
+                          { label: 'Gender', value: patient.gender },
+                          { label: 'Blood Group', value: patient.bloodGroup || 'N/A' },
+                          { label: 'Status', value: patient.status },
+                          { label: 'Email', value: patient.email || 'N/A' },
+                        ].map((item, i) => (
                         <div key={i} className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
                           <p className="text-sm font-black text-slate-900">{item.value}</p>

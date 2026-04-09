@@ -15,7 +15,6 @@ const patientNavigation = [
   { to: '/patient/appointments', label: 'Appointments', icon: <Calendar className="h-4 w-4" /> },
   { to: '/patient/records',      label: 'My Records',    icon: <FileText className="h-4 w-4" /> },
   { to: '/patient/billing',      label: 'My Bills',      icon: <CreditCard className="h-4 w-4" /> },
-  { to: '/patient/profile',      label: 'My Profile',   icon: <User className="h-4 w-4" /> },
 ]
 
 function PatientSidebar({ collapsed, onToggle }) {
