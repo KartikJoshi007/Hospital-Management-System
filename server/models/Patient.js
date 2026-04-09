@@ -15,6 +15,12 @@ const patientSchema = new mongoose.Schema(
       trim: true,
       index: true, // 🔥 ADD: Fast name search
     },
+    email: {
+      type: String,
+      lowercase: true,
+      trim: true,
+      index: true,
+    },
 
     age: {
       type: Number,

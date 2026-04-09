@@ -94,7 +94,7 @@ exports.login = asyncHandler(async (req, res) => {
   }
 
   // ✅ Get user with password
-  const user = await User.findOne({ email }).select("+password");
+  const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
 
   if (!user) {
     throw new ApiError(401, "Invalid credentials");

@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { User, Phone, MapPin, Hash, Users, Edit3, Trash2, Save, UserPlus, Search, Activity, Droplet } from "lucide-react";
+import { User, Phone, MapPin, Hash, Users, Edit3, Trash2, Save, UserPlus, Search, Activity, Droplet, Mail, Lock } from "lucide-react";
 import { toast } from "react-toastify";
 import API from "../../../api/axios";
 
 const PatientHandler = () => {
   const [form, setForm] = useState({
     name: "",
+    email: "",
+    password: "",
     age: "",
     gender: "Male",
     contact: "",
@@ -68,6 +70,8 @@ const PatientHandler = () => {
       // Reset form and refresh list
       setForm({
         name: "",
+        email: "",
+        password: "",
         age: "",
         gender: "Male",
         contact: "",
@@ -86,6 +90,7 @@ const PatientHandler = () => {
   const handleEdit = (patient) => {
     setForm({
       name: patient.name,
+      email: patient.email || "",
       age: patient.age,
       gender: patient.gender,
       contact: patient.contact,
@@ -177,6 +182,36 @@ const PatientHandler = () => {
                   name="name"
                   placeholder="Patient Name"
                   value={form.name}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Email (For account)</label>
+              <div className="relative group">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="email@example.com"
+                  value={form.email}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Password</label>
+              <div className="relative group">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="Set initial password"
+                  value={form.password}
                   onChange={handleChange}
                   className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50"
                 />

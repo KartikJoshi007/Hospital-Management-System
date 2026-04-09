@@ -8,17 +8,36 @@ const { body } = require("express-validator");
 // @desc    Create patient
 // @route   POST /api/patients
 exports.createPatient = asyncHandler(async (req, res) => {
-  const { userId, name, age, gender, contact, bloodGroup, status, address, medicalHistory, height, weight } = req.body;
+  const { userId, name, email, password, age, gender, contact, bloodGroup, status, address, medicalHistory, height, weight } = req.body;
 
   // Check if patient profile already exists for this name (simple check for mock-like data)
-  const existingPatient = await Patient.findOne({ name, contact });
+  const existingPatient = await Patient.findOne({ $or: [{ contact }, (email ? { email } : { _id: null })] });
   if (existingPatient) {
     throw new ApiError(400, "Patient record already exists for this person");
   }
 
+  let finalUserId = userId;
+
+  // 🛡️ Automatically create User account if email is provided and no userId exists
+  if (!finalUserId && email) {
+    const lowerEmail = email.toLowerCase();
+    let user = await User.findOne({ email: lowerEmail });
+    if (!user) {
+      user = await User.create({
+        fullName: name,
+        email: lowerEmail,
+        phone: contact,
+        password: password || contact || "Patient@123", // Use provided password, fallback to contact
+        role: "patient"
+      });
+    }
+    finalUserId = user._id;
+  }
+
   const patient = await Patient.create({
-    userId: userId || null,
+    userId: finalUserId || null,
     name,
+    email,
     age,
     gender,
     contact,
@@ -132,7 +151,7 @@ exports.getPatientByUserId = asyncHandler(async (req, res) => {
 // @desc    Update patient
 // @route   PUT /api/patients/:id
 exports.updatePatient = asyncHandler(async (req, res) => {
-  const { name, age, gender, contact, bloodGroup, status, address, medicalHistory, height, weight } = req.body;
+  const { name, email, age, gender, contact, bloodGroup, status, address, medicalHistory, height, weight } = req.body;
 
   let patient = await Patient.findById(req.params.id);
 
@@ -142,6 +161,7 @@ exports.updatePatient = asyncHandler(async (req, res) => {
 
   // Update fields
   if (name) patient.name = name;
+  if (email) patient.email = email;
   if (age) patient.age = age;
   if (gender) patient.gender = gender;
   if (contact) patient.contact = contact;
