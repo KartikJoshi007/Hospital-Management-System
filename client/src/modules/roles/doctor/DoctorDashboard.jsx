@@ -48,7 +48,7 @@ function DoctorDashboard() {
         setStats([
           { label: "Today's Appointments", value: todayAppts.length.toString(), change: '+0', trend: 'up', icon: CalendarCheck, path: '/doctor/appointments' },
           { label: 'Total Patients', value: totalPatients.toString(), change: '+0', trend: 'up', icon: Users, path: '/doctor/patients' },
-          { label: 'Completed Visits', value: completed.toString(), change: '+0', trend: 'up', icon: CheckCircle2, path: '/doctor/appointments' },
+          { label: 'Completed Visits', value: completed.toString(), change: '+0', trend: 'up', icon: CheckCircle2, path: '/doctor/appointments?tab=Completed' },
           { label: 'On Duty Status', value: profile.isOnDuty ? 'Yes' : 'No', change: '', trend: 'up', icon: Clock, path: '/doctor/schedule' },
         ])
 

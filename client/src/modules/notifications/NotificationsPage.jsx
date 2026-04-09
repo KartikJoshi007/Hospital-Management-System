@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Bell, Clock, Trash2, CheckCircle, Filter, Search, Loader2, ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
+import { Bell, Clock, CheckCircle, Filter, Search, Loader2, ArrowLeft, CalendarCheck, XCircle, UserCheck, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import useNotifications from '../../hooks/useNotifications';
@@ -19,12 +19,12 @@ const NotificationsPage = () => {
         return matchesSearch && matchesFilter;
     });
 
-    const getTypeStyles = (type) => {
+    const getTypeConfig = (type) => {
         switch (type) {
-            case 'cancellation': return 'bg-rose-50 text-rose-600 border-rose-100';
-            case 'booking': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-            case 'leave': return 'bg-amber-50 text-amber-600 border-amber-100';
-            default: return 'bg-blue-50 text-blue-600 border-blue-100';
+            case 'cancellation': return { style: 'bg-rose-50 text-rose-600 border-rose-200', dot: 'bg-rose-500', icon: XCircle, label: 'Cancellation' };
+            case 'booking':      return { style: 'bg-emerald-50 text-emerald-600 border-emerald-200', dot: 'bg-emerald-500', icon: CalendarCheck, label: 'Booking' };
+            case 'leave':        return { style: 'bg-amber-50 text-amber-600 border-amber-200', dot: 'bg-amber-500', icon: UserCheck, label: 'Leave' };
+            default:             return { style: 'bg-blue-50 text-blue-600 border-blue-200', dot: 'bg-blue-500', icon: Info, label: type || 'Alert' };
         }
     };
 
@@ -106,56 +106,72 @@ const NotificationsPage = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="divide-y divide-slate-50">
-                        {filteredNotifications.map((n, idx) => (
-                            <motion.div
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.03 }}
-                                key={n._id}
-                                className={`p-6 hover:bg-slate-50/50 transition-all flex gap-6 group relative ${!n.isRead ? 'bg-blue-50/10' : ''}`}
-                            >
-                                {!n.isRead && (
-                                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500" />
-                                )}
+                    <div className="p-4 space-y-3">
+                        {filteredNotifications.map((n, idx) => {
+                            const cfg = getTypeConfig(n.type)
+                            const Icon = cfg.icon
+                            return (
+                                <motion.div
+                                    key={n._id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: idx * 0.03 }}
+                                    className={`relative flex items-start gap-4 p-4 rounded-2xl border transition-all group ${
+                                        !n.isRead
+                                            ? 'bg-white border-slate-200 shadow-sm'
+                                            : 'bg-slate-50/60 border-slate-100'
+                                    }`}
+                                >
+                                    {/* unread dot */}
+                                    {!n.isRead && (
+                                        <span className={`absolute top-4 right-4 h-2 w-2 rounded-full ${cfg.dot}`} />
+                                    )}
 
-                                <div className={`h-12 w-12 rounded-2xl shrink-0 flex items-center justify-center border transition-transform group-hover:scale-110 ${getTypeStyles(n.type)}`}>
-                                    <Bell size={20} />
-                                </div>
+                                    {/* icon */}
+                                    <div className={`h-10 w-10 rounded-xl shrink-0 flex items-center justify-center border ${cfg.style}`}>
+                                        <Icon size={18} />
+                                    </div>
 
-                                <div className="flex-1 space-y-1">
-                                    <div className="flex items-center justify-between">
-                                        <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest border ${getTypeStyles(n.type)}`}>
-                                            {n.type}
-                                        </span>
-                                        <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
-                                            <Clock size={12} /> {new Date(n.createdAt).toLocaleString()}
-                                        </span>
-                                    </div>
-                                    <h4 className={`text-sm tracking-tight ${!n.isRead ? 'font-black text-slate-900' : 'font-bold text-slate-600'}`}>
-                                        {n.message}
-                                    </h4>
-                                    <div className="flex items-center gap-4 pt-2">
-                                        {!n.isRead && (
-                                            <button
-                                                onClick={() => markAsRead(n._id)}
-                                                className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline"
-                                            >
-                                                Mark as Read
-                                            </button>
+                                    {/* body */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${cfg.style}`}>
+                                                {cfg.label}
+                                            </span>
+                                            <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                                                <Clock size={10} />
+                                                {new Date(n.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            </span>
+                                        </div>
+                                        <p className={`text-sm leading-snug ${
+                                            !n.isRead ? 'font-bold text-slate-900' : 'font-medium text-slate-500'
+                                        }`}>
+                                            {n.message}
+                                        </p>
+                                        {(!n.isRead || n.referenceId) && (
+                                            <div className="flex items-center gap-3 mt-2">
+                                                {!n.isRead && (
+                                                    <button
+                                                        onClick={() => markAsRead(n._id)}
+                                                        className="flex items-center gap-1 text-[10px] font-black text-blue-500 uppercase tracking-widest hover:text-blue-700 transition-colors"
+                                                    >
+                                                        <CheckCircle size={11} /> Mark read
+                                                    </button>
+                                                )}
+                                                {n.referenceId && (
+                                                    <button
+                                                        onClick={() => navigate(n.role === 'admin' ? '/admin/appointments' : '/doctor/appointments')}
+                                                        className="text-[10px] font-black text-emerald-600 uppercase tracking-widest hover:text-emerald-800 transition-colors"
+                                                    >
+                                                        View →
+                                                    </button>
+                                                )}
+                                            </div>
                                         )}
-                                        {n.referenceId && (
-                                            <button
-                                                onClick={() => navigate(n.role === 'admin' ? '/admin/appointments' : '/doctor/appointments')}
-                                                className="text-[10px] font-black text-emerald-600 uppercase tracking-widest hover:underline"
-                                            >
-                                                View Source Attachment
-                                            </button>
-                                        )}
                                     </div>
-                                </div>
-                            </motion.div>
-                        ))}
+                                </motion.div>
+                            )
+                        })}
                     </div>
                 )}
             </div>

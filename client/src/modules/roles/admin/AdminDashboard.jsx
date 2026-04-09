@@ -59,7 +59,7 @@ function AdminDashboard() {
     { label: 'Appointments Today', value: dashData?.appointmentsToday ?? '—', icon: CalendarCheck, color: 'orange', path: '/admin/appointments' },
     {
       label: 'Total Expenses',
-      value: dashData?.totalRevenue != null ? `₹${(dashData.totalRevenue / 100000).toFixed(1)}L` : '—',
+      value: dashData?.totalExpenses != null ? `₹${(dashData.totalExpenses / 100000).toFixed(1)}L` : '—',
       icon: CreditCard, color: 'purple', path: '/admin/billing',
     },
   ]

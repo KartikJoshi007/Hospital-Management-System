@@ -21,12 +21,18 @@ exports.getDashboardStats = asyncHandler(async (req, res) => {
     date: { $gte: today, $lt: tomorrow },
   });
 
-  // ✅ FIX: Use Billing (Paid) for revenue, not Expense
+  // Revenue from paid billing records
   const totalRevenueData = await Billing.aggregate([
     { $match: { $or: [{ paymentStatus: "Paid" }, { status: "Paid" }] } },
     { $group: { _id: null, total: { $sum: "$amount" } } },
   ]);
   const totalRevenue = totalRevenueData[0]?.total || 0;
+
+  // Total expenses from Expense collection (same source as Billing & Finance page)
+  const totalExpensesData = await Expense.aggregate([
+    { $group: { _id: null, total: { $sum: "$amount" } } },
+  ]);
+  const totalExpenses = totalExpensesData[0]?.total || 0;
 
   const recentPatients = await Patient.find()
     .sort({ createdAt: -1 })
@@ -52,6 +58,7 @@ exports.getDashboardStats = asyncHandler(async (req, res) => {
         totalDoctors,
         appointmentsToday,
         totalRevenue,
+        totalExpenses,
         recentPatients,
         onDutyDoctors,
         revenueByDept,

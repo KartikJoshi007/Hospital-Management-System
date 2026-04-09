@@ -101,7 +101,6 @@ function DoctorProfileModal({ doctor, onClose }) {
                 <div>
                   <h2 className="text-xl font-black text-slate-900">{doctor.name}</h2>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{doctor.id}</p>
                     <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border bg-blue-50 text-blue-600 border-blue-100">
                       {doctor.dept}
                     </span>

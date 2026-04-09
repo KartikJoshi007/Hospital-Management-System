@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, CheckCircle2, Circle, AlertCircle, Clock, Filter, X, CalendarClock, Ban, Calendar, AlarmClock, FileText, Stethoscope, MoreVertical, Eye, User, Hash, Loader2 } from 'lucide-react'
 import useAuth from '../../../hooks/useAuth'
@@ -236,10 +237,12 @@ function ActionMenu({ appointment, onView, onMarkComplete, onReschedule, onCance
 
 function DoctorAppointments() {
   const { user } = useAuth()
+  const location = useLocation()
   const [appointments, setAppointments] = useState([])
   const [loading, setLoading] = useState(true)
-  
-  const [tab, setTab] = useState('Today')
+
+  const initialTab = new URLSearchParams(location.search).get('tab')
+  const [tab, setTab] = useState(TABS.includes(initialTab) ? initialTab : 'Today')
   const [search, setSearch] = useState('')
   const [type, setType] = useState('')
   
