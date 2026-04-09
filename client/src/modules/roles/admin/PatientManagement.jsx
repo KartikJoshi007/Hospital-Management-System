@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Edit, Trash2, Eye, X, AlertCircle, Loader2 } from 'lucide-react'
+import { Search, Edit, Eye, X, AlertCircle, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import PatientProfileModal from './PatientProfileModal'
-import { getAllPatients, updatePatient, deletePatient } from '../../patients/patientApi'
+import { getAllPatients, updatePatient } from '../../patients/patientApi'
 
 const STATUS_COLORS = {
   Active: 'bg-emerald-50 text-emerald-600 border-emerald-100',
@@ -19,10 +19,8 @@ function PatientManagement() {
   const [statusFilter, setStatusFilter] = useState('')
   const [viewPatient, setViewPatient] = useState(null)
   const [editPatient, setEditPatient] = useState(null)
-  const [deleteCandidate, setDeleteCandidate] = useState(null)
   const [formData, setFormData] = useState({})
   const [saving, setSaving] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [message, setMessage] = useState('')
   const [isError,  setIsError]  = useState(false)
 
@@ -58,7 +56,7 @@ function PatientManagement() {
 
   const openEdit = (p) => {
     setEditPatient(p)
-    setFormData({ name: p.name, age: p.age, contact: p.contact, address: p.address, medicalHistory: p.medicalHistory })
+    setFormData({ name: p.name, email: p.email || '', age: p.age, contact: p.contact, address: p.address, medicalHistory: p.medicalHistory })
   }
 
   const handleSave = async (e) => {
@@ -77,19 +75,7 @@ function PatientManagement() {
     }
   }
 
-  const confirmDelete = async () => {
-    setDeleting(true)
-    try {
-      await deletePatient(deleteCandidate._id)
-      setPatients(prev => prev.filter(p => p._id !== deleteCandidate._id))
-      setDeleteCandidate(null)
-      showMsg('Patient removed successfully')
-    } catch (err) {
-      showMsg(err?.message || 'Delete failed', true)
-    } finally {
-      setDeleting(false)
-    }
-  }
+
 
   return (
     <div className="space-y-6 pb-10 animate-in fade-in duration-500">
@@ -188,7 +174,7 @@ function PatientManagement() {
                       <div className="flex items-center gap-2">
                         <button onClick={() => setViewPatient(p)} className="p-2 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-500 transition-all"><Eye size={14} /></button>
                         <button onClick={() => openEdit(p)} className="p-2 rounded-lg text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 transition-all"><Edit size={14} /></button>
-                        <button onClick={() => setDeleteCandidate(p)} className="p-2 rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-all"><Trash2 size={14} /></button>
+
                       </div>
                     </td>
                   </motion.tr>
@@ -217,6 +203,7 @@ function PatientManagement() {
                 <form onSubmit={handleSave} className="space-y-4">
                   {[
                     { label: 'Full Name', key: 'name', type: 'text' },
+                    { label: 'Email', key: 'email', type: 'email' },
                     { label: 'Age', key: 'age', type: 'number' },
                     { label: 'Contact', key: 'contact', type: 'tel' },
                     { label: 'Address', key: 'address', type: 'text' },
@@ -243,27 +230,7 @@ function PatientManagement() {
         )}
       </AnimatePresence>
 
-      {/* Delete Confirm */}
-      <AnimatePresence>
-        {deleteCandidate && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-md">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-md bg-white rounded-[2rem] border border-rose-100 shadow-2xl p-8 text-center">
-              <div className="h-16 w-16 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-4"><AlertCircle size={32} /></div>
-              <h3 className="text-xl font-black text-slate-900">Remove Patient?</h3>
-              <p className="text-sm font-bold text-slate-400 mt-2 mb-8">Remove <span className="text-slate-900 font-black">{deleteCandidate.name}</span> from records?</p>
-              <div className="flex gap-3">
-                <button onClick={() => setDeleteCandidate(null)} className="flex-1 py-3 rounded-2xl bg-slate-50 text-xs font-black uppercase tracking-widest text-slate-400 border border-slate-100 hover:bg-slate-100 transition-all">Cancel</button>
-                <button onClick={confirmDelete} disabled={deleting}
-                  className="flex-1 py-3 rounded-2xl bg-rose-500 text-xs font-black uppercase tracking-widest text-white hover:bg-rose-600 transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2">
-                  {deleting && <Loader2 size={13} className="animate-spin" />}
-                  Remove
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+
     </div>
   )
 }
