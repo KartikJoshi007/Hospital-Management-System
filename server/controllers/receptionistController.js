@@ -7,6 +7,23 @@ const ApiResponse = require("../utils/ApiResponse");
 // @desc    Get all receptionists
 // @route   GET /api/receptionists
 exports.getAllReceptionists = asyncHandler(async (req, res) => {
+  // 🚀 Sync Check: Ensure all 'reception' users have a profile
+  const allReceptionUsers = await User.find({ role: 'reception' });
+  const existingProfileUserIds = await Receptionist.find().distinct('userId');
+  
+  for (const user of allReceptionUsers) {
+    if (!existingProfileUserIds.some(id => id.toString() === user._id.toString())) {
+      await Receptionist.create({
+        userId: user._id,
+        name: user.fullName || "New Staff",
+        email: user.email,
+        contact: user.phone || "0000000000",
+        status: "Active",
+        shift: "Morning"
+      });
+    }
+  }
+
   const { search, status, shift } = req.query;
 
   let query = {};
@@ -80,31 +97,32 @@ exports.createReceptionist = asyncHandler(async (req, res) => {
 // @desc    Update receptionist
 // @route   PUT /api/receptionists/:id
 exports.updateReceptionist = asyncHandler(async (req, res) => {
-  const { name, email, contact, experience, shift, deskNumber, status } = req.body;
+  const { name, email, contact, experience, shift, deskNumber, status, password } = req.body;
 
   let receptionist = await Receptionist.findById(req.params.id);
   if (!receptionist) {
     throw new ApiError(404, "Receptionist not found");
   }
 
-  if (name) receptionist.name = name;
-  if (email) receptionist.email = email;
-  if (contact) receptionist.contact = contact;
-  if (experience) receptionist.experience = experience;
-  if (shift) receptionist.shift = shift;
-  if (deskNumber) receptionist.deskNumber = deskNumber;
-  if (status) receptionist.status = status;
+  if (name !== undefined) receptionist.name = name;
+  if (email !== undefined) receptionist.email = email;
+  if (contact !== undefined) receptionist.contact = contact;
+  if (experience !== undefined) receptionist.experience = experience;
+  if (shift !== undefined) receptionist.shift = shift;
+  if (deskNumber !== undefined) receptionist.deskNumber = deskNumber;
+  if (status !== undefined) receptionist.status = status;
 
   receptionist = await receptionist.save();
   
   // ✅ Synchronize linked User account
-  const userUpdate = {};
-  if (name) userUpdate.fullName = name;
-  if (contact) userUpdate.phone = contact;
-  if (email) userUpdate.email = email.toLowerCase();
-  
-  if (Object.keys(userUpdate).length > 0) {
-    await User.findByIdAndUpdate(receptionist.userId, userUpdate);
+  const user = await User.findById(receptionist.userId);
+  if (user) {
+    if (name) user.fullName = name;
+    if (contact) user.phone = contact;
+    if (email) user.email = email.toLowerCase();
+    if (password) user.password = password; // Triggers hashing in pre-save hook
+    
+    await user.save();
   }
 
   return res.status(200).json(

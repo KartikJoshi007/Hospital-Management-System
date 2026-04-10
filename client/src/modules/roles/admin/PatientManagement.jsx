@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Edit, Eye, X, AlertCircle, Loader2 } from 'lucide-react'
+import { Search, Edit, Eye, X, AlertCircle, Loader2, EyeOff, Lock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import PatientProfileModal from './PatientProfileModal'
 import { getAllPatients, updatePatient } from '../../patients/patientApi'
@@ -23,6 +23,7 @@ function PatientManagement() {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [isError,  setIsError]  = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const showMsg = (msg, error = false) => {
     setMessage(msg)
@@ -223,6 +224,24 @@ function PatientManagement() {
                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all" />
                     </div>
                   ))}
+
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Reset Password (Optional)</label>
+                    <div className="relative border border-slate-200 rounded-xl overflow-hidden focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-50 transition-all bg-slate-50">
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
+                      <input 
+                        type={showPassword ? "text" : "password"} 
+                        placeholder="Leave blank to keep current" 
+                        value={formData.password || ''}
+                        onChange={e => setFormData({ ...formData, password: e.target.value })}
+                        className="w-full pl-11 pr-11 py-3 bg-transparent text-sm font-bold text-slate-900 outline-none" 
+                      />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-emerald-500 transition-colors">
+                        {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                      </button>
+                    </div>
+                  </div>
                   <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                     <button type="button" onClick={() => setEditPatient(null)} className="px-6 py-3 rounded-xl border border-slate-200 text-xs font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all">Cancel</button>
                     <button type="submit" disabled={saving}

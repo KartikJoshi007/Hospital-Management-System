@@ -86,10 +86,10 @@ const patientSchema = new mongoose.Schema(
 
     medicalHistory: {
       type: String,
-      default: "No known conditions",
+      required: [true, "Medical background is required"],
       validate: {
         validator: function(v) {
-          return v.trim().split(/\s+/).length <= 150;
+          return v?.trim().split(/\s+/).length <= 150;
         },
         message: "Medical background cannot exceed 150 words"
       }

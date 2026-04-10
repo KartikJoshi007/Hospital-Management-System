@@ -55,6 +55,9 @@ function PatientProfile() {
     admissionDate: '',
   })
 
+  // 📝 Dedicated state for editing to prevent UI leaks
+  const [editForm, setEditForm] = useState({ ...profileForm })
+
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
 
   const notify = (text, type = 'success') => {
@@ -83,11 +86,13 @@ function PatientProfile() {
           admissionDate: p.admissionDate ? p.admissionDate.split('T')[0] : '',
         }
         setProfileForm(initialForm)
+        setEditForm(initialForm)
         
-        // Treat 0 as incomplete
-        if (!p.vitals?.height || !p.vitals?.weight || !p.age) {
-          setShowIncompletePopup(true)
-        }
+        // 🔍 Re-evaluate completeness
+        const isIncomplete = !initialForm.height || !initialForm.weight || !initialForm.age || 
+                           !initialForm.address || initialForm.address === 'Not Provided' ||
+                           !initialForm.medicalHistory;
+        setShowIncompletePopup(isIncomplete)
       } catch (error) {
         console.error("Failed to fetch profile:", error)
       } finally {
@@ -101,18 +106,32 @@ function PatientProfile() {
     e.preventDefault()
     setSaving(true)
     try {
-      if (profileForm.age && (profileForm.age < 1 || profileForm.age > 130)) throw new Error('Age must be between 1 and 130')
-      if (profileForm.height && (profileForm.height < 30 || profileForm.height > 300)) throw new Error('Height must be between 30 and 300 cm')
-      if (profileForm.weight && (profileForm.weight < 1 || profileForm.weight > 500)) throw new Error('Weight must be between 1 and 500 kg')
+      if (!editForm.age) throw new Error('Age is required')
+      if (editForm.age < 1 || editForm.age > 130) throw new Error('Age must be between 1 and 130')
+      if (!editForm.height) throw new Error('Height is required')
+      if (editForm.height < 30 || editForm.height > 300) throw new Error('Height must be between 30 and 300 cm')
+      if (!editForm.weight) throw new Error('Weight is required')
+      if (editForm.weight < 1 || editForm.weight > 500) throw new Error('Weight must be between 1 and 500 kg')
 
-      const countWords = (str) => str.trim().split(/\s+/).filter(Boolean).length;
-      if (countWords(profileForm.address) > 150) throw new Error("Address must not exceed 150 words!");
-      if (countWords(profileForm.medicalHistory) > 150) throw new Error("Medical background must not exceed 150 words!");
+      if (!editForm.address?.trim() || editForm.address === 'Not Provided') throw new Error('Address is required')
+      if (!editForm.medicalHistory?.trim()) throw new Error('Medical background is required')
+
+      const countWords = (str) => str?.trim().split(/\s+/).filter(Boolean).length || 0;
+      if (countWords(editForm.address) > 150) throw new Error("Address must not exceed 150 words!");
+      if (countWords(editForm.medicalHistory) > 150) throw new Error("Medical background must not exceed 150 words!");
 
       await updatePatient(patientId, {
-        ...profileForm,
-        medicalHistory: profileForm.medicalHistory // Correct field mapping
+        ...editForm,
+        medicalHistory: editForm.medicalHistory
       })
+      setProfileForm({ ...editForm })
+      
+      // 🔍 Immediate UI update for completeness status
+      const isIncomplete = !editForm.height || !editForm.weight || !editForm.age || 
+                         !editForm.address || editForm.address === 'Not Provided' ||
+                         !editForm.medicalHistory;
+      setShowIncompletePopup(isIncomplete)
+
       notify('Profile updated successfully')
       setEditMode(false)
     } catch (err) {
@@ -222,7 +241,11 @@ function PatientProfile() {
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 pl-5">Manage your personal and clinical information</p>
           </div>
         </div>
-        <button onClick={() => { setEditMode(!editMode); if(!editMode) setTimeout(() => editSectionRef.current?.scrollIntoView({ behavior: 'smooth' }), 100); }} 
+        <button onClick={() => { 
+          if(editMode) setEditForm({ ...profileForm }); // Reset on cancel
+          setEditMode(!editMode); 
+          if(!editMode) setTimeout(() => editSectionRef.current?.scrollIntoView({ behavior: 'smooth' }), 100); 
+        }} 
           className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 shadow-lg ${editMode ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-slate-900 text-white hover:bg-emerald-500'}`}>
           {editMode ? <X size={14} strokeWidth={3} /> : <Edit2 size={14} strokeWidth={3} />}
           {editMode ? 'Cancel Edit' : 'Edit Profile'}
@@ -288,19 +311,19 @@ function PatientProfile() {
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                      <div className="space-y-2">
                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Age</label>
-                        <input type="number" min="1" max="130" value={profileForm.age} onChange={e => setProfileForm({...profileForm, age: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all" />
+                        <input type="number" min="1" max="130" value={editForm.age} onChange={e => setEditForm({...editForm, age: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all" />
                      </div>
                      <div className="space-y-2">
                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Height (cm)</label>
-                        <input type="number" min="30" max="300" value={profileForm.height} onChange={e => setProfileForm({...profileForm, height: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all" />
+                        <input type="number" min="30" max="300" value={editForm.height} onChange={e => setEditForm({...editForm, height: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all" />
                      </div>
                      <div className="space-y-2">
                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Weight (kg)</label>
-                        <input type="number" min="1" max="500" value={profileForm.weight} onChange={e => setProfileForm({...profileForm, weight: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all" />
+                        <input type="number" min="1" max="500" value={editForm.weight} onChange={e => setEditForm({...editForm, weight: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all" />
                      </div>
                      <div className="space-y-2">
                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Blood Group</label>
-                        <select value={profileForm.bloodGroup} onChange={e => setProfileForm({...profileForm, bloodGroup: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 cursor-pointer">
+                        <select value={editForm.bloodGroup} onChange={e => setEditForm({...editForm, bloodGroup: e.target.value})} className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 cursor-pointer">
                            {BLOOD_GROUPS.map(bg => <option key={bg} value={bg}>{bg}</option>)}
                         </select>
                      </div>
@@ -309,16 +332,16 @@ function PatientProfile() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Home Address</label>
-                        <textarea rows={2} value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all resize-none" />
-                        <p className={`text-[9px] font-bold mt-1 text-right ${profileForm.address.trim().split(/\s+/).filter(Boolean).length > 150 ? 'text-rose-500' : 'text-slate-400'}`}>
-                          {profileForm.address.trim().split(/\s+/).filter(Boolean).length} / 150 Words
+                        <textarea rows={2} value={editForm.address} onChange={e => setEditForm({...editForm, address: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all resize-none" />
+                        <p className={`text-[9px] font-bold mt-1 text-right ${editForm.address.trim().split(/\s+/).filter(Boolean).length > 150 ? 'text-rose-500' : 'text-slate-400'}`}>
+                          {editForm.address.trim().split(/\s+/).filter(Boolean).length} / 150 Words
                         </p>
                      </div>
                      <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Medical Background</label>
-                        <textarea rows={2} value={profileForm.medicalHistory} onChange={e => setProfileForm({...profileForm, medicalHistory: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all resize-none" />
-                        <p className={`text-[9px] font-bold mt-1 text-right ${profileForm.medicalHistory.trim().split(/\s+/).filter(Boolean).length > 150 ? 'text-rose-500' : 'text-slate-400'}`}>
-                          {profileForm.medicalHistory.trim().split(/\s+/).filter(Boolean).length} / 150 Words
+                        <textarea rows={2} value={editForm.medicalHistory} onChange={e => setEditForm({...editForm, medicalHistory: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all resize-none" />
+                        <p className={`text-[9px] font-bold mt-1 text-right ${editForm.medicalHistory.trim().split(/\s+/).filter(Boolean).length > 150 ? 'text-rose-500' : 'text-slate-400'}`}>
+                          {editForm.medicalHistory.trim().split(/\s+/).filter(Boolean).length} / 150 Words
                         </p>
                      </div>
                   </div>
