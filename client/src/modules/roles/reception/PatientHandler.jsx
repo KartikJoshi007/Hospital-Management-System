@@ -66,6 +66,17 @@ const PatientHandler = () => {
       return;
     }
 
+    // 150-word word count validation
+    const countWords = (str) => str.trim().split(/\s+/).length;
+    if (countWords(address) > 150) {
+      toast.error("Address must not exceed 150 words!");
+      return;
+    }
+    if (countWords(medicalHistory) > 150) {
+      toast.error("Medical background must not exceed 150 words!");
+      return;
+    }
+
     try {
       if (editId !== null) {
         // Update existing patient
@@ -197,7 +208,7 @@ const PatientHandler = () => {
                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Email</label>
                  <div className="relative group">
                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
-                   <input type="email" name="email" required placeholder="email@example.com" value={form.email} onChange={handleChange}
+                   <input type="email" name="email" required placeholder="name@domain.com" value={form.email} onChange={handleChange}
                      className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50" />
                  </div>
                </div>
@@ -256,10 +267,10 @@ const PatientHandler = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Contact No.</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Contact No. (10 Digits)</label>
                 <div className="relative group">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
-                  <input type="text" name="contact" required placeholder="Contact" value={form.contact} onChange={handleChange}
+                  <input type="tel" name="contact" required pattern="\d{10}" minLength={10} maxLength={10} placeholder="10-digit Number" value={form.contact} onChange={handleChange}
                     className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50" />
                 </div>
               </div>
@@ -282,6 +293,9 @@ const PatientHandler = () => {
                 <MapPin className="absolute left-3 top-3 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
                 <textarea name="address" required placeholder="Street, City, State..." rows={2} value={form.address} onChange={handleChange}
                   className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 resize-none" />
+                <p className={`text-[9px] font-bold mt-1 text-right ${form.address.trim().split(/\s+/).filter(Boolean).length > 150 ? 'text-rose-500' : 'text-slate-400'}`}>
+                  {form.address.trim().split(/\s+/).filter(Boolean).length} / 150 Words
+                </p>
               </div>
             </div>
 
@@ -291,6 +305,9 @@ const PatientHandler = () => {
                 <Activity className="absolute left-3 top-3 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
                 <textarea name="medicalHistory" required placeholder="Allergies, conditions, etc." rows={2} value={form.medicalHistory} onChange={handleChange}
                   className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 resize-none" />
+                <p className={`text-[9px] font-bold mt-1 text-right ${form.medicalHistory.trim().split(/\s+/).filter(Boolean).length > 150 ? 'text-rose-500' : 'text-slate-400'}`}>
+                  {form.medicalHistory.trim().split(/\s+/).filter(Boolean).length} / 150 Words
+                </p>
               </div>
             </div>
 

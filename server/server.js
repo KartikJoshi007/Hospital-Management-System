@@ -22,6 +22,7 @@ const documentRoutes = require("./routes/documentRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const doctorEventRoutes = require("./routes/doctorEventRoutes");
 const logRoutes = require("./routes/logRoutes");
+const receptionistRoutes = require("./routes/receptionistRoutes");
 
 const errorHandler = require("./middleware/errorMiddleware");
 
@@ -61,6 +62,7 @@ app.use("/api/documents", documentRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/doctor-events", doctorEventRoutes);
 app.use("/api/logs", logRoutes);
+app.use("/api/receptionists", receptionistRoutes);
 
 // Root/Health Check
 app.get("/", (req, res) => {

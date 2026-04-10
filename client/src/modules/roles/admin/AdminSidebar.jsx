@@ -11,6 +11,7 @@ const navigation = [
   { to: '/admin/users', label: 'User Management', icon: <Users className="h-4 w-4" /> },
   { to: '/admin/roles', label: 'Role Management', icon: <ShieldCheck className="h-4 w-4" /> },
   { to: '/admin/doctors', label: 'Doctor Management', icon: <Stethoscope className="h-4 w-4" /> },
+  { to: '/admin/reception', label: 'Reception Management', icon: <Users className="h-4 w-4" /> },
   { to: '/admin/patients', label: 'Patient Management', icon: <ClipboardList className="h-4 w-4" /> },
   { to: '/admin/appointments', label: 'Appointments', icon: <CalendarCheck className="h-4 w-4" /> },
   { to: '/admin/billing', label: 'Billing & Finance', icon: <CreditCard className="h-4 w-4" /> },

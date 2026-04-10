@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Plus, Edit, Trash2, X, Clock, Star, AlertCircle, Loader2 } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, X, Clock, Star, AlertCircle, Loader2, Eye, EyeOff, Lock } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import DoctorProfileModal from './DoctorProfileModal'
@@ -7,7 +7,7 @@ import { getAllDoctors, createDoctor, updateDoctor, deleteDoctor } from '../../d
 
 const SPECIALIZATIONS = ['Cardiology', 'Neurology', 'Orthopedics', 'Dermatology', 'Pediatrics', 'General Medicine']
 
-const emptyForm = { name: '', specialization: '', experience: '', availability: [], contact: '', email: '', status: 'Active' }
+const emptyForm = { name: '', specialization: '', experience: '', availability: [], contact: '', email: '', status: 'Active', password: '' }
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 function DoctorManagement({ view }) {
@@ -25,6 +25,7 @@ function DoctorManagement({ view }) {
   const [message, setMessage] = useState({ text: '', error: false })
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const notify = (text, error = false) => {
     setMessage({ text, error })
@@ -261,16 +262,35 @@ function DoctorManagement({ view }) {
                   {[
                     { label: 'Full Name', key: 'name', type: 'text', placeholder: 'Dr. Jane Doe' },
                     { label: 'Experience', key: 'experience', type: 'text', placeholder: '5 Years' },
-                    { label: 'Contact', key: 'contact', type: 'tel', placeholder: '+91 98765 43210' },
-                    { label: 'Email', key: 'email', type: 'email', placeholder: 'doctor@hms.com' },
+                    { label: 'Contact', key: 'contact', type: 'tel', placeholder: '10-digit Phone No.' },
+                    { label: 'Email', key: 'email', type: 'email', placeholder: 'doctor@domain.com' },
                   ].map(f => (
                     <div key={f.key}>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{f.label}</label>
                       <input required type={f.type} placeholder={f.placeholder} value={formData[f.key]}
                         onChange={e => setFormData({ ...formData, [f.key]: e.target.value })}
+                        pattern={f.type === 'tel' ? "\\d{10}" : undefined}
+                        minLength={f.type === 'tel' ? 10 : undefined}
+                        maxLength={f.type === 'tel' ? 10 : undefined}
                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
                     </div>
                   ))}
+
+                  {!editingDoc && (
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Login Password</label>
+                      <div className="relative border border-slate-200 rounded-xl overflow-hidden focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-50 transition-all bg-slate-50">
+                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
+                        <input required type={showPassword ? "text" : "password"} placeholder="••••••••" value={formData.password}
+                          onChange={e => setFormData({ ...formData, password: e.target.value })}
+                          className="w-full pl-11 pr-11 py-3 bg-transparent text-sm font-bold text-slate-900 outline-none" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-emerald-500 transition-colors">
+                          {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Structured Availability Input */}
                   <div className="sm:col-span-2 space-y-4">

@@ -29,6 +29,7 @@ import AdminDashboard from '../modules/roles/admin/AdminDashboard'
 import UserManagement from '../modules/roles/admin/UserManagement'
 import RoleAssign from '../modules/roles/admin/RoleAssign'
 import DoctorManagement from '../modules/roles/admin/DoctorManagement'
+import ReceptionManagement from '../modules/roles/admin/ReceptionManagement'
 import PatientManagement from '../modules/roles/admin/PatientManagement'
 import AppointmentManagement from '../modules/roles/admin/AppointmentManagement'
 import RevenueDashboard from '../modules/roles/admin/RevenueDashboard'
@@ -86,6 +87,7 @@ function AppRoutes() {
           <Route path="/admin/roles" element={<RoleAssign />} />
           <Route path="/admin/doctors" element={<DoctorManagement />} />
           <Route path="/admin/doctors/add" element={<DoctorManagement view="add" />} />
+          <Route path="/admin/reception" element={<ReceptionManagement />} />
           <Route path="/admin/patients" element={<PatientManagement />} />
           <Route path="/admin/appointments" element={<AppointmentManagement />} />
           <Route path="/admin/billing" element={<RevenueDashboard />} />

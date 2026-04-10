@@ -1,6 +1,7 @@
 const Doctor = require("../models/Doctor");
 const User = require("../models/User"); // ✅ Added
 const Appointment = require("../models/Appointment");
+const Patient = require("../models/Patient");
 const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
@@ -22,22 +23,33 @@ exports.createDoctor = asyncHandler(async (req, res) => {
     isOnDuty,
     rating,
     patients,
+    password,
   } = req.body;
 
-  // Check if doctor already exists
-  const existingDoctor = await Doctor.findOne({ email });
-  if (existingDoctor) {
-    throw new ApiError(400, "Doctor with this email already exists");
+  // 1. Check if user already exists
+  let user = await User.findOne({ email: { $regex: new RegExp(`^${email}$`, "i") } });
+
+  if (!user) {
+    // 2. Create User account if not exists
+    user = await User.create({
+      fullName: name,
+      email: email.toLowerCase(),
+      phone: contact,
+      password: password || "Doctor@123",
+      role: "doctor",
+    });
   }
 
+  // 3. Create Doctor profile linked to User
   const doctor = await Doctor.create({
+    userId: user._id, // Link to User
     name,
     specialization,
     category: category || "general",
     experience,
     availability,
     contact,
-    email,
+    email: email.toLowerCase(),
     status: status || "Active",
     roleLevel: roleLevel || "other",
     shift: shift || "Morning",
@@ -70,7 +82,30 @@ exports.getAllDoctors = asyncHandler(async (req, res) => {
   if (shift) query.shift = shift;
   if (isOnDuty !== undefined) query.isOnDuty = isOnDuty === "true";
 
+  // ✅ Auto-Off Check for all doctors
   const doctors = await Doctor.find(query).sort({ createdAt: -1 });
+
+  const now = new Date();
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const currentDay = days[now.getDay()];
+  const currentTime = now.getHours() * 60 + now.getMinutes();
+
+  for (let doc of doctors) {
+    if (Array.isArray(doc.availability) && doc.availability.length > 0) {
+      const inShift = doc.availability.some(slot => {
+        if (slot.day !== currentDay) return false;
+        const [sh, sm] = slot.startTime.split(':').map(Number);
+        const [eh, em] = slot.endTime.split(':').map(Number);
+        return currentTime >= (sh * 60 + sm) && currentTime <= (eh * 60 + em);
+      });
+
+      if (!inShift && doc.isOnDuty) {
+        doc.isOnDuty = false;
+        doc.status = "Inactive";
+        await doc.save({ validateBeforeSave: false }); // 🛡️ Bypass validation for legacy records
+      }
+    }
+  }
 
   return res.status(200).json(
     new ApiResponse(200, doctors, "Doctors fetched successfully")
@@ -80,10 +115,31 @@ exports.getAllDoctors = asyncHandler(async (req, res) => {
 // @desc    Get doctor by ID
 // @route   GET /api/doctors/:id
 exports.getDoctorById = asyncHandler(async (req, res) => {
-  const doctor = await Doctor.findById(req.params.id);
+  let doctor = await Doctor.findById(req.params.id);
 
   if (!doctor) {
     throw new ApiError(404, "Doctor not found");
+  }
+
+  // ✅ Auto-Off Check
+  if (Array.isArray(doctor.availability) && doctor.availability.length > 0) {
+    const now = new Date();
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const currentDay = days[now.getDay()];
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+
+    const inShift = doctor.availability.some(slot => {
+      if (slot.day !== currentDay) return false;
+      const [sh, sm] = slot.startTime.split(':').map(Number);
+      const [eh, em] = slot.endTime.split(':').map(Number);
+      return currentTime >= (sh * 60 + sm) && currentTime <= (eh * 60 + em);
+    });
+
+    if (!inShift && doctor.isOnDuty) {
+      doctor.isOnDuty = false;
+      doctor.status = "Inactive";
+      await doctor.save({ validateBeforeSave: false });
+    }
   }
 
   return res.status(200).json(
@@ -108,6 +164,7 @@ exports.updateDoctor = asyncHandler(async (req, res) => {
     isOnDuty,
     rating,
     patients,
+    password,
   } = req.body;
 
   let doctor = await Doctor.findById(req.params.id);
@@ -132,6 +189,16 @@ exports.updateDoctor = asyncHandler(async (req, res) => {
   if (patients !== undefined) doctor.patients = patients;
 
   doctor = await doctor.save();
+
+  // ✅ Synchronize linked User account
+  const userUpdate = {};
+  if (name) userUpdate.fullName = name;
+  if (contact) userUpdate.phone = contact;
+  if (email) userUpdate.email = email.toLowerCase();
+
+  if (Object.keys(userUpdate).length > 0) {
+    await User.findByIdAndUpdate(doctor.userId, userUpdate);
+  }
 
   return res.status(200).json(
     new ApiResponse(200, doctor, "Doctor updated successfully")
@@ -241,5 +308,48 @@ exports.getDoctorByUserId = asyncHandler(async (req, res) => {
 
   return res.status(200).json(
     new ApiResponse(200, doctor, "Doctor profile fetched successfully")
+  );
+});
+
+// @desc    Get patients assigned to a specific doctor (via appointments)
+// @route   GET /api/doctors/:id/patients
+exports.getMyPatients = asyncHandler(async (req, res) => {
+  const doctor = await Doctor.findById(req.params.id);
+  if (!doctor) throw new ApiError(404, "Doctor not found");
+
+  // 1. Find all patients who have booked an appointment with this doctor
+  const appointmentData = await Appointment.find({ doctorId: doctor._id })
+    .select("patientId")
+    .lean();
+
+  const patientIds = [...new Set(appointmentData.map(a => a.patientId?.toString()).filter(Boolean))];
+
+  if (patientIds.length === 0) {
+    return res.status(200).json(new ApiResponse(200, [], "No patients found for this doctor"));
+  }
+
+  // 2. Fetch full patient details
+  const patients = await Patient.find({ _id: { $in: patientIds } });
+
+  return res.status(200).json(
+    new ApiResponse(200, patients, "Doctor patients fetched successfully")
+  );
+});
+
+// @desc    Toggle Doctor Duty Status
+// @route   PATCH /api/doctors/:id/duty
+exports.toggleDutyStatus = asyncHandler(async (req, res) => {
+  const { isOnDuty } = req.body;
+
+  const doctor = await Doctor.findById(req.params.id);
+  if (!doctor) throw new ApiError(404, "Doctor not found");
+
+  doctor.isOnDuty = isOnDuty;
+  doctor.status = isOnDuty ? "Active" : "Inactive";
+
+  await doctor.save();
+
+  return res.status(200).json(
+    new ApiResponse(200, doctor, `Doctor is now ${isOnDuty ? "On-Duty" : "Off-Duty"}`)
   );
 });

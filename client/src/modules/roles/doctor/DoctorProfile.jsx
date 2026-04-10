@@ -214,19 +214,29 @@ function DoctorProfile() {
                 <input type="text" value={docDisplay.experience || '—'} disabled className={inputClass} /></div>
             </div>
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Availability</label>
-              <div className="relative"><Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                <input type="text" value={docDisplay.availability || '—'} disabled className={inputClass} /></div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Weekly Schedule</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {Array.isArray(docDisplay.availability) && docDisplay.availability.length > 0 ? (
+                  docDisplay.availability.map((slot, idx) => (
+                    <div key={idx} className="flex items-center gap-2 p-2 rounded-xl bg-blue-50/50 border border-blue-100/50">
+                      <div className="p-1.5 rounded-lg bg-white text-blue-600 shadow-sm shrink-0"><Clock size={10} /></div>
+                      <div className="min-w-0">
+                        <p className="text-[9px] font-black text-slate-900 uppercase truncate">{slot.day}</p>
+                        <p className="text-[9px] font-bold text-blue-600 whitespace-nowrap">{slot.startTime} — {slot.endTime}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-center">
+                    <p className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">No slots</p>
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Role</label>
               <div className="relative"><BadgeCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400 h-4 w-4" />
                 <input type="text" value="Doctor" disabled className="w-full pl-11 pr-4 py-3 rounded-xl border bg-blue-50 border-blue-100 text-sm font-black text-blue-700 cursor-default" /></div>
-            </div>
-            <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Contact</label>
-              <div className="relative"><Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                <input type="text" value={docDisplay.contact || '—'} disabled className={inputClass} /></div>
             </div>
           </div>
         </div>
@@ -259,7 +269,7 @@ function DoctorProfile() {
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">New Email Address</label>
                     <div className="relative"><Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                      <input type="email" name="email" required placeholder="Enter new email" className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all" /></div>
+                      <input type="email" name="email" required placeholder="Enter new email (e.g. name@domain.com)" className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all" /></div>
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Confirm New Email</label>
@@ -297,12 +307,12 @@ function DoctorProfile() {
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">New Phone Number</label>
                     <div className="relative"><Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                      <input type="tel" name="phone" required placeholder="Enter new number" className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all" /></div>
+                      <input type="tel" name="phone" required pattern="\d{10}" minLength={10} maxLength={10} placeholder="Enter 10-digit number" className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all" /></div>
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Confirm New Number</label>
                     <div className="relative"><Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                      <input type="tel" name="confirmPhone" required placeholder="Confirm new number" className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all" /></div>
+                      <input type="tel" name="confirmPhone" required pattern="\d{10}" minLength={10} maxLength={10} placeholder="Confirm 10-digit number" className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all" /></div>
                   </div>
                   <div className="flex items-end">
                     <button type="submit" disabled={loadingPhone}

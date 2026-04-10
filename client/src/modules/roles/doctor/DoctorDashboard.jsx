@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { CalendarCheck, Users, FileText, Clock, TrendingUp, TrendingDown, ArrowUpRight, CheckCircle2, Circle, AlertCircle, MapPin, Stethoscope, Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import useAuth from '../../../hooks/useAuth'
-import { getDoctorByUserId, getDoctorPatientCount } from '../../doctors/doctorApi'
+import { getDoctorByUserId, getDoctorPatientCount, toggleDutyStatus } from '../../doctors/doctorApi'
 import { getDoctorAppointments } from '../../appointments/appointmentApi'
 
 function DoctorDashboard() {
@@ -61,6 +61,23 @@ function DoctorDashboard() {
 
     fetchDashboardData()
   }, [user?.id])
+
+  const handleToggleDuty = async () => {
+    if (!doctorProfile?._id) return;
+    try {
+      const newStatus = !doctorProfile.isOnDuty;
+      const res = await toggleDutyStatus(doctorProfile._id, newStatus);
+      if (res.data) {
+        setDoctorProfile(res.data);
+        // Refresh stats
+        setStats(prev => prev.map(s => 
+          s.label === 'On Duty Status' ? { ...s, value: newStatus ? 'Yes' : 'No' } : s
+        ));
+      }
+    } catch (err) {
+      console.error("Failed to toggle duty:", err);
+    }
+  };
 
   const weeklyData = useMemo(() => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -122,9 +139,17 @@ function DoctorDashboard() {
           <p className="text-slate-500 font-medium text-sm mt-1">{todayStr} — Here's your daily overview.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border shadow-sm ${doctorProfile?.isOnDuty ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+          <button 
+            onClick={handleToggleDuty}
+            className={`px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest border shadow-xl transition-all active:scale-95 flex items-center gap-2 ${doctorProfile?.isOnDuty 
+              ? 'bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600' 
+              : 'bg-white text-rose-500 border-rose-100 hover:bg-rose-50'}`}
+          >
             {doctorProfile?.isOnDuty ? '● On Duty' : '○ Off Duty'}
-          </div>
+            <span className="text-[9px] opacity-60 ml-1 font-bold">
+              {doctorProfile?.isOnDuty ? '(Click to Sign Out)' : '(Click to Sign In)'}
+            </span>
+          </button>
         </div>
       </div>
 
@@ -172,8 +197,8 @@ function DoctorDashboard() {
               <ArrowUpRight size={18} className="text-slate-400 group-hover:text-blue-500 transition-colors" />
             </button>
           </div>
-          <div className="h-52">
-            <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeklyData} barSize={28}>
                 <XAxis dataKey="day" tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} axisLine={false} tickLine={false} />

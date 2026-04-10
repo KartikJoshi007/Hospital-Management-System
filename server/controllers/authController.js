@@ -7,6 +7,8 @@ const ApiResponse = require("../utils/ApiResponse");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs"); // ✅ IMPORTANT
 
+const Receptionist = require("../models/Receptionist");
+
 // 🔐 Generate JWT Token
 const generateToken = (id) => {
   return jwt.sign(
@@ -61,6 +63,17 @@ exports.register = asyncHandler(async (req, res) => {
       specialization: "General",
       experience: "0 Years",
       availability: "TBD",
+      contact: user.phone || "Not Provided",
+      status: "Active",
+    });
+  }
+
+  // ✅ Create receptionist profile if role = reception
+  if (role === "reception") {
+    await Receptionist.create({
+      userId: user._id,
+      name: user.fullName,
+      email: user.email,
       contact: user.phone || "Not Provided",
       status: "Active",
     });
@@ -166,6 +179,25 @@ exports.updateProfile = asyncHandler(async (req, res) => {
     updateFields,
     { new: true, runValidators: true }
   );
+
+  // ✅ Synchronize with Doctor/Receptionist profiles if they exist
+  if (user.role === "doctor") {
+    const docUpdate = {};
+    if (fullName) docUpdate.name = fullName;
+    if (phone) docUpdate.contact = phone;
+    if (email) docUpdate.email = email;
+    if (Object.keys(docUpdate).length > 0) {
+      await Doctor.findOneAndUpdate({ userId: user._id }, docUpdate);
+    }
+  } else if (user.role === "reception") {
+    const recepUpdate = {};
+    if (fullName) recepUpdate.name = fullName;
+    if (phone) recepUpdate.contact = phone;
+    if (email) recepUpdate.email = email;
+    if (Object.keys(recepUpdate).length > 0) {
+      await Receptionist.findOneAndUpdate({ userId: user._id }, recepUpdate);
+    }
+  }
 
   return res.status(200).json(
     new ApiResponse(200, user, "Profile updated successfully")

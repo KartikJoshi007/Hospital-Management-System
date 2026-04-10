@@ -9,6 +9,7 @@ const Expense = require("./models/Expense");
 const Medicine = require("./models/Medicine");
 const Billing = require("./models/Billing");
 const MedicalRecord = require("./models/MedicalRecord");
+const Receptionist = require("./models/Receptionist");
 
 const connectDB = require("./config/db");
 
@@ -134,6 +135,22 @@ const seedDB = async () => {
     console.log(`✅ Seeded ${createdUsers.length} Base Users.`);
     console.log(`✅ Seeded 1 Doctor (Aryan Mehta).`);
     console.log(`✅ Seeded 1 Patient (Suresh Raina) with full Clinical Records.`);
+
+    // 5. Seed Receptionist
+    const receptionUser = createdUsers.find(u => u.role === "reception");
+    if (receptionUser) {
+      await Receptionist.create({
+        userId: receptionUser._id,
+        name: receptionUser.fullName,
+        email: receptionUser.email,
+        contact: receptionUser.phone || "7654321098",
+        shift: "Morning",
+        deskNumber: "Front Desk A",
+        status: "Active"
+      });
+      console.log(`✅ Seeded 1 Receptionist (Priya Sharma).`);
+    }
+
     console.log(`✅ Seeded Internal Prescriptions and External Historical Data.`);
     console.log(`✅ Seeded Billing records for Revenue Analytics.`);
 
