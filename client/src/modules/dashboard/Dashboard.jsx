@@ -110,7 +110,7 @@ function Dashboard() {
           </div>
 
           <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minHeight={250}>
               <PieChart>
                 <Pie
                   data={pieData}

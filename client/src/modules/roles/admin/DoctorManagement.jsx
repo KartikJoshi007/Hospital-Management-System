@@ -7,7 +7,8 @@ import { getAllDoctors, createDoctor, updateDoctor, deleteDoctor } from '../../d
 
 const SPECIALIZATIONS = ['Cardiology', 'Neurology', 'Orthopedics', 'Dermatology', 'Pediatrics', 'General Medicine']
 
-const emptyForm = { name: '', specialization: '', experience: '', availability: '', contact: '', email: '', status: 'Active' }
+const emptyForm = { name: '', specialization: '', experience: '', availability: [], contact: '', email: '', status: 'Active' }
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 function DoctorManagement({ view }) {
   const navigate = useNavigate()
@@ -64,7 +65,14 @@ function DoctorManagement({ view }) {
   }), [doctors, search, specFilter])
 
   const openAdd = () => { setEditingDoc(null); setFormData(emptyForm); setIsFormOpen(true) }
-  const openEdit = (doc) => { setEditingDoc(doc); setFormData({ ...doc }); setIsFormOpen(true) }
+  const openEdit = (doc) => { 
+    setEditingDoc(doc); 
+    setFormData({ 
+      ...doc, 
+      availability: Array.isArray(doc.availability) ? doc.availability : [] 
+    }); 
+    setIsFormOpen(true) 
+  }
 
   const handleSave = async (e) => {
     e.preventDefault()
@@ -198,7 +206,11 @@ function DoctorManagement({ view }) {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5">
                       <Clock size={11} className="text-slate-400" />
-                      <span className="text-[10px] font-bold text-slate-600 max-w-[140px] truncate">{doc.availability}</span>
+                      <span className="text-[10px] font-bold text-slate-600 max-w-[140px] truncate">
+                        {Array.isArray(doc.availability) && doc.availability.length > 0
+                          ? doc.availability.map(a => `${(a.day || 'Day').slice(0, 3)} ${a.startTime || ''}`).join(', ')
+                          : typeof doc.availability === 'string' ? doc.availability : 'No slots set'}
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -251,7 +263,6 @@ function DoctorManagement({ view }) {
                     { label: 'Experience', key: 'experience', type: 'text', placeholder: '5 Years' },
                     { label: 'Contact', key: 'contact', type: 'tel', placeholder: '+91 98765 43210' },
                     { label: 'Email', key: 'email', type: 'email', placeholder: 'doctor@hms.com' },
-                    { label: 'Availability', key: 'availability', type: 'text', placeholder: 'Mon–Fri (10AM–2PM)' },
                   ].map(f => (
                     <div key={f.key}>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{f.label}</label>
@@ -260,6 +271,75 @@ function DoctorManagement({ view }) {
                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
                     </div>
                   ))}
+
+                  {/* Structured Availability Input */}
+                  <div className="sm:col-span-2 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Weekly Availability</label>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          setFormData({ ...formData, availability: [...(formData.availability || []), { day: 'Monday', startTime: '09:00', endTime: '17:00' }] })
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all border border-emerald-100 border-dashed"
+                      >
+                        <Plus size={12} /> Add Slot
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-2">
+                      {(formData.availability || []).map((slot, idx) => (
+                        <div key={idx} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                          <select 
+                            value={slot.day} 
+                            onChange={e => {
+                              const newAvail = [...formData.availability]
+                              newAvail[idx].day = e.target.value
+                              setFormData({...formData, availability: newAvail})
+                            }}
+                            className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none focus:border-emerald-400 min-w-[90px]"
+                          >
+                            {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
+                          </select>
+                          <input 
+                            type="time" 
+                            value={slot.startTime} 
+                            onChange={e => {
+                              const newAvail = [...formData.availability]
+                              newAvail[idx].startTime = e.target.value
+                              setFormData({...formData, availability: newAvail})
+                            }}
+                            className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none focus:border-emerald-400"
+                          />
+                          <span className="text-slate-300 text-[9px] font-bold">TO</span>
+                          <input 
+                            type="time" 
+                            value={slot.endTime} 
+                            onChange={e => {
+                              const newAvail = [...formData.availability]
+                              newAvail[idx].endTime = e.target.value
+                              setFormData({...formData, availability: newAvail})
+                            }}
+                            className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none focus:border-emerald-400"
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              setFormData({ ...formData, availability: formData.availability.filter((_, i) => i !== idx) })
+                            }}
+                            className="ml-auto p-1.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      {(!formData.availability || formData.availability.length === 0) && (
+                        <div className="py-4 text-center border-2 border-dashed border-slate-100 rounded-2xl">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">No availability slots added</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Specialization</label>
                     <select required value={formData.specialization} onChange={e => setFormData({ ...formData, specialization: e.target.value })}

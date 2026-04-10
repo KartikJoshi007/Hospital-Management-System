@@ -921,7 +921,7 @@ function CalendarTab({ events, onBookSurgery, patient }) {
               <div className="px-6 py-5 space-y-4">
                 <div>
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Date</label>
-                  <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
+                  <input type="date" value={form.date} min={new Date().toISOString().split('T')[0]} onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
                     className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 focus:outline-none focus:border-blue-400 bg-slate-50" />
                 </div>
                 <div>

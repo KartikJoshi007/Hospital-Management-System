@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import API from "../../../api/axios";
-import { updateAppointment } from "../../appointments/appointmentApi";
-import { motion } from "framer-motion";
+import { updateAppointment, getDoctorAppointments } from "../../appointments/appointmentApi";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "react-toastify";
-import { Calendar, Clock, User, Stethoscope, FileText, Trash2, CheckCircle2, Plus, LayoutGrid, Loader2, ChevronDown, CalendarClock, X } from "lucide-react";
+import { Calendar, Clock, User, Stethoscope, FileText, Trash2, CheckCircle2, Plus, LayoutGrid, Loader2, ChevronDown, CalendarClock, X, CalendarRange, AlertTriangle } from "lucide-react";
 
 const AppointmentHandler = () => {
   const [form, setForm] = useState({
@@ -23,6 +23,7 @@ const AppointmentHandler = () => {
   const [patientSearch, setPatientSearch] = useState("");
   const [showPatientList, setShowPatientList] = useState(false);
   const [doctors, setDoctors] = useState([]);
+  const [bookedTimes, setBookedTimes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchingDocs, setFetchingDocs] = useState(false);
   const [rescheduleId, setRescheduleId] = useState(null);
@@ -58,6 +59,71 @@ const AppointmentHandler = () => {
     return () => window.removeEventListener("focus", onFocus);
   }, []);
 
+  useEffect(() => {
+    if (form.doctorId && form.date) {
+      getDoctorAppointments(form.doctorId, 1, 100, form.date)
+        .then(res => {
+          const apps = res?.data?.appointments ?? res?.data ?? []
+          setBookedTimes(apps.map(a => a.time))
+        })
+        .catch(() => setBookedTimes([]))
+    }
+  }, [form.doctorId, form.date]);
+
+  const selectedDoctor = useMemo(() => 
+    doctors.find(d => d._id === form.doctorId), 
+  [doctors, form.doctorId]);
+
+  const availableSlots = useMemo(() => {
+    if (!selectedDoctor || !form.date || !Array.isArray(selectedDoctor.availability)) return []
+    const date = new Date(form.date)
+    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    const dayName = DAYS[date.getDay()]
+    const rules = selectedDoctor.availability.find(a => a.day === dayName)
+    if (!rules) return []
+
+    const slots = []
+    let [sh, sm] = rules.startTime.split(':').map(Number)
+    let [eh, em] = rules.endTime.split(':').map(Number)
+    let current = sh * 60 + sm
+    const end = eh * 60 + em
+
+    while (current <= end) {
+      const h = Math.floor(current / 60)
+      const m = current % 60
+      const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+      slots.push({
+        time: timeStr,
+        isBooked: bookedTimes.includes(timeStr)
+      })
+      current += 30
+    }
+    return slots
+  }, [selectedDoctor, form.date, bookedTimes]);
+
+  const availabilityError = useMemo(() => {
+    if (!selectedDoctor || !form.date || !form.time) return null;
+    if (!Array.isArray(selectedDoctor.availability) || selectedDoctor.availability.length === 0) return null;
+
+    const date = new Date(form.date);
+    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = DAYS[date.getDay()];
+    
+    const slot = selectedDoctor.availability.find(a => a.day === dayName);
+    if (!slot) return `Doctor not available on ${dayName}`;
+    
+    const [h, m] = form.time.split(':').map(Number);
+    const currentTime = h * 60 + m;
+    const [sh, sm] = slot.startTime.split(':').map(Number);
+    const startTime = sh * 60 + sm;
+    const [eh, em] = slot.endTime.split(':').map(Number);
+    const endTime = eh * 60 + em;
+    
+    if (currentTime < startTime || currentTime > endTime) return `Available ${slot.startTime} - ${slot.endTime}`;
+    if (bookedTimes.includes(form.time)) return `Slot already booked`;
+    return null;
+  }, [selectedDoctor, form.date, form.time, bookedTimes]);
+
   // ✏️ Handle input
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -76,7 +142,14 @@ const AppointmentHandler = () => {
       return;
     }
 
-    setForm({ ...form, [name]: value });
+    setForm(prev => ({ 
+      ...prev, 
+      [name]: value, 
+      time: (name === 'date' || name === 'doctorSelection') ? '' : prev.time 
+    }));
+    if (name === 'date' || name === 'doctorSelection') {
+       setBookedTimes([]);
+    }
   };
 
   const resetForm = () => {
@@ -258,34 +331,87 @@ const AppointmentHandler = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Date</label>
-                <div className="relative group">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                  <input
-                    type="date"
-                    name="date"
-                    required
-                    value={form.date}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-2 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200"
-                  />
-                </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Date</label>
+              <div className="relative group">
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <input
+                  type="date"
+                  name="date"
+                  required
+                  value={form.date}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-2 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200"
+                />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Time</label>
-                <div className="relative group">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                  <input
-                    type="time"
-                    name="time"
-                    required
-                    value={form.time}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-2 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200"
-                  />
-                </div>
+            </div>
+
+            <AnimatePresence>
+              {availableSlots.length > 0 && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-3 pt-2">
+                  <div className="flex items-center gap-2">
+                    <CalendarRange size={12} className="text-slate-400" />
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Available Slots</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {availableSlots.map((slot, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        disabled={slot.isBooked}
+                        onClick={() => setForm({ ...form, time: slot.time })}
+                        className={`py-2 rounded-lg text-[9px] font-black uppercase tracking-tighter transition-all border flex items-center justify-center gap-1 shrink-0 ${
+                          form.time === slot.time
+                            ? 'bg-purple-600 text-white border-purple-500 shadow-lg shadow-purple-200'
+                            : slot.isBooked
+                              ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+                              : 'bg-white text-slate-600 border-slate-200 hover:border-purple-300 hover:bg-purple-50'
+                        }`}
+                      >
+                        {slot.time}
+                        {form.time === slot.time && <CheckCircle2 size={10} />}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {form.doctorId && form.date && availableSlots.length === 0 && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="p-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      {selectedDoctor && (!Array.isArray(selectedDoctor.availability) || selectedDoctor.availability.length === 0) 
+                        ? "Doctor has legacy schedule (Update needed in Admin)" 
+                        : "No working hours on this day"}
+                   </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {availabilityError && (
+                <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="p-3 rounded-xl bg-rose-50 border border-rose-100 flex items-start gap-2">
+                  <AlertTriangle className="text-rose-500 shrink-0" size={14} />
+                  <p className="text-[10px] font-bold text-rose-600 leading-tight">{availabilityError}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Optional manual override for receptionists */}
+            <div className={`space-y-1 transition-all ${availableSlots.length > 0 ? 'opacity-50 hover:opacity-100' : ''}`}>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Manual Time Entry</label>
+              <div className="relative group">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <input
+                  type="time"
+                  name="time"
+                  required
+                  value={form.time}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-2 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200"
+                />
               </div>
             </div>
 

@@ -24,12 +24,10 @@ const patientSchema = new mongoose.Schema(
 
     age: {
       type: Number,
-      required: [true, "Age is required"],
     },
 
     dob: {
       type: Date,
-      required: [true, "Date of birth is required"],
     },
 
     gender: {

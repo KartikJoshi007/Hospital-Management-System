@@ -172,6 +172,26 @@ function DoctorProfileModal({ doctor, onClose }) {
                   </div>
                 </div>
 
+                {/* Structured Availability Display */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <Clock size={10} /> Weekly Availability
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.isArray(doctor.availability) && doctor.availability.length > 0 ? (
+                      doctor.availability.map((a, i) => (
+                        <span key={i} className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600">
+                          <span className="text-blue-600 font-black">{(a.day || 'Day').slice(0, 3)}:</span> {a.startTime} - {a.endTime}
+                        </span>
+                      ))
+                    ) : (
+                      <p className="text-xs font-bold text-slate-400">
+                        {typeof doctor.availability === 'string' ? doctor.availability : 'No schedule set'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                     <div className="flex items-center gap-2 mb-1">

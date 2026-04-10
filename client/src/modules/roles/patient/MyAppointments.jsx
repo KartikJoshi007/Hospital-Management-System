@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Calendar,
@@ -19,13 +19,15 @@ import {
   Loader2,
   Activity,
   CalendarClock,
-  Trash2
+  Trash2,
+  CalendarRange,
+  AlertTriangle
 } from 'lucide-react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import ModernTable from './ModernTable'
 import useAuth from '../../../hooks/useAuth'
 import { getPatientByUserId } from '../../patients/patientApi'
-import { getPatientAppointments, createAppointment, cancelAppointment, updateAppointment } from '../../appointments/appointmentApi'
+import { getPatientAppointments, createAppointment, cancelAppointment, updateAppointment, getDoctorAppointments } from '../../appointments/appointmentApi'
 import { getAllDoctors } from '../../doctors/doctorApi'
 import { toast } from 'react-toastify'
 
@@ -49,6 +51,27 @@ function MyAppointments() {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [selectedDept, setSelectedDept] = useState('All')
   const [rescheduleData, setRescheduleData] = useState(null)
+  const [bookedTimes, setBookedTimes] = useState([])
+  const [bookingForm, setBookingForm] = useState({
+    doctorId: '',
+    date: '',
+    time: '',
+    reason: '',
+    type: 'In-Clinic'
+  })
+
+  useEffect(() => {
+    const dId = bookingForm.doctorId || rescheduleData?.doctorId;
+    const dDate = bookingForm.date || rescheduleData?.date;
+    if (dId && dDate) {
+      getDoctorAppointments(dId, 1, 100, dDate)
+        .then(res => {
+          const apps = res?.data?.appointments ?? res?.data ?? []
+          setBookedTimes(apps.map(a => a.time))
+        })
+        .catch(() => setBookedTimes([]))
+    }
+  }, [bookingForm.doctorId, bookingForm.date, rescheduleData?.doctorId, rescheduleData?.date])
 
   const filteredAppointments = appointments.filter(apt => {
     const matchesTab = activeTab === 'upcoming'
@@ -59,26 +82,72 @@ function MyAppointments() {
     return matchesTab && matchesSearch && matchesDept
   })
 
-  const [bookingForm, setBookingForm] = useState({
-    doctorId: '',
-    date: '',
-    time: '',
-    reason: '',
-    type: 'In-Clinic'
-  })
 
-  const getTimeSlots = (shift) => {
-    switch (shift) {
-      case 'Morning': return ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30']
-      case 'Afternoon': return ['14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30']
-      case 'Night': return ['19:00', '19:30', '20:00', '20:30', '21:00', '21:30']
-      case 'On Call': return ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00']
-      default: return []
-    }
-  }
 
   const selectedDoctor = doctorList.find(d => d._id === bookingForm.doctorId)
-  const availableSlots = selectedDoctor ? getTimeSlots(selectedDoctor.shift) : []
+  
+  const availableSlots = useMemo(() => {
+    const activeDoctor = selectedDoctor || (rescheduleData ? doctorList.find(d => d._id === rescheduleData.doctorId) : null);
+    const activeDate = bookingForm.date || rescheduleData?.date;
+
+    if (!activeDoctor || !activeDate || !Array.isArray(activeDoctor.availability)) return []
+    const date = new Date(activeDate)
+    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    const dayName = DAYS[date.getDay()]
+    const rules = activeDoctor.availability.find(a => a.day === dayName)
+    if (!rules) return []
+
+    const slots = []
+    let [sh, sm] = rules.startTime.split(':').map(Number)
+    let [eh, em] = rules.endTime.split(':').map(Number)
+    let current = sh * 60 + sm
+    const end = eh * 60 + em
+
+    while (current <= end) {
+      const h = Math.floor(current / 60)
+      const m = current % 60
+      const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+      slots.push({
+        time: timeStr,
+        isBooked: bookedTimes.includes(timeStr)
+      })
+      current += 30
+    }
+    return slots
+  }, [selectedDoctor, rescheduleData, bookingForm.date, bookedTimes, doctorList])
+
+  const availabilityError = useMemo(() => {
+    const activeDoctor = selectedDoctor;
+    if (!activeDoctor || !bookingForm.date || !bookingForm.time) return null;
+    
+    if (!Array.isArray(activeDoctor.availability) || activeDoctor.availability.length === 0) return null;
+
+    const date = new Date(bookingForm.date);
+    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = DAYS[date.getDay()];
+    
+    const slot = activeDoctor.availability.find(a => a.day === dayName);
+    if (!slot) return `Doctor is not available on ${dayName}`;
+    
+    const [h, m] = bookingForm.time.split(':').map(Number);
+    const currentTime = h * 60 + m;
+    
+    const [sh, sm] = slot.startTime.split(':').map(Number);
+    const startTime = sh * 60 + sm;
+    
+    const [eh, em] = slot.endTime.split(':').map(Number);
+    const endTime = eh * 60 + em;
+    
+    if (currentTime < startTime || currentTime > endTime) {
+      return `Available only between ${slot.startTime} and ${slot.endTime} on ${dayName}`;
+    }
+    
+    if (bookedTimes.includes(bookingForm.time)) {
+      return `This slot is already reserved.`;
+    }
+    
+    return null;
+  }, [selectedDoctor, bookingForm.date, bookingForm.time, bookedTimes])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -111,7 +180,7 @@ function MyAppointments() {
       }
     }
     if (user?.id) fetchData()
-  }, [user.id])
+  }, [user?.id])
 
   const handleCancelVisit = async (id) => {
     if (window.confirm('Are you sure you want to cancel this appointment?')) {
@@ -128,8 +197,12 @@ function MyAppointments() {
 
   const handleBooking = async (e) => {
     e.preventDefault()
-    if (!bookingForm.doctorId || !bookingForm.date) {
-      toast.warning('Please fill in all required fields')
+    if (!bookingForm.doctorId || !bookingForm.date || !bookingForm.time) {
+      toast.warning('Please fill in all required fields including a time slot')
+      return
+    }
+    if (availabilityError) {
+      toast.error(availabilityError)
       return
     }
     try {
@@ -412,9 +485,9 @@ function MyAppointments() {
 
               <form onSubmit={handleBooking} className="p-8 sm:p-10 space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-8">
-                  <div className="space-y-2">
+                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-left block">Select Specialist</label>
-                    <select required value={bookingForm.doctorId} onChange={e => { const dId = e.target.value; const doc = doctorList.find(d => d._id === dId); const slots = doc ? getTimeSlots(doc.shift) : []; setBookingForm({ ...bookingForm, doctorId: dId, time: slots[0] || '' }); }} className="w-full px-5 py-4 bg-slate-50 border border-slate-200/60 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all cursor-pointer">
+                    <select required value={bookingForm.doctorId} onChange={e => setBookingForm({ ...bookingForm, doctorId: e.target.value, time: '' })} className="w-full px-5 py-4 bg-slate-50 border border-slate-200/60 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all cursor-pointer">
                       <option value="" disabled>Search Unit Specialist...</option>
                       {doctorList.map(d => <option key={d._id} value={d._id}>{d.name} ({d.specialization})</option>)}
                     </select>
@@ -426,17 +499,65 @@ function MyAppointments() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-left block">Date</label>
-                      <input required type="date" value={bookingForm.date} min={new Date().toISOString().split('T')[0]} onChange={e => setBookingForm({ ...bookingForm, date: e.target.value })} className="w-full px-5 py-4 bg-slate-50 border border-slate-200/60 rounded-xl text-sm font-black text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all" />
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-left block">Appointment Date</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                      <input 
+                        required 
+                        type="date" 
+                        value={bookingForm.date} 
+                        min={new Date().toISOString().split('T')[0]} 
+                        onChange={e => setBookingForm({ ...bookingForm, date: e.target.value, time: '' })} 
+                        className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200/60 rounded-xl text-sm font-black text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all" 
+                      />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-left block">Slot</label>
-                      <select required value={bookingForm.time} disabled={!bookingForm.doctorId} onChange={e => setBookingForm({ ...bookingForm, time: e.target.value })} className="w-full px-5 py-4 bg-slate-50 border border-slate-200/60 rounded-xl text-sm font-black text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all disabled:opacity-40">
-                        {availableSlots.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
+                  </div>
+
+                  <div className="md:col-span-2 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <CalendarRange size={16} className="text-slate-400" />
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Select an available timing slot</p>
                     </div>
+                    {availableSlots.length === 0 ? (
+                      <div className="p-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                          {bookingForm.doctorId && bookingForm.date ? 'Doctor is not available on this day' : 'Select a doctor and date first'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                        {availableSlots.map((slot, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            disabled={slot.isBooked}
+                            onClick={() => setBookingForm({ ...bookingForm, time: slot.time })}
+                            className={`px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border flex items-center justify-center gap-2 ${
+                              bookingForm.time === slot.time
+                                ? 'bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-200 scale-105'
+                                : slot.isBooked
+                                  ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+                                  : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 active:scale-95'
+                            }`}
+                          >
+                            {slot.time}
+                            {bookingForm.time === slot.time && <CheckCircle2 size={10} />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {availabilityError && (
+                      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+                        className="p-4 rounded-xl bg-amber-50 border border-amber-100 flex items-start gap-3">
+                        <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={14} />
+                        <div>
+                          <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest leading-none">Scheduling Policy</p>
+                          <p className="text-[10px] font-bold text-amber-600 mt-1">{availabilityError}</p>
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
 
                   <div className="md:col-span-2 space-y-2">
@@ -504,18 +625,28 @@ function MyAppointments() {
                   </div>
                   <div className="space-y-2 text-left">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 block">Pick a New Slot</label>
-                    <select 
-                      required 
-                      value={rescheduleData.time} 
-                      onChange={e => setRescheduleData({...rescheduleData, time: e.target.value})}
-                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200/60 rounded-2xl text-sm font-black text-slate-900 outline-none focus:bg-white focus:border-amber-400 transition-all cursor-pointer"
-                    >
-                      {(() => {
-                        const doc = doctorList.find(d => d._id === rescheduleData.doctorId);
-                        const slots = doc ? getTimeSlots(doc.shift) : ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
-                        return slots.map(s => <option key={s} value={s}>{s}</option>);
-                      })()}
-                    </select>
+                    <div className="grid grid-cols-3 gap-2">
+                      {availableSlots.map((slot, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          disabled={slot.isBooked}
+                          onClick={() => setRescheduleData({ ...rescheduleData, time: slot.time })}
+                          className={`px-3 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border flex items-center justify-center gap-2 ${
+                            rescheduleData.time === slot.time
+                              ? 'bg-amber-500 text-white border-amber-400 shadow-lg shadow-amber-200'
+                              : slot.isBooked
+                                ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300 hover:bg-amber-50 active:scale-95'
+                          }`}
+                        >
+                          {slot.time}
+                        </button>
+                      ))}
+                    </div>
+                    {availableSlots.length === 0 && (
+                      <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest text-center py-2">No slots available on this day</p>
+                    )}
                   </div>
                 </div>
 

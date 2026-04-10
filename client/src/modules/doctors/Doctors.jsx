@@ -265,7 +265,11 @@ function Doctors() {
                           <Star size={12} className="text-amber-400 fill-current" />
                           <span className="text-xs font-bold text-slate-700">{doc.experience}</span>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-400">{doc.availability}</span>
+                        <span className="text-[10px] font-bold text-slate-400">
+                          {Array.isArray(doc.availability) && doc.availability.length > 0
+                            ? doc.availability.map(a => `${(a.day || 'Day').slice(0, 3)} ${a.startTime || ''}`).join(', ')
+                            : typeof doc.availability === 'string' ? doc.availability : 'No slots set'}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">

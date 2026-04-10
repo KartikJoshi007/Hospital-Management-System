@@ -45,7 +45,6 @@ function PatientDashboard() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [submittingOnboarding, setSubmittingOnboarding] = useState(false)
   const [onboardingForm, setOnboardingForm] = useState({
-    age: '',
     gender: 'Male',
     height: '',
     weight: '',
@@ -66,7 +65,6 @@ function PatientDashboard() {
         if (p && (!p.vitals || p.vitals.height === 0 || p.vitals.weight === 0 || p.age === 0 || p.address === 'Not Provided')) {
           setShowOnboarding(true)
           setOnboardingForm({
-            age: p.age || '',
             gender: (p.gender || 'Male').charAt(0).toUpperCase() + (p.gender || 'Male').slice(1).toLowerCase(),
             height: p.vitals?.height || '',
             weight: p.vitals?.weight || '',
@@ -330,18 +328,20 @@ function PatientDashboard() {
               <form onSubmit={handleOnboardingSubmit} className="p-8 space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Age</label>
-                    <input required type="number" min="1" max="130" value={onboardingForm.age} onChange={e => setOnboardingForm({ ...onboardingForm, age: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
-                  </div>
-                  <div className="space-y-1.5">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Gender</label>
                     <select value={onboardingForm.gender} onChange={e => setOnboardingForm({ ...onboardingForm, gender: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all cursor-pointer">
                       {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
                     </select>
                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Blood Group</label>
+                    <select value={onboardingForm.bloodGroup} onChange={e => setOnboardingForm({ ...onboardingForm, bloodGroup: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all">
+                      {BLOOD_GROUPS.map(bg => <option key={bg} value={bg}>{bg}</option>)}
+                    </select>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Ht (cm)</label>
                     <input required type="number" min="30" max="300" value={onboardingForm.height} onChange={e => setOnboardingForm({ ...onboardingForm, height: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400" />
@@ -350,24 +350,23 @@ function PatientDashboard() {
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Wt (kg)</label>
                     <input required type="number" min="1" max="500" value={onboardingForm.weight} onChange={e => setOnboardingForm({ ...onboardingForm, weight: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Blood</label>
-                    <select value={onboardingForm.bloodGroup} onChange={e => setOnboardingForm({ ...onboardingForm, bloodGroup: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all">
-                      {BLOOD_GROUPS.map(bg => <option key={bg} value={bg}>{bg}</option>)}
-                    </select>
-                  </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Primary Address</label>
-                  <textarea required rows={2} value={onboardingForm.address} onChange={e => setOnboardingForm({ ...onboardingForm, address: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 resize-none transition-all" />
+                  <textarea required rows={2} value={onboardingForm.address} onChange={e => setOnboardingForm({ ...onboardingForm, address: e.target.value })} placeholder="Your current resident address..." className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 resize-none transition-all" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Medical Background</label>
+                  <textarea rows={2} value={onboardingForm.medicalHistory} onChange={e => setOnboardingForm({ ...onboardingForm, medicalHistory: e.target.value })} placeholder="Any past conditions..." className="w-full px-4 py-3 rounded-xl border border-slate-100 bg-slate-50 text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all resize-none" />
                 </div>
 
                 <div className="flex flex-col gap-3 pt-4">
                   <button type="submit" disabled={submittingOnboarding} className="w-full flex items-center justify-center gap-3 py-4 bg-slate-950 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-xl active:scale-[0.98] disabled:bg-slate-300 border-none">
-                    {submittingOnboarding ? <Loader2 className="animate-spin" size={16} /> : ( <><ShieldCheck size={16} strokeWidth={3} /> Finalize Records</> )}
+                    {submittingOnboarding ? <Loader2 className="animate-spin" size={16} /> : ( <><ShieldCheck size={16} strokeWidth={3} /> Save My Profile</> )}
                   </button>
-                  <button type="button" onClick={() => setShowOnboarding(false)} className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors bg-transparent border-none">Sync records later</button>
+                  <button type="button" onClick={() => setShowOnboarding(false)} className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors bg-transparent border-none">Skip for now</button>
                 </div>
               </form>
             </motion.div>

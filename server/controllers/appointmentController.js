@@ -264,16 +264,27 @@ exports.getPatientAppointments = asyncHandler(async (req, res) => {
 // @desc    Get doctor appointments
 // @route   GET /api/appointments/doctor/:doctorId
 exports.getDoctorAppointments = asyncHandler(async (req, res) => {
+  const { date } = req.query;
   const doctor = await Doctor.findById(req.params.doctorId);
   if (!doctor) throw new ApiError(404, "Doctor not found");
 
-  // ✅ FIX: Search by both doctorId (ObjectId) and name string for compatibility
-  const appointments = await Appointment.find({
+  let query = {
     $or: [
       { doctorId: doctor._id },
       { doctor: doctor.name },
     ],
-  }).sort({ date: -1 });
+    status: { $ne: "Cancelled" }
+  };
+
+  if (date) {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+    query.date = { $gte: startOfDay, $lte: endOfDay };
+  }
+
+  const appointments = await Appointment.find(query).sort({ time: 1 });
 
   return res.status(200).json(
     new ApiResponse(200, appointments, "Doctor appointments fetched successfully")
