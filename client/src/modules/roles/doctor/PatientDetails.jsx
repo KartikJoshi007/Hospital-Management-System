@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Eye, Loader2, AlertCircle, ChevronDown } from 'lucide-react'
 import DoctorPatientModal from './DoctorPatientModal'
-import { getAllPatients } from '../../patients/patientApi'
+import { getDoctorByUserId, getDoctorPatients } from '../../doctors/doctorApi'
 import { getPatientAppointments } from '../../appointments/appointmentApi'
+import useAuth from '../../../hooks/useAuth'
 
 const STATUS_COLORS = {
   Active:     'bg-emerald-50 text-emerald-600 border-emerald-100',
@@ -12,27 +13,53 @@ const STATUS_COLORS = {
 }
 
 function PatientDetails() {
+  const { user } = useAuth()
   const [patients,  setPatients]  = useState([])
   const [loading,   setLoading]   = useState(true)
   const [error,     setError]     = useState('')
   const [search,    setSearch]    = useState('')
   const [gender,    setGender]    = useState('')
   const [selected,  setSelected]  = useState(null)
+  const [profile,   setProfile]   = useState(null)
 
   const fetchPatients = useCallback(async () => {
+    if (!user?.id) return
     setLoading(true)
     setError('')
     try {
-      const res  = await getAllPatients(1, 100, search, gender, '')
-      const data = res?.data?.data ?? res?.data ?? {}
-      const list = Array.isArray(data) ? data : (data?.patients ?? [])
+      // 1. Ensure we have the doctor profile
+      let currentProfile = profile
+      if (!currentProfile) {
+        const profRes = await getDoctorByUserId(user.id)
+        currentProfile = profRes.data
+        setProfile(currentProfile)
+      }
+
+      if (!currentProfile?._id) {
+        setPatients([])
+        return
+      }
+
+      // 2. Fetch only patients assigned to THIS doctor
+      const res  = await getDoctorPatients(currentProfile._id)
+      let list = res?.data ?? []
+      
+      // 3. Client-side filtering for search/gender (since the new API is specific)
+      if (search) {
+        const s = search.toLowerCase()
+        list = list.filter(p => p.name?.toLowerCase().includes(s) || p.contact?.includes(s))
+      }
+      if (gender) {
+        list = list.filter(p => p.gender === gender)
+      }
+
       setPatients(list)
     } catch (err) {
       setError(err?.message || 'Failed to load patients')
     } finally {
       setLoading(false)
     }
-  }, [search, gender])
+  }, [user?.id, profile, search, gender])
 
   // debounce search, instant for status
   useEffect(() => {

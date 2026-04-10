@@ -246,7 +246,7 @@ function AdminProfile() {
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">New Email Address</label>
                     <div className="relative">
                       <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                      <input type="email" name="email" required placeholder="Enter new email"
+                      <input type="email" name="email" required placeholder="Enter new email (e.g. name@domain.com)"
                         className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
                     </div>
                   </div>
@@ -293,7 +293,7 @@ function AdminProfile() {
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">New Phone Number</label>
                     <div className="relative">
                       <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                      <input type="tel" name="phone" required placeholder="Enter new number"
+                      <input type="tel" name="phone" required pattern="\d{10}" minLength={10} maxLength={10} placeholder="Enter 10-digit number"
                         className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
                     </div>
                   </div>
@@ -301,7 +301,7 @@ function AdminProfile() {
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Confirm New Number</label>
                     <div className="relative">
                       <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                      <input type="tel" name="confirmPhone" required placeholder="Confirm new number"
+                      <input type="tel" name="confirmPhone" required pattern="\d{10}" minLength={10} maxLength={10} placeholder="Confirm 10-digit number"
                         className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
                     </div>
                   </div>

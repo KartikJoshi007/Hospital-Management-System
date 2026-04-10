@@ -81,7 +81,7 @@ exports.getAllAppointments = asyncHandler(async (req, res) => {
   if (search) {
     query.$or = [
       { patient: { $regex: search, $options: "i" } },
-      { doctor:  { $regex: search, $options: "i" } },
+      { doctor: { $regex: search, $options: "i" } },
     ];
   }
 
@@ -144,21 +144,21 @@ exports.updateAppointment = asyncHandler(async (req, res) => {
 
   const isRescheduled = (date && date !== appointment.date?.toISOString().split('T')[0]) || (time && time !== appointment.time);
 
-  if (patient)   appointment.patient  = patient;
-  if (doctor)    appointment.doctor   = doctor;
-  if (dept)      appointment.dept     = dept;
-  if (date)      appointment.date     = date;
-  if (time)      appointment.time     = time;
-  
+  if (patient) appointment.patient = patient;
+  if (doctor) appointment.doctor = doctor;
+  if (dept) appointment.dept = dept;
+  if (date) appointment.date = date;
+  if (time) appointment.time = time;
+
   const statusChanged = (status && status !== appointment.status);
   const doctorChanged = (doctorId && doctorId !== appointment.doctorId?.toString());
 
-  if (status)    appointment.status   = status;
-  if (reason)    appointment.reason   = reason;
-  if (type)      appointment.type     = type;
-  if (priority)  appointment.priority = priority;
+  if (status) appointment.status = status;
+  if (reason) appointment.reason = reason;
+  if (type) appointment.type = type;
+  if (priority) appointment.priority = priority;
   if (patientId) appointment.patientId = patientId;
-  if (doctorId)  appointment.doctorId  = doctorId;
+  if (doctorId) appointment.doctorId = doctorId;
 
   appointment = await appointment.save();
 
@@ -175,18 +175,18 @@ exports.updateAppointment = asyncHandler(async (req, res) => {
   if (statusChanged) {
     const isCancel = appointment.status === "Cancelled";
     const type = isCancel ? "cancellation" : "booking";
-    const msg = isCancel 
+    const msg = isCancel
       ? `Appointment CANCELLED: ${appointment.patient} with Dr. ${appointment.doctor}`
       : `Appointment status updated: ${appointment.status} for ${appointment.patient}`;
 
     const apptRef = { id: appointment._id, model: "Appointment" };
-    
+
     // Notify Staff
     await notificationService.notifyRoles(["reception", "admin"], msg, type, apptRef);
-    
+
     // Notify Patient
     if (appointment.patientId) {
-      const patientMsg = isCancel 
+      const patientMsg = isCancel
         ? `Your appointment with Dr. ${appointment.doctor} has been CANCELLED`
         : `Your appointment with Dr. ${appointment.doctor} is now ${appointment.status}`;
       await notificationService.notifyUser(appointment.patientId, "patient", patientMsg, type, apptRef);
@@ -331,7 +331,7 @@ exports.cancelAppointment = asyncHandler(async (req, res) => {
     } else {
       // Anyone else cancels (like Patient) → notify reception, admin, and DOCTOR
       await notificationService.notifyRoles(["reception", "admin"], msg, "cancellation", apptRef);
-      
+
       // Notify Patient (Confirmation for themselves or if Admin cancelled via this route)
       if (appointment.patientId) {
         const Patient = require("../models/Patient");

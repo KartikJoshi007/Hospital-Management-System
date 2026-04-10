@@ -105,6 +105,10 @@ function PatientProfile() {
       if (profileForm.height && (profileForm.height < 30 || profileForm.height > 300)) throw new Error('Height must be between 30 and 300 cm')
       if (profileForm.weight && (profileForm.weight < 1 || profileForm.weight > 500)) throw new Error('Weight must be between 1 and 500 kg')
 
+      const countWords = (str) => str.trim().split(/\s+/).filter(Boolean).length;
+      if (countWords(profileForm.address) > 150) throw new Error("Address must not exceed 150 words!");
+      if (countWords(profileForm.medicalHistory) > 150) throw new Error("Medical background must not exceed 150 words!");
+
       await updatePatient(patientId, {
         ...profileForm,
         medicalHistory: profileForm.medicalHistory // Correct field mapping
@@ -306,10 +310,16 @@ function PatientProfile() {
                      <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Home Address</label>
                         <textarea rows={2} value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all resize-none" />
+                        <p className={`text-[9px] font-bold mt-1 text-right ${profileForm.address.trim().split(/\s+/).filter(Boolean).length > 150 ? 'text-rose-500' : 'text-slate-400'}`}>
+                          {profileForm.address.trim().split(/\s+/).filter(Boolean).length} / 150 Words
+                        </p>
                      </div>
                      <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Medical Background</label>
                         <textarea rows={2} value={profileForm.medicalHistory} onChange={e => setProfileForm({...profileForm, medicalHistory: e.target.value})} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all resize-none" />
+                        <p className={`text-[9px] font-bold mt-1 text-right ${profileForm.medicalHistory.trim().split(/\s+/).filter(Boolean).length > 150 ? 'text-rose-500' : 'text-slate-400'}`}>
+                          {profileForm.medicalHistory.trim().split(/\s+/).filter(Boolean).length} / 150 Words
+                        </p>
                      </div>
                   </div>
 
@@ -327,7 +337,7 @@ function PatientProfile() {
                       <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Change Email</h3>
                    </div>
                    <form onSubmit={handleEmailUpdate} className="space-y-4">
-                      <input type="email" name="email" required placeholder="New Email Address" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all" />
+                      <input type="email" name="email" required placeholder="New Email (e.g. name@domain.com)" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all" />
                       <input type="email" name="confirmEmail" required placeholder="Confirm New Email" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all" />
                       <button type="submit" disabled={saving} className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-all">
                          Update Email
@@ -341,7 +351,7 @@ function PatientProfile() {
                       <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Change Phone</h3>
                    </div>
                    <form onSubmit={handlePhoneUpdate} className="space-y-4">
-                      <input type="tel" name="phone" required placeholder="New Phone Number" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all" />
+                      <input type="tel" name="phone" required pattern="\d{10}" minLength={10} maxLength={10} placeholder="New 10-digit Phone Number" className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold text-slate-900 outline-none focus:bg-white focus:border-emerald-400 transition-all" />
                       <button type="submit" disabled={saving} className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition-all mt-[5.5rem]">
                          Update Phone
                       </button>

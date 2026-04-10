@@ -9,41 +9,58 @@ function SignUp() {
   const navigate = useNavigate()
 
   const [formData, setFormData] = useState({
-    fullName: '', email: '', phone: '', password: '', confirmPassword: '', dob: '',
+    fullName: '', email: '', phone: '', password: '', confirmPassword: '', dob: '', age: '',
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  const calculateAge = (dob) => {
+    if (!dob) return ''
+    const birthDate = new Date(dob)
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const m = today.getMonth() - birthDate.getMonth()
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    return age < 0 ? 0 : age
+  }
+
   const handleChange = (e) => {
-    setFormData(p => ({ ...p, [e.target.name]: e.target.value }))
+    const { name, value } = e.target
+    if (name === 'dob') {
+      const calculatedAge = calculateAge(value)
+      setFormData(p => ({ ...p, dob: value, age: calculatedAge }))
+    } else {
+      setFormData(p => ({ ...p, [name]: value }))
+    }
     setError('')
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+
+    // 🛡️ FRONTEND VALIDATION
     if (formData.password.length < 6) return setError('Password must be at least 6 characters.')
     if (formData.password !== formData.confirmPassword) return setError('Passwords do not match.')
+
+    const phoneRegex = /^\d{10}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      setError('Phone number must be exactly 10 digits.');
+      return;
+    }
 
     setLoading(true)
     try {
       const payload = {
-        fullName: formData.fullName,
-        email: formData.email.toLowerCase(),
+        fullName: formData.fullName.trim(),
+        email: formData.email.toLowerCase().trim(),
         phone: formData.phone.trim(),
         password: formData.password,
         role: 'patient',
         dob: formData.dob
-      }
-
-      // 🛡️ FRONTEND VALIDATION
-      if (payload.phone.includes('@')) {
-        const msg = 'Double check: You have entered an email in the "Phone Number" field.';
-        setError(msg);
-        toast.error(msg);
-        setLoading(false);
-        return;
       }
 
       await registerUser(payload)
@@ -58,8 +75,8 @@ function SignUp() {
     }
   }
 
-  const inp = 'w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm font-bold text-slate-900 shadow-sm'
-  const inpPwd = 'w-full pl-10 pr-10 py-3 bg-white border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-sm font-bold text-slate-900 shadow-sm [&::-ms-reveal]:hidden [&::-ms-clear]:hidden'
+  const inp = 'w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-xs font-bold text-slate-900 shadow-sm'
+  const inpPwd = 'w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all text-xs font-bold text-slate-900 shadow-sm [&::-ms-reveal]:hidden [&::-ms-clear]:hidden'
 
   return (
     <div className="relative min-h-screen w-full bg-[#f8fafc] flex items-center justify-center p-4 overflow-hidden">
@@ -73,44 +90,44 @@ function SignUp() {
         className="relative z-10 w-full max-w-6xl grid md:grid-cols-2 bg-white/60 backdrop-blur-2xl rounded-[3rem] border border-white/50 shadow-2xl overflow-hidden"
       >
         {/* ── Left: Branding ── */}
-        <div className="hidden md:flex flex-col bg-slate-900 p-16 relative overflow-hidden text-white">
+        <div className="hidden md:flex flex-col bg-slate-900 p-12 relative overflow-hidden text-white">
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?q=80&w=2653&auto=format&fit=crop')] bg-cover bg-center opacity-20 mix-blend-overlay" />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent" />
 
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 shrink-0">
-              <Activity className="h-7 w-7 text-white" />
+          <div className="relative z-10 flex items-center gap-3">
+            <div className="h-12 w-12 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 shrink-0">
+              <Activity className="h-6 w-6 text-white" />
             </div>
-            <h2 className="text-xl font-black tracking-tighter leading-tight uppercase text-white/90">
-              Hospital <br />Management System
+            <h2 className="text-lg font-black tracking-tighter leading-tight uppercase text-white/90">
+              Hospital <br />Management
             </h2>
           </div>
 
-          <div className="relative z-10 my-auto max-w-md">
-            <h1 className="text-5xl lg:text-7xl font-black leading-[0.9] tracking-tighter mb-8">
+          <div className="relative z-10 my-auto max-w-sm">
+            <h1 className="text-4xl lg:text-6xl font-black leading-[0.9] tracking-tighter mb-6">
               Your health, <br />
               <span className="text-emerald-400">our priority.</span>
             </h1>
-            <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase tracking-widest">
-              Register as a patient to book appointments, view your records, and manage your health journey.
+            <p className="text-[9px] font-bold text-slate-400 leading-relaxed uppercase tracking-widest">
+              Join our clinical network to manage your health journey with ease.
             </p>
           </div>
         </div>
 
         {/* ── Right: Form ── */}
-        <div className="p-8 sm:p-12 lg:p-16 flex flex-col justify-center">
-          <div className="mb-6 text-center md:text-left">
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Create Account</h2>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Patient registration</p>
+        <div className="p-8 lg:p-12 flex flex-col justify-center">
+          <div className="mb-4 text-center md:text-left">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Create Account</h2>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Patient registration</p>
           </div>
 
           {error && (
-            <div className="mb-4 px-4 py-3 rounded-2xl bg-rose-50 border border-rose-100 text-xs font-bold text-rose-600">
+            <div className="mb-3 px-4 py-2.5 rounded-xl bg-rose-50 border border-rose-100 text-[10px] font-bold text-rose-600">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-2.5">
 
             <div>
               <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Full Name</label>
@@ -125,16 +142,18 @@ function SignUp() {
               <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Email Address</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
-                <input type="email" name="email" required placeholder="your@email.com"
+                <input type="email" name="email" required placeholder="example@domain.com"
                   value={formData.email} onChange={handleChange} className={inp} />
               </div>
             </div>
-
+            
             <div>
               <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Phone Number</label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
-                <input type="tel" name="phone" required placeholder="+91 98765 43210"
+                <input type="tel" name="phone" required
+                  pattern="\d{10}" minLength={10} maxLength={10}
+                  placeholder="10-digit mobile number"
                   value={formData.phone} onChange={handleChange} className={inp} />
               </div>
             </div>
@@ -145,6 +164,16 @@ function SignUp() {
                 <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 h-4 w-4" />
                 <input type="date" name="dob" required max={new Date().toISOString().split('T')[0]}
                   value={formData.dob} onChange={handleChange} className={inp} />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Age (Auto-calculated)</label>
+              <div className="relative">
+                <Activity className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
+                <input type="text" name="age" disabled placeholder="Select DOB first"
+                  value={formData.age ? `${formData.age} Years` : ''} 
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-500 cursor-not-allowed" />
               </div>
             </div>
 

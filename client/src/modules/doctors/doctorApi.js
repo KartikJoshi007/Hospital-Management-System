@@ -80,3 +80,22 @@ export const getDoctorPatientCount = async (doctorId) => {
     throw error.response?.data || error.message;
   }
 };
+
+// Get full list of patients for a doctor
+export const getDoctorPatients = async (doctorId) => {
+  try {
+    const response = await axios.get(`/doctors/${doctorId}/patients`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+// Toggle Doctor Duty Status
+export const toggleDutyStatus = async (doctorId, isOnDuty) => {
+  try {
+    const response = await axios.patch(`/doctors/${doctorId}/duty`, { isOnDuty });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};

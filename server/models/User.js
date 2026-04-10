@@ -15,8 +15,8 @@ const userSchema = new mongoose.Schema(
       required: [true, "Please add an email"],
       unique: true,
       lowercase: true,
-      match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, "Please add a valid email"],
-      index: true, // 🔥 ADD: login & search fast
+      match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, "Please add a valid email (e.g. name@domain.com)"],
+      index: true,
     },
 
     password: {
@@ -30,12 +30,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["admin", "doctor", "patient", "reception"],
       default: "patient",
-      index: true, // 🔥 ADD (filter role-wise)
+      index: true,
     },
 
     phone: {
       type: String,
       required: [true, "Phone number is required"],
+      match: [/^\d{10}$/, "Phone number must be exactly 10 digits"],
     },
 
     avatar: {

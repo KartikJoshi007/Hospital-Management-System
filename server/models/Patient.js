@@ -20,6 +20,7 @@ const patientSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       index: true,
+      match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, "Please add a valid email (e.g. name@domain.com)"],
     },
 
     age: {
@@ -39,7 +40,8 @@ const patientSchema = new mongoose.Schema(
     contact: {
       type: String,
       required: [true, "Contact number is required"],
-      index: true, // 🔥 ADD: Fast phone search
+      index: true,
+      match: [/^\d{10}$/, "Contact number must be exactly 10 digits"],
     },
 
     bloodGroup: {
@@ -74,11 +76,23 @@ const patientSchema = new mongoose.Schema(
     address: {
       type: String,
       required: [true, "Address is required"],
+      validate: {
+        validator: function(v) {
+          return v.trim().split(/\s+/).length <= 150;
+        },
+        message: "Address cannot exceed 150 words"
+      }
     },
 
     medicalHistory: {
       type: String,
       default: "No known conditions",
+      validate: {
+        validator: function(v) {
+          return v.trim().split(/\s+/).length <= 150;
+        },
+        message: "Medical background cannot exceed 150 words"
+      }
     },
 
     // 🔥 UPDATED (Vitals Tracking)

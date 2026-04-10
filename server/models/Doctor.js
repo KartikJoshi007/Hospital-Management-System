@@ -53,12 +53,14 @@ const doctorSchema = new mongoose.Schema(
     contact: {
       type: String,
       required: [true, "Contact number is required"],
+      match: [/^\d{10}$/, "Contact number must be exactly 10 digits"],
     },
 
     email: {
       type: String,
       required: [true, "Email is required"],
       lowercase: true,
+      match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/, "Please add a valid email (e.g. name@domain.com)"],
     },
 
     status: {
