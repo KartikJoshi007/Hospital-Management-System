@@ -62,7 +62,7 @@ function RescheduleModal({ appointment, onClose, onConfirm }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">New Date</label>
-                <input type="date" value={form.date} onChange={e => set('date', e.target.value)}
+                <input type="date" value={form.date} min={new Date().toISOString().split('T')[0]} onChange={e => set('date', e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:border-blue-400 transition-all bg-white" />
               </div>
               <div>

@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import Button from '../../components/Button'
 import Input from '../../components/Input'
-import { APPOINTMENT_STATUSES, DOCTORS } from '../../utils/constants'
+import { APPOINTMENT_STATUSES } from '../../utils/constants'
 import { validateAppointmentForm } from '../../utils/validators'
+import { getAllDoctors } from '../doctors/doctorApi'
+import { getDoctorAppointments } from './appointmentApi'
+import { Clock, AlertTriangle, CalendarRange, CheckCircle2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 function AddAppointment({ patients, onSubmit, loading, initialDate, onCancel, hideStatus }) {
   const [formValues, setFormValues] = useState({
@@ -18,7 +22,32 @@ function AddAppointment({ patients, onSubmit, loading, initialDate, onCancel, hi
   const [minute, setMinute] = useState('00')
   const [ampm, setAmPm] = useState('AM')
 
+  const [doctors, setDoctors] = useState([])
+  const [bookedTimes, setBookedTimes] = useState([])
   const [errors, setErrors] = useState({})
+
+  useEffect(() => {
+    if (formValues.doctorId && formValues.date) {
+      getDoctorAppointments(formValues.doctorId, 1, 100, formValues.date)
+        .then(res => {
+          const apps = res?.data?.appointments ?? res?.data ?? []
+          setBookedTimes(apps.map(a => a.time))
+        })
+        .catch(() => setBookedTimes([]))
+    }
+  }, [formValues.doctorId, formValues.date])
+
+  useEffect(() => {
+    const fetchDocs = async () => {
+      try {
+        const res = await getAllDoctors()
+        setDoctors(res?.data?.data ?? res?.data ?? [])
+      } catch (err) {
+        console.error('Failed to fetch doctors', err)
+      }
+    }
+    fetchDocs()
+  }, [])
 
   // Keep selected date in sync when user switches days / opens modal.
   useEffect(() => {
@@ -43,10 +72,90 @@ function AddAppointment({ patients, onSubmit, loading, initialDate, onCancel, hi
     [patients],
   )
 
-  const doctorOptions = DOCTORS.map((doctor) => ({
-    label: doctor.name,
-    value: doctor.id,
-  }))
+  const doctorOptions = useMemo(() => 
+    doctors.map((doctor) => ({
+      label: doctor.name,
+      value: doctor._id,
+    })),
+  [doctors])
+
+  const selectedDoctor = useMemo(() => 
+    doctors.find(d => d._id === formValues.doctorId), 
+  [doctors, formValues.doctorId])
+
+  const availabilityError = useMemo(() => {
+    if (!selectedDoctor || !formValues.date || !formValues.time) return null;
+    
+    // If availability is still a string (legacy), we can't easily validate
+    if (!Array.isArray(selectedDoctor.availability) || selectedDoctor.availability.length === 0) return null;
+
+    const date = new Date(formValues.date);
+    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = DAYS[date.getDay()];
+    
+    const slot = selectedDoctor.availability.find(a => a.day === dayName);
+    if (!slot) return `Doctor is not available on ${dayName}`;
+    
+    const [h, m] = formValues.time.split(':').map(Number);
+    const currentTime = h * 60 + m;
+    
+    const [sh, sm] = slot.startTime.split(':').map(Number);
+    const startTime = sh * 60 + sm;
+    
+    const [eh, em] = slot.endTime.split(':').map(Number);
+    const endTime = eh * 60 + em;
+    
+    if (currentTime < startTime || currentTime > endTime) {
+      return `Available only between ${slot.startTime} and ${slot.endTime} on ${dayName}`;
+    }
+    
+    if (bookedTimes.includes(formValues.time)) {
+      return `This time slot is already booked for Dr. ${selectedDoctor.name}`;
+    }
+
+    return null;
+  }, [selectedDoctor, formValues.date, formValues.time, bookedTimes])
+
+  const availableSlots = useMemo(() => {
+    if (!selectedDoctor || !formValues.date || !Array.isArray(selectedDoctor.availability)) return []
+    const date = new Date(formValues.date)
+    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    const dayName = DAYS[date.getDay()]
+    const rules = selectedDoctor.availability.find(a => a.day === dayName)
+    if (!rules) return []
+
+    const slots = []
+    let [sh, sm] = rules.startTime.split(':').map(Number)
+    let [eh, em] = rules.endTime.split(':').map(Number)
+    let current = sh * 60 + sm
+    const end = eh * 60 + em
+
+    while (current <= end) {
+      const h = Math.floor(current / 60)
+      const m = current % 60
+      const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+      slots.push({
+        time: timeStr,
+        isBooked: bookedTimes.includes(timeStr)
+      })
+      current += 30
+    }
+    return slots
+  }, [selectedDoctor, formValues.date, bookedTimes])
+
+  const selectSlot = (timeStr) => {
+    const [h24, m] = timeStr.split(':')
+    let h = parseInt(h24, 10)
+    let mode = 'AM'
+    if (h >= 12) {
+      mode = 'PM'
+      if (h > 12) h -= 12
+    }
+    if (h === 0) h = 12
+    setHour(String(h).padStart(2, '0'))
+    setMinute(m)
+    setAmPm(mode)
+  }
 
   const statusOptions = APPOINTMENT_STATUSES.map((status) => ({
     label: status,
@@ -61,6 +170,9 @@ function AddAppointment({ patients, onSubmit, loading, initialDate, onCancel, hi
   const handleSubmit = async (event) => {
     event.preventDefault()
     const validationErrors = validateAppointmentForm(formValues)
+    if (availabilityError) {
+      validationErrors.time = availabilityError
+    }
     setErrors(validationErrors)
     if (Object.keys(validationErrors).length) return
 
@@ -136,6 +248,7 @@ function AddAppointment({ patients, onSubmit, loading, initialDate, onCancel, hi
               name="date"
               type="date"
               value={formValues.date}
+              min={new Date().toISOString().split('T')[0]}
               onChange={handleChange}
               error={errors.date}
             />
@@ -187,6 +300,64 @@ function AddAppointment({ patients, onSubmit, loading, initialDate, onCancel, hi
               )}
             </div>
           </div>
+
+          {/* Quick Slot Selector */}
+          <AnimatePresence>
+            {availableSlots.length > 0 && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                className="mt-8 space-y-4 overflow-hidden">
+                <div className="flex items-center gap-3">
+                  <CalendarRange size={16} className="text-slate-400" />
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Available Rotation Slots (30m)</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {availableSlots.map((slot, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      disabled={slot.isBooked}
+                      onClick={() => selectSlot(slot.time)}
+                      className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border flex items-center gap-2 ${
+                        formValues.time === slot.time
+                          ? 'bg-emerald-500 text-white border-emerald-400 shadow-lg shadow-emerald-200 scale-105'
+                          : slot.isBooked
+                            ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 active:scale-95'
+                      }`}
+                    >
+                      {slot.time}
+                      {formValues.time === slot.time && <CheckCircle2 size={10} />}
+                      {slot.isBooked && <span className="text-[8px] opacity-60">(Booked)</span>}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Availability Alert */}
+          <AnimatePresence>
+            {availabilityError && (
+              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                className="mt-4 p-4 rounded-2xl bg-amber-50 border border-amber-100 flex items-start gap-3">
+                <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={16} />
+                <div>
+                  <p className="text-xs font-black text-amber-800 uppercase tracking-widest">Schedule Conflict</p>
+                  <p className="text-[11px] font-bold text-amber-600 mt-0.5">{availabilityError}</p>
+                </div>
+              </motion.div>
+            )}
+
+            {selectedDoctor && Array.isArray(selectedDoctor.availability) && selectedDoctor.availability.length > 0 && !availabilityError && formValues.time && (
+               <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                 className="mt-4 p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100 flex items-center gap-3">
+                 <Clock className="text-emerald-500" size={16} />
+                 <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
+                   Doctor is available during this time
+                 </p>
+               </motion.div>
+            )}
+          </AnimatePresence>
         </section>
       </div>
 

@@ -123,13 +123,13 @@ function AdminDashboard() {
                   }`}>{t.label}</button>
             ))}
           </div>
-          <div className="h-56">
+          <div className="h-64 mt-4">
             {chartLoading ? (
               <div className="h-full flex items-center justify-center text-xs font-bold text-slate-300">Loading...</div>
             ) : !chartCache[chartTab]?.length ? (
               <div className="h-full flex items-center justify-center text-xs font-bold text-slate-300">No appointment data</div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" debounce={100}>
                 <BarChart data={chartCache[chartTab]} barSize={28}>
                   <XAxis dataKey="label" tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
@@ -148,15 +148,15 @@ function AdminDashboard() {
             <h3 className="text-sm font-black text-slate-900 border-l-4 border-emerald-500 pl-3 uppercase tracking-widest">Revenue Split</h3>
             <p className="text-xs font-bold text-slate-400 pl-4 mt-0.5">By department</p>
           </div>
-          <div className="h-44 flex-1 min-h-0">
+          <div className="h-64 mt-4">
             {loading || revenueData.length === 0 ? (
               <div className="h-full flex items-center justify-center text-xs font-bold text-slate-300">
                 {loading ? 'Loading...' : 'No revenue data'}
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" debounce={100}>
                 <PieChart>
-                  <Pie data={revenueData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={6} dataKey="value">
+                  <Pie data={revenueData} cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={6} dataKey="value">
                     {revenueData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
                   <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', fontSize: '11px', fontWeight: 700 }} />
