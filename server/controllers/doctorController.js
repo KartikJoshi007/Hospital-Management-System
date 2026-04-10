@@ -174,16 +174,16 @@ exports.updateDoctor = asyncHandler(async (req, res) => {
   }
 
   // Update fields
-  if (name) doctor.name = name;
-  if (specialization) doctor.specialization = specialization;
-  if (category) doctor.category = category;
-  if (experience) doctor.experience = experience;
-  if (availability) doctor.availability = availability;
-  if (contact) doctor.contact = contact;
-  if (email) doctor.email = email;
-  if (status) doctor.status = status;
-  if (roleLevel) doctor.roleLevel = roleLevel;
-  if (shift) doctor.shift = shift;
+  if (name !== undefined) doctor.name = name;
+  if (specialization !== undefined) doctor.specialization = specialization;
+  if (category !== undefined) doctor.category = category;
+  if (experience !== undefined) doctor.experience = experience;
+  if (availability !== undefined) doctor.availability = availability;
+  if (contact !== undefined) doctor.contact = contact;
+  if (email !== undefined) doctor.email = email;
+  if (status !== undefined) doctor.status = status;
+  if (roleLevel !== undefined) doctor.roleLevel = roleLevel;
+  if (shift !== undefined) doctor.shift = shift;
   if (isOnDuty !== undefined) doctor.isOnDuty = isOnDuty;
   if (rating !== undefined) doctor.rating = rating;
   if (patients !== undefined) doctor.patients = patients;
@@ -191,13 +191,14 @@ exports.updateDoctor = asyncHandler(async (req, res) => {
   doctor = await doctor.save();
 
   // ✅ Synchronize linked User account
-  const userUpdate = {};
-  if (name) userUpdate.fullName = name;
-  if (contact) userUpdate.phone = contact;
-  if (email) userUpdate.email = email.toLowerCase();
-
-  if (Object.keys(userUpdate).length > 0) {
-    await User.findByIdAndUpdate(doctor.userId, userUpdate);
+  const user = await User.findById(doctor.userId);
+  if (user) {
+    if (name) user.fullName = name;
+    if (contact) user.phone = contact;
+    if (email) user.email = email.toLowerCase();
+    if (password) user.password = password; // Triggers hashing in pre-save hook
+    
+    await user.save();
   }
 
   return res.status(200).json(

@@ -152,7 +152,7 @@ exports.getPatientByUserId = asyncHandler(async (req, res) => {
 // @desc    Update patient
 // @route   PUT /api/patients/:id
 exports.updatePatient = asyncHandler(async (req, res) => {
-  const { name, email, dob, age, gender, contact, bloodGroup, status, address, medicalHistory, height, weight } = req.body;
+  const { name, email, dob, age, gender, contact, bloodGroup, status, address, medicalHistory, height, weight, password } = req.body;
 
   let patient = await Patient.findById(req.params.id);
 
@@ -161,20 +161,20 @@ exports.updatePatient = asyncHandler(async (req, res) => {
   }
 
   // Update fields
-  if (name) patient.name = name;
-  if (email) patient.email = email;
+  if (name !== undefined) patient.name = name;
+  if (email !== undefined) patient.email = email;
   if (dob) {
     patient.dob = dob;
     patient.age = Math.max(1, Math.floor((new Date() - new Date(dob)) / 31557600000));
-  } else if (age) {
+  } else if (age !== undefined) {
     patient.age = Math.max(1, parseInt(age) || 1);
   }
-  if (gender) patient.gender = gender;
-  if (contact) patient.contact = contact;
-  if (bloodGroup) patient.bloodGroup = bloodGroup;
-  if (status) patient.status = status;
-  if (address) patient.address = address;
-  if (medicalHistory) patient.medicalHistory = medicalHistory;
+  if (gender !== undefined) patient.gender = gender;
+  if (contact !== undefined) patient.contact = contact;
+  if (bloodGroup !== undefined) patient.bloodGroup = bloodGroup;
+  if (status !== undefined) patient.status = status;
+  if (address !== undefined) patient.address = address;
+  if (medicalHistory !== undefined) patient.medicalHistory = medicalHistory;
   if (height !== undefined || weight !== undefined) {
     if (!patient.vitals) patient.vitals = {};
     if (height !== undefined) patient.vitals.height = height;
@@ -185,6 +185,17 @@ exports.updatePatient = asyncHandler(async (req, res) => {
   }
 
   patient = await patient.save();
+  
+  // ✅ Synchronize linked User account
+  const user = await User.findById(patient.userId);
+  if (user) {
+    if (name) user.fullName = name;
+    if (contact) user.phone = contact;
+    if (email) user.email = email.toLowerCase();
+    if (password) user.password = password; // Triggers hashing in pre-save hook
+    
+    await user.save();
+  }
 
   return res.status(200).json(
     new ApiResponse(200, patient, "Patient updated successfully")
