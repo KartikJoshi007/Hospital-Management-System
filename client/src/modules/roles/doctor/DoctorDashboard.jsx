@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { motion } from 'framer-motion'
-import { CalendarCheck, Users, FileText, Clock, TrendingUp, TrendingDown, ArrowUpRight, CheckCircle2, Circle, AlertCircle, MapPin, Stethoscope, Loader2 } from 'lucide-react'
+import { CalendarCheck, Users, Clock, TrendingUp, ArrowUpRight, CheckCircle2, Circle, AlertCircle, Stethoscope, Loader2, Power } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import useAuth from '../../../hooks/useAuth'
 import { getDoctorByUserId, getDoctorPatientCount, toggleDutyStatus } from '../../doctors/doctorApi'
 import { getDoctorAppointments } from '../../appointments/appointmentApi'
+import { toast } from 'react-toastify'
 
 function DoctorDashboard() {
   const navigate = useNavigate()
@@ -16,6 +17,7 @@ function DoctorDashboard() {
   const [stats, setStats] = useState([])
 
   const todayStr = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const [dutyLoading, setDutyLoading] = useState(false)
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -62,22 +64,97 @@ function DoctorDashboard() {
     fetchDashboardData()
   }, [user?.id])
 
-  const handleToggleDuty = async () => {
-    if (!doctorProfile?._id) return;
-    try {
-      const newStatus = !doctorProfile.isOnDuty;
-      const res = await toggleDutyStatus(doctorProfile._id, newStatus);
-      if (res.data) {
-        setDoctorProfile(res.data);
-        // Refresh stats
-        setStats(prev => prev.map(s => 
-          s.label === 'On Duty Status' ? { ...s, value: newStatus ? 'Yes' : 'No' } : s
-        ));
-      }
-    } catch (err) {
-      console.error("Failed to toggle duty:", err);
+  // ── helpers ──────────────────────────────────────────────────────────────
+  const parseTimeToMinutes = (timeStr) => {
+    if (!timeStr) return 0
+    // Handle 12h format: "09:00 AM", "08:00 PM"
+    const ampm = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i)
+    if (ampm) {
+      let h = parseInt(ampm[1])
+      const m = parseInt(ampm[2])
+      const period = ampm[3].toUpperCase()
+      if (period === 'AM' && h === 12) h = 0
+      if (period === 'PM' && h !== 12) h += 12
+      return h * 60 + m
     }
-  };
+    // Handle 24h format: "09:00", "20:00"
+    const parts = timeStr.split(':').map(Number)
+    return (parts[0] || 0) * 60 + (parts[1] || 0)
+  }
+
+  const isWithinAvailability = (availability) => {
+    // No structured slots → allow freely
+    if (!Array.isArray(availability) || availability.length === 0) return true
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+    const now = new Date()
+    const currentDay = days[now.getDay()]
+    const currentTime = now.getHours() * 60 + now.getMinutes()
+    const todaySlots = availability.filter(s => s?.day === currentDay)
+    // No slot defined for today → allow freely
+    if (todaySlots.length === 0) return true
+    // Slot exists for today → enforce time window
+    return todaySlots.some(slot => {
+      const start = parseTimeToMinutes(slot.startTime)
+      const end   = parseTimeToMinutes(slot.endTime)
+      return currentTime >= start && currentTime <= end
+    })
+  }
+
+  const getAvailabilityLabel = (availability) => {
+    if (!Array.isArray(availability) || availability.length === 0) return null
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+    const currentDay = days[new Date().getDay()]
+    const slot = availability.find(s => s?.day === currentDay)
+    return slot ? `${slot.day} ${slot.startTime}–${slot.endTime}` : null
+  }
+
+  const handleToggleDuty = async () => {
+    if (!doctorProfile?._id || dutyLoading) return
+    const newStatus = !doctorProfile.isOnDuty
+
+    // Block turning ON only if today has slots but current time is outside them
+    if (newStatus && !isWithinAvailability(doctorProfile.availability)) {
+      const label = getAvailabilityLabel(doctorProfile.availability)
+      toast.error(`Outside your scheduled hours: ${label}`)
+      return
+    }
+
+    setDutyLoading(true)
+    try {
+      const res = await toggleDutyStatus(doctorProfile._id, newStatus)
+      const updated = res?.data?.data ?? res?.data ?? {}
+      setDoctorProfile(prev => ({ ...prev, ...updated }))
+      setStats(prev => prev.map(s =>
+        s.label === 'On Duty Status' ? { ...s, value: newStatus ? 'Yes' : 'No' } : s
+      ))
+      toast.success(newStatus ? '✅ You are now On Duty' : '🔴 You are now Off Duty')
+    } catch (err) {
+      toast.error('Failed to update duty status')
+    } finally {
+      setDutyLoading(false)
+    }
+  }
+
+  // ── client-side auto-off: check every minute if shift ended ───────────────
+  useEffect(() => {
+    if (!doctorProfile?._id || !doctorProfile?.isOnDuty) return
+    const interval = setInterval(() => {
+      if (!isWithinAvailability(doctorProfile.availability)) {
+        toggleDutyStatus(doctorProfile._id, false)
+          .then(res => {
+            const updated = res?.data?.data ?? res?.data ?? {}
+            setDoctorProfile(prev => ({ ...prev, ...updated, isOnDuty: false, status: 'Inactive' }))
+            setStats(prev => prev.map(s =>
+              s.label === 'On Duty Status' ? { ...s, value: 'No' } : s
+            ))
+            toast.info('🕐 Your shift has ended. Status set to Off Duty.')
+          })
+          .catch(() => {})
+        clearInterval(interval)
+      }
+    }, 60000)
+    return () => clearInterval(interval)
+  }, [doctorProfile?._id, doctorProfile?.isOnDuty, doctorProfile?.availability])
 
   const weeklyData = useMemo(() => {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -138,18 +215,25 @@ function DoctorDashboard() {
           </h1>
           <p className="text-slate-500 font-medium text-sm mt-1">{todayStr} — Here's your daily overview.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button 
+        <div className="flex flex-col items-end gap-1">
+          <button
             onClick={handleToggleDuty}
-            className={`px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest border shadow-xl transition-all active:scale-95 flex items-center gap-2 ${doctorProfile?.isOnDuty 
-              ? 'bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600' 
-              : 'bg-white text-rose-500 border-rose-100 hover:bg-rose-50'}`}
+            disabled={dutyLoading}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest border shadow-sm transition-all active:scale-95 disabled:opacity-60 ${
+              doctorProfile?.isOnDuty
+                ? 'bg-emerald-500 text-white border-emerald-400 hover:bg-emerald-600'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+            }`}
           >
-            {doctorProfile?.isOnDuty ? '● On Duty' : '○ Off Duty'}
-            <span className="text-[9px] opacity-60 ml-1 font-bold">
-              {doctorProfile?.isOnDuty ? '(Click to Sign Out)' : '(Click to Sign In)'}
-            </span>
+            <Power size={14} />
+            {dutyLoading ? 'Updating...' : doctorProfile?.isOnDuty ? 'On Duty' : 'Off Duty'}
           </button>
+          {(() => {
+            const label = getAvailabilityLabel(doctorProfile?.availability)
+            return label ? (
+              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{label}</span>
+            ) : null
+          })()}
         </div>
       </div>
 
