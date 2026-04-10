@@ -166,7 +166,7 @@ function PatientManagement() {
                         </div>
                         <div>
                           <p className="text-xs font-black text-slate-900">{p.name}</p>
-                          <p className="text-[10px] font-bold text-slate-400">{p.email || 'No Email'}</p>
+                          <p className="text-[10px] font-bold text-slate-400">{p.userId?.email || p.email || 'No Email'}</p>
 
                         </div>
                       </div>

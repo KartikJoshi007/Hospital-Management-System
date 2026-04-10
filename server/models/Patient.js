@@ -75,7 +75,6 @@ const patientSchema = new mongoose.Schema(
 
     address: {
       type: String,
-      required: [true, "Address is required"],
       validate: {
         validator: function(v) {
           return v.trim().split(/\s+/).length <= 150;
@@ -86,7 +85,6 @@ const patientSchema = new mongoose.Schema(
 
     medicalHistory: {
       type: String,
-      required: [true, "Medical background is required"],
       validate: {
         validator: function(v) {
           return v?.trim().split(/\s+/).length <= 150;

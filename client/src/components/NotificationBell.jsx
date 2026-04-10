@@ -149,13 +149,19 @@ const NotificationBell = () => {
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       const role = (user?.role || 'patient').toLowerCase();
-                                      let query = '';
-                                      if (['doctor', 'admin', 'reception'].includes(role)) {
-                                        query = '?tab=All';
-                                      } else if (role === 'patient') {
-                                        query = n.type === 'cancellation' ? '?tab=past' : '?tab=upcoming';
+                                      
+                                      // 🚗 Smart Navigation based on Reference Model
+                                      if (n.referenceModel === 'Patient') {
+                                        navigate(`/${role}/patients`);
+                                      } else {
+                                        let query = '';
+                                        if (['doctor', 'admin', 'reception'].includes(role)) {
+                                          query = '?tab=All';
+                                        } else if (role === 'patient') {
+                                          query = n.type === 'cancellation' ? '?tab=past' : '?tab=upcoming';
+                                        }
+                                        navigate(`/${role}/appointments${query}`);
                                       }
-                                      navigate(`/${role}/appointments${query}`);
                                     }}
                                     className="text-[9px] font-black text-emerald-600 uppercase tracking-widest hover:text-emerald-800 transition-colors"
                                   >

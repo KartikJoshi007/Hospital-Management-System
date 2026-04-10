@@ -166,13 +166,19 @@ const NotificationsPage = () => {
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             const role = (user?.role || 'patient').toLowerCase();
-                                                            let query = '';
-                                                            if (['doctor', 'admin', 'reception'].includes(role)) {
-                                                                query = '?tab=All';
-                                                            } else if (role === 'patient') {
-                                                                query = n.type === 'cancellation' ? '?tab=past' : '?tab=upcoming';
+
+                                                            // 🚗 Smart Navigation
+                                                            if (n.referenceModel === 'Patient') {
+                                                              navigate(`/${role}/patients`);
+                                                            } else {
+                                                              let query = '';
+                                                              if (['doctor', 'admin', 'reception'].includes(role)) {
+                                                                  query = '?tab=All';
+                                                              } else if (role === 'patient') {
+                                                                  query = n.type === 'cancellation' ? '?tab=past' : '?tab=upcoming';
+                                                              }
+                                                              navigate(`/${role}/appointments${query}`);
                                                             }
-                                                            navigate(`/${role}/appointments${query}`);
                                                         }}
                                                         className="text-[10px] font-black text-emerald-600 uppercase tracking-widest hover:text-emerald-800 transition-colors"
                                                     >
@@ -289,18 +295,23 @@ const NotificationsPage = () => {
                                     <button
                                         onClick={() => {
                                             const role = (user?.role || 'patient').toLowerCase();
-                                            let query = '';
-                                            if (['doctor', 'admin', 'reception'].includes(role)) {
-                                                query = '?tab=All';
-                                            } else if (role === 'patient') {
-                                                query = selectedNotif.type === 'cancellation' ? '?tab=past' : '?tab=upcoming';
+                                            
+                                            if (selectedNotif.referenceModel === 'Patient') {
+                                              navigate(`/${role}/patients`);
+                                            } else {
+                                              let query = '';
+                                              if (['doctor', 'admin', 'reception'].includes(role)) {
+                                                  query = '?tab=All';
+                                              } else if (role === 'patient') {
+                                                  query = selectedNotif.type === 'cancellation' ? '?tab=past' : '?tab=upcoming';
+                                              }
+                                              navigate(`/${role}/appointments${query}`);
                                             }
-                                            navigate(`/${role}/appointments${query}`);
                                             setSelectedNotif(null);
                                         }}
                                         className="flex-1 py-3 rounded-2xl bg-emerald-500 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200 font-sans"
                                     >
-                                        VIEW APPOINTMENT
+                                        {selectedNotif.referenceModel === 'Patient' ? 'VIEW PATIENT' : 'VIEW APPOINTMENT'}
                                     </button>
                                 )}
                             </div>

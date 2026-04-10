@@ -4,6 +4,7 @@ const asyncHandler = require("../utils/asyncHandler");
 const ApiError = require("../utils/ApiError");
 const ApiResponse = require("../utils/ApiResponse");
 const { body } = require("express-validator");
+const notificationService = require("../services/notificationService");
 
 // @desc    Create patient
 // @route   POST /api/patients
@@ -52,6 +53,14 @@ exports.createPatient = asyncHandler(async (req, res) => {
     }
   });
 
+  // 🔔 Notify Admins about new patient record (added by staff)
+  await notificationService.notifyRoles(
+    ["admin"],
+    `New Patient Added by ${req.user.fullName}: ${patient.name}`,
+    "system",
+    { id: patient._id, model: "Patient" }
+  );
+
   return res.status(201).json(
     new ApiResponse(201, patient, "Patient record created successfully")
   );
@@ -80,6 +89,7 @@ exports.getAllPatients = asyncHandler(async (req, res) => {
   const total = await Patient.countDocuments(query);
 
   const patients = await Patient.find(query)
+    .populate("userId", "email fullName phone")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit));

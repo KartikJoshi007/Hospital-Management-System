@@ -37,7 +37,7 @@ const notificationSchema = new mongoose.Schema(
 
     referenceModel: {
       type: String,
-      enum: ["Appointment", "DoctorEvent", "Document", null],
+      enum: ["Appointment", "DoctorEvent", "Document", "Patient", null],
       default: null,
     },
 

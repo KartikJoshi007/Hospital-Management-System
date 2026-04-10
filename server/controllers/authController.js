@@ -8,6 +8,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs"); // ✅ IMPORTANT
 
 const Receptionist = require("../models/Receptionist");
+const notificationService = require("../services/notificationService");
 
 // 🔐 Generate JWT Token
 const generateToken = (id) => {
@@ -45,13 +46,23 @@ exports.register = asyncHandler(async (req, res) => {
       dob: dob || new Date(), // Use provided dob or fallback
       age: dob ? Math.max(1, Math.floor((new Date() - new Date(dob)) / 31557600000)) : 1, 
       gender: "Other",
+      email: user.email,
       contact: user.phone || "Not Provided",
       bloodGroup: "O+",
       address: "Not Provided",
+      medicalHistory: "Not Provided",
       status: "Active",
       height: 0,
       weight: 0,
     });
+
+    // 🔔 Notify Admins about new registration
+    await notificationService.notifyRoles(
+      ["admin"],
+      `New Patient Registered: ${user.fullName} (${user.email})`,
+      "system",
+      { id: user._id, model: "Patient" }
+    );
   }
 
   // ✅ Create doctor profile if role = doctor
