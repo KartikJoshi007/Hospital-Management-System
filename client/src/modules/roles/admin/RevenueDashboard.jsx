@@ -91,6 +91,12 @@ function RevenueDashboard() {
   // ── POST /api/expenses ──
   const handleAdd = async (e) => {
     e.preventDefault()
+    const today = new Date().toISOString().split('T')[0]
+    if (form.date > today) {
+      notify('Future dates are not allowed for expenses.', 'error')
+      setSubmitting(false)
+      return
+    }
     setSubmitting(true)
     try {
       // body: { item, category, amount (Number), date }
@@ -296,6 +302,7 @@ function RevenueDashboard() {
                   <div>
                     <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Date *</label>
                     <input type="date" required value={form.date}
+                      max={new Date().toISOString().split('T')[0]}
                       onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all" />
                   </div>
