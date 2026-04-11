@@ -229,13 +229,12 @@ const AppointmentHandler = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
 
-        {/* FORM SECTION */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="lg:col-span-4 bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 h-fit lg:sticky lg:top-24"
+          className="lg:col-span-4 bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 h-fit lg:sticky lg:top-5"
         >
           <div ref={formRef} className="flex items-center justify-between gap-2 mb-6">
             <div className="flex items-center gap-2">
@@ -286,7 +285,7 @@ const AppointmentHandler = () => {
                         className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-purple-50 hover:text-purple-600 border-b border-slate-50 last:border-0 transition-colors flex items-center justify-between"
                       >
                         <span>{p.name}</span>
-                        <span className="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded lowercase font-mono">{p.email || "No Email"}</span>
+                        <span className="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded lowercase font-mono">{p.email || p.userId?.email || "No Email"}</span>
                       </button>
                     ))
                   ) : (
@@ -460,11 +459,10 @@ const AppointmentHandler = () => {
           </div>
         </motion.div>
 
-        {/* LIST SECTION */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="lg:col-span-8 bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden min-h-[500px]"
+          className="lg:col-span-8 bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col lg:max-h-[calc(100vh-180px)]"
         >
           <div className="flex items-center justify-between px-8 py-6 border-b border-slate-50">
             <div>
@@ -479,7 +477,7 @@ const AppointmentHandler = () => {
             </div>
           </div>
 
-          <div className="p-4">
+          <div className="p-4 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
             {loading ? (
               <div className="py-20 text-center flex flex-col items-center">
                 <div className="h-10 w-10 border-4 border-purple-100 border-t-purple-500 rounded-full animate-spin mb-4" />

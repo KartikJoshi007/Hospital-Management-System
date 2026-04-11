@@ -112,7 +112,7 @@ const QueueManagement = () => {
   };
 
   return (
-    <div className="space-y-8 animate-in mt-10 fade-in duration-500 pb-10">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
       
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -133,13 +133,12 @@ const QueueManagement = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
         
-        {/* FORM SECTION */}
         <motion.div 
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="lg:col-span-4 bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 h-fit lg:sticky lg:top-24"
+          className="lg:col-span-4 bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 h-fit lg:sticky lg:top-5"
         >
           <div className="flex items-center gap-2 mb-6">
             <div className="p-2 bg-orange-50 text-orange-600 rounded-lg">
@@ -232,11 +231,10 @@ const QueueManagement = () => {
           </div>
         </motion.div>
 
-        {/* LIST SECTION */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="lg:col-span-8 bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]"
+          className="lg:col-span-8 bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col lg:max-h-[calc(100vh-180px)]"
         >
           <div className="flex flex-col sm:flex-row items-center justify-between px-8 py-6 border-b border-slate-50 gap-4">
             <div>
@@ -256,7 +254,7 @@ const QueueManagement = () => {
             </div>
           </div>
 
-          <div className="p-4 flex-1">
+          <div className="p-4 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
             {loading ? (
                 <div className="py-20 text-center flex flex-col items-center">
                   <div className="h-10 w-10 border-4 border-purple-100 border-t-purple-500 rounded-full animate-spin mb-4" />
