@@ -217,12 +217,12 @@ exports.updatePatient = asyncHandler(async (req, res) => {
 exports.deletePatient = asyncHandler(async (req, res) => {
   const patient = await Patient.findByIdAndDelete(req.params.id);
 
-  if (!patient) {
-    throw new ApiError(404, "Patient not found");
+  if (patient.userId) {
+    await User.findByIdAndDelete(patient.userId);
   }
 
   return res.status(200).json(
-    new ApiResponse(200, {}, "Patient deleted successfully")
+    new ApiResponse(200, {}, "Patient and associated user account deleted successfully")
   );
 });
 

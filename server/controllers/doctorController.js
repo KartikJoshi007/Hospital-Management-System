@@ -211,12 +211,12 @@ exports.updateDoctor = asyncHandler(async (req, res) => {
 exports.deleteDoctor = asyncHandler(async (req, res) => {
   const doctor = await Doctor.findByIdAndDelete(req.params.id);
 
-  if (!doctor) {
-    throw new ApiError(404, "Doctor not found");
+  if (doctor.userId) {
+    await User.findByIdAndDelete(doctor.userId);
   }
 
   return res.status(200).json(
-    new ApiResponse(200, {}, "Doctor deleted successfully")
+    new ApiResponse(200, {}, "Doctor and associated user account deleted successfully")
   );
 });
 // @desc    Get doctor statistics

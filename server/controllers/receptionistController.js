@@ -134,12 +134,12 @@ exports.updateReceptionist = asyncHandler(async (req, res) => {
 // @route   DELETE /api/receptionists/:id
 exports.deleteReceptionist = asyncHandler(async (req, res) => {
   const receptionist = await Receptionist.findByIdAndDelete(req.params.id);
-  if (!receptionist) {
-    throw new ApiError(404, "Receptionist not found");
+  if (receptionist.userId) {
+    await User.findByIdAndDelete(receptionist.userId);
   }
 
   return res.status(200).json(
-    new ApiResponse(200, {}, "Receptionist deleted successfully")
+    new ApiResponse(200, {}, "Receptionist and associated user account deleted successfully")
   );
 });
 

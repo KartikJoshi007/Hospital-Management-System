@@ -299,6 +299,15 @@ exports.deleteUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Cannot delete an active user. Deactivate first.");
   }
 
+  // 🗑️ Cascade Delete: Remove linked profiles
+  if (user.role === "patient") {
+    await Patient.findOneAndDelete({ userId: user._id });
+  } else if (user.role === "doctor") {
+    await Doctor.findOneAndDelete({ userId: user._id });
+  } else if (user.role === "reception") {
+    await Receptionist.findOneAndDelete({ userId: user._id });
+  }
+
   await User.findByIdAndDelete(req.params.id);
 
   return res.status(200).json(
