@@ -74,7 +74,7 @@ function PatientManagement() {
       <div className="flex flex-wrap gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-          <input type="text" placeholder="Search by name or contact..." value={search} onChange={e => setSearch(e.target.value)}
+          <input type="text" placeholder="Search by name, contact or ID (PAT-XXXX)..." value={search} onChange={e => setSearch(e.target.value)}
             className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all placeholder:text-slate-400" />
         </div>
         <select value={genderFilter} onChange={e => setGenderFilter(e.target.value)}
@@ -136,7 +136,12 @@ function PatientManagement() {
                         <div>
                           <p className="text-xs font-black text-slate-900">{p.name}</p>
                           <p className="text-[10px] font-bold text-slate-400">{p.userId?.email || p.email || 'No Email'}</p>
-
+                          {p.hospitalId && (
+                            <p className="text-[9px] font-black text-emerald-500 flex items-center gap-1 mt-0.5">
+                              <span className="inline-block h-1 w-1 rounded-full bg-emerald-400" />
+                              {p.hospitalId}
+                            </p>
+                          )}
                         </div>
                       </div>
                     </td>

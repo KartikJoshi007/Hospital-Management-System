@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const counter = require("../utils/counter");
 
 const doctorSchema = new mongoose.Schema(
   {
@@ -6,6 +7,13 @@ const doctorSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
+      index: true,
+    },
+
+    hospitalId: {
+      type: String,
+      unique: true,
+      sparse: true,
       index: true,
     },
 
@@ -138,5 +146,14 @@ doctorSchema.virtual('isCurrentlyOnShift').get(function() {
 doctorSchema.index({ userId: 1 });
 doctorSchema.index({ specialization: 1, status: 1 });
 doctorSchema.index({ shift: 1 });
+
+// 🏥 Auto-generate DOC-XXXX hospital ID on first save
+doctorSchema.pre("save", async function (next) {
+  if (!this.hospitalId) {
+    const num = await counter.getNext("doctor");
+    this.hospitalId = `DOC-${String(num).padStart(4, "0")}`;
+  }
+  next();
+});
 
 module.exports = mongoose.model("Doctor", doctorSchema);

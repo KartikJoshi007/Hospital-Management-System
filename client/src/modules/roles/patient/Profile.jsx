@@ -18,7 +18,8 @@ import {
   TrendingUp, 
   Loader2, 
   FileText,
-  Clock
+  Clock,
+  Hash
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useAuth from '../../../hooks/useAuth'
@@ -37,7 +38,8 @@ function PatientProfile() {
   const [showIncompletePopup, setShowIncompletePopup] = useState(false)
   const [message, setMessage] = useState({ text: '', type: '' })
 
-  const [patientId, setPatientId] = useState(null)
+  const [patientId,   setPatientId]   = useState(null)
+  const [hospitalId,  setHospitalId]  = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -72,6 +74,7 @@ function PatientProfile() {
         const res = await getPatientByUserId(user.id)
         const p = res.data
         setPatientId(p?._id)
+        setHospitalId(p?.hospitalId || null)
         const initialForm = {
           name: p.name || p.userId?.fullName || user?.fullName || '',
           email: p.userId?.email || user?.email || '',
@@ -202,9 +205,10 @@ function PatientProfile() {
 
   const stats = [
     { label: 'Height (cm)', value: profileForm.height || 'N/A', icon: TrendingUp, color: 'emerald' },
-    { label: 'Weight (kg)', value: profileForm.weight || 'N/A', icon: Activity, color: 'blue' },
-    { label: 'Blood Group', value: profileForm.bloodGroup, icon: Heart, color: 'rose' },
-    { label: 'Age', value: profileForm.age || '0', icon: User, color: 'orange' },
+    { label: 'Weight (kg)', value: profileForm.weight || 'N/A', icon: Activity,   color: 'blue'    },
+    { label: 'Blood Group', value: profileForm.bloodGroup,      icon: Heart,      color: 'rose'    },
+    { label: 'Age',         value: profileForm.age || '0',      icon: User,       color: 'orange'  },
+    { label: 'Patient ID',  value: hospitalId || '—',           icon: Hash,       color: 'emerald' },
   ]
 
   if (loading) {
@@ -239,6 +243,12 @@ function PatientProfile() {
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-900 border-l-4 border-emerald-500 pl-4">{profileForm.name || 'Patient Profile'}</h1>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 pl-5">Manage your personal and clinical information</p>
+            {hospitalId && (
+              <span className="ml-5 mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-100 rounded-full text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+                <Hash size={9} strokeWidth={3} />
+                {hospitalId}
+              </span>
+            )}
           </div>
         </div>
         <button onClick={() => { 

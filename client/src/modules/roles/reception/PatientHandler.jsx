@@ -169,7 +169,7 @@ const PatientHandler = () => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-purple-500 transition-colors pointer-events-none" />
           <input
             type="text"
-            placeholder="Search by name or phone..."
+          placeholder="Search by name, phone or ID (PAT-XXXX)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-white border border-slate-200 rounded-2xl py-2.5 pl-11 pr-4 text-xs font-bold text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50"
@@ -364,8 +364,13 @@ const PatientHandler = () => {
                         {p.name.charAt(0)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-[13px] font-black text-slate-900 truncate">{p.name}</p>
+                          {p.hospitalId && (
+                            <span className="text-[9px] px-2 py-0.5 bg-emerald-50 rounded-full text-emerald-600 font-black uppercase tracking-widest border border-emerald-100">
+                              {p.hospitalId}
+                            </span>
+                          )}
                           <span className="text-[9px] px-2 py-1 bg-purple-50 rounded text-purple-500 font-black uppercase tracking-widest border border-purple-100">{p.bloodGroup || "O+"}</span>
                         </div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">

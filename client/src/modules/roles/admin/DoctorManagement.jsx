@@ -64,7 +64,9 @@ function DoctorManagement({ view }) {
   }, [isFormOpen, view, navigate])
 
   const filtered = useMemo(() => doctors.filter(d => {
-    const bySearch = d.name.toLowerCase().includes(search.toLowerCase()) || d.specialization.toLowerCase().includes(search.toLowerCase())
+    const bySearch = d.name.toLowerCase().includes(search.toLowerCase()) || 
+                     d.specialization.toLowerCase().includes(search.toLowerCase()) ||
+                     (d.hospitalId && d.hospitalId.toLowerCase().includes(search.toLowerCase()))
     const bySpec = specFilter === 'All' || d.specialization === specFilter
     return bySearch && bySpec
   }), [doctors, search, specFilter])
@@ -155,7 +157,7 @@ function DoctorManagement({ view }) {
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-          <input type="text" placeholder="Search by name or specialization..." value={search} onChange={e => setSearch(e.target.value)}
+          <input type="text" placeholder="Search by name, specialization or ID (DOC-XXXX)..." value={search} onChange={e => setSearch(e.target.value)}
             className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all placeholder:text-slate-400" />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -211,6 +213,12 @@ function DoctorManagement({ view }) {
                       <div>
                         <p className="text-sm font-black text-slate-900">{doc.name}</p>
                         <p className="text-[10px] font-bold text-slate-400">{doc.email || doc.userId?.email || 'No Email'}</p>
+                        {doc.hospitalId && (
+                          <p className="text-[9px] font-black text-emerald-500 flex items-center gap-1 mt-0.5">
+                            <span className="inline-block h-1 w-1 rounded-full bg-emerald-400" />
+                            {doc.hospitalId}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </td>

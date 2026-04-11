@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const counter = require("../utils/counter");
 
 const patientSchema = new mongoose.Schema(
   {
@@ -7,6 +8,13 @@ const patientSchema = new mongoose.Schema(
       ref: "User",
       default: null,
       index: true // 🔥 ADD: fast search by user
+    },
+
+    hospitalId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
     },
 
     name: {
@@ -120,5 +128,14 @@ const patientSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// 🏥 Auto-generate PAT-XXXX hospital ID on first save
+patientSchema.pre("save", async function (next) {
+  if (!this.hospitalId) {
+    const num = await counter.getNext("patient");
+    this.hospitalId = `PAT-${String(num).padStart(4, "0")}`;
+  }
+  next();
+});
 
 module.exports = mongoose.model("Patient", patientSchema);

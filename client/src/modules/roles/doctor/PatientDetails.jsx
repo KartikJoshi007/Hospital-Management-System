@@ -47,7 +47,7 @@ function PatientDetails() {
       // 3. Client-side filtering for search/gender (since the new API is specific)
       if (search) {
         const s = search.toLowerCase()
-        list = list.filter(p => p.name?.toLowerCase().includes(s) || p.contact?.includes(s))
+        list = list.filter(p => p.name?.toLowerCase().includes(s) || p.contact?.includes(s) || p.hospitalId?.toLowerCase().includes(s))
       }
       if (gender) {
         list = list.filter(p => p.gender === gender)
@@ -117,7 +117,7 @@ function PatientDetails() {
         <div className="relative group">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search patient or contact..."
+            placeholder="Search name, contact or ID..."
             className="pl-8 pr-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-700 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all w-52" />
         </div>
 
@@ -182,7 +182,7 @@ function PatientDetails() {
                         </div>
                         <div>
                           <p className="text-xs font-black text-slate-900 whitespace-nowrap">{p.name}</p>
-                          <p className="text-[10px] font-bold text-slate-400">{p.email || 'No Email'}</p>
+                          <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">{p.hospitalId || 'PAT-0000'}</p>
                         </div>
                       </div>
                     </td>

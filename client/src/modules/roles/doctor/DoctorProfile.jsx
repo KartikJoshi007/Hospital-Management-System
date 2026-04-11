@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { User, Mail, Phone, Lock, Eye, EyeOff, Edit2, X, Activity, Clock, Stethoscope, BadgeCheck, Building2, BookOpen, Loader2 } from 'lucide-react'
+import { User, Mail, Phone, Lock, Eye, EyeOff, Edit2, X, Activity, Clock, Stethoscope, BadgeCheck, Building2, BookOpen, Loader2, Hash } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useAuth from '../../../hooks/useAuth'
 import { getMe, updateProfile, changePassword } from '../../auth/authApi'
@@ -116,10 +116,11 @@ function DoctorProfile() {
   }
 
   const stats = [
-    { label: 'Role',           value: 'Doctor',                                    icon: Stethoscope, color: 'blue'    },
-    { label: 'Status',         value: display?.isActive === false ? 'Inactive' : 'Active', icon: Activity, color: 'emerald' },
+    { label: 'Role',           value: 'Doctor',                                                          icon: Stethoscope, color: 'blue'    },
+    { label: 'Status',         value: display?.isActive === false ? 'Inactive' : 'Active',                icon: Activity,    color: 'emerald' },
     { label: 'Last Login',     value: display?.lastLogin ? new Date(display.lastLogin).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—', icon: Clock, color: 'purple' },
-    { label: 'Specialization', value: docDisplay.specialization || '—',            icon: BadgeCheck,  color: 'blue'    },
+    { label: 'Specialization', value: docDisplay.specialization || '—',                                  icon: BadgeCheck,   color: 'blue'    },
+    { label: 'Doctor ID',      value: docDisplay.hospitalId || '—',                                      icon: Hash,        color: 'blue'    },
   ]
 
   const inputClass = 'w-full pl-11 pr-4 py-3 rounded-xl border bg-slate-50 border-slate-100 text-sm font-bold text-slate-600 outline-none cursor-default'
@@ -155,6 +156,11 @@ function DoctorProfile() {
               <h2 className="text-xl font-black text-white leading-tight">{display?.fullName || 'Doctor'}</h2>
               <p className="text-xs font-bold text-blue-100 uppercase tracking-widest">{docDisplay.specialization || 'Doctor'}</p>
               <p className="text-xs font-bold text-blue-100 mt-0.5">{display?.email || '—'}</p>
+              {docDisplay.hospitalId && (
+                <span className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-full text-[9px] font-black text-white uppercase tracking-widest">
+                  <Hash size={9} strokeWidth={3} /> {docDisplay.hospitalId}
+                </span>
+              )}
             </div>
           </div>
           {!editMode ? (

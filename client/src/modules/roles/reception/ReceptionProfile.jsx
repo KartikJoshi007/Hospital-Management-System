@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
-import { User, Mail, Phone, Lock, Eye, EyeOff, Edit2, X, Activity, Clock, ShieldCheck, Loader2 } from 'lucide-react'
+import { User, Mail, Phone, Lock, Eye, EyeOff, Edit2, X, Activity, Clock, ShieldCheck, Loader2, Hash } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useAuth from '../../../hooks/useAuth'
 import { getMe, updateProfile, changePassword } from '../../auth/authApi'
+import API from '../../../api/axios'
 
 function ReceptionProfile() {
   const { user, login } = useAuth()
 
   const [profile,     setProfile]     = useState(null)
+  const [recProfile,  setRecProfile]  = useState(null)
   const [editMode,    setEditMode]    = useState(false)
   const [showCurrent, setShowCurrent] = useState(false)
   const [showNew,     setShowNew]     = useState(false)
@@ -22,6 +24,18 @@ function ReceptionProfile() {
 
   // fetch fresh profile on mount
   useEffect(() => {
+    // 1️⃣ Eagerly fetch receptionist profile using cached user id
+    const cachedId = user?.id || user?._id
+    if (cachedId) {
+      API.get(`/receptionists/user/${cachedId}`)
+        .then(r => {
+          const rec = r.data?.data ?? r.data ?? null
+          if (rec?.hospitalId) setRecProfile(rec)
+        })
+        .catch(() => {})
+    }
+
+    // 2️⃣ Fetch fresh user data
     getMe()
       .then(res => {
         const u = res?.data ?? res
@@ -30,9 +44,18 @@ function ReceptionProfile() {
         const merged = { ...user, ...u, id: u._id || u.id }
         localStorage.setItem('user', JSON.stringify(merged))
         login(merged)
+
+        // Also re-fetch receptionist profile with fresh uid
+        const uid = u._id || u.id
+        if (uid) {
+          API.get(`/receptionists/user/${uid}`)
+            .then(r => setRecProfile(r.data?.data ?? r.data ?? null))
+            .catch(() => {})
+        }
       })
       .catch(() => setProfile(user)) // fallback to localStorage user
   }, [])
+
 
   const display = profile || user
 
@@ -111,9 +134,10 @@ function ReceptionProfile() {
   }
 
   const stats = [
-    { label: 'Role',       value: 'Receptionist', icon: ShieldCheck, color: 'purple' },
-    { label: 'Status',     value: display?.isActive === false ? 'Inactive' : 'Active', icon: Activity, color: 'blue' },
+    { label: 'Role',       value: 'Receptionist',                                                                                                              icon: ShieldCheck, color: 'purple' },
+    { label: 'Status',     value: display?.isActive === false ? 'Inactive' : 'Active',                                                                        icon: Activity,    color: 'blue'   },
     { label: 'Last Login', value: display?.lastLogin ? new Date(display.lastLogin).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—', icon: Clock, color: 'indigo' },
+    { label: 'Staff ID',   value: recProfile?.hospitalId || '—',                                                                                              icon: Hash,        color: 'purple' },
   ]
 
   const inputClass = 'w-full pl-11 pr-4 py-3 rounded-xl border bg-slate-50 border-slate-100 text-sm font-bold text-slate-600 outline-none cursor-default'
@@ -149,6 +173,11 @@ function ReceptionProfile() {
               <h2 className="text-xl font-black text-white leading-tight">{display?.fullName || 'Receptionist'}</h2>
               <p className="text-xs font-bold text-purple-100 uppercase tracking-widest">Reception & Front Desk</p>
               <p className="text-xs font-bold text-purple-100 mt-0.5">{display?.email || '—'}</p>
+              {recProfile?.hospitalId && (
+                <span className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 bg-white/20 rounded-full text-[9px] font-black text-white uppercase tracking-widest">
+                  <Hash size={9} strokeWidth={3} /> {recProfile.hospitalId}
+                </span>
+              )}
             </div>
           </div>
           {!editMode ? (

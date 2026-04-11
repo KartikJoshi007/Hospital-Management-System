@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, User, Phone, MapPin, Droplets, Calendar, FileText, Activity, ClipboardList, Eye, Loader2 } from 'lucide-react'
+import { X, User, Phone, MapPin, Droplets, Calendar, FileText, Activity, ClipboardList, Eye, Loader2, Hash } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getPatientRecords } from '../../patients/medicalRecordApi'
 import { getPatientAppointments } from '../../appointments/appointmentApi'
@@ -109,11 +109,16 @@ function PatientProfileModal({ patient, onClose }) {
                 </div>
                 <div>
                   <h2 className="text-xl font-black text-slate-900">{patient.name}</h2>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{patient.userId?.email || patient.email || 'No Email'}</p>
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${STATUS_COLORS[patient.status] || ''}`}>
                       {patient.status}
                     </span>
+                    {patient.hospitalId && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-emerald-50 border border-emerald-100 text-emerald-600">
+                        <Hash size={8} strokeWidth={3} /> {patient.hospitalId}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -154,15 +159,16 @@ function PatientProfileModal({ patient, onClose }) {
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {[
-                          { label: 'Age', value: `${patient.age} yrs` },
-                          { label: 'Gender', value: patient.gender },
+                          { label: 'Patient ID',  value: patient.hospitalId || 'N/A' },
+                          { label: 'Age',         value: `${patient.age} yrs` },
+                          { label: 'Gender',      value: patient.gender },
                           { label: 'Blood Group', value: patient.bloodGroup || 'N/A' },
-                          { label: 'Status', value: patient.status },
-                          { label: 'Email', value: patient.userId?.email || patient.email || 'N/A' },
+                          { label: 'Status',      value: patient.status },
+                          { label: 'Email',       value: patient.userId?.email || patient.email || 'N/A' },
                         ].map((item, i) => (
                         <div key={i} className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
-                          <p className="text-sm font-black text-slate-900">{item.value}</p>
+                          <p className={`text-sm font-black ${item.label === 'Patient ID' ? 'text-emerald-600' : 'text-slate-900'}`}>{item.value}</p>
                         </div>
                       ))}
                     </div>

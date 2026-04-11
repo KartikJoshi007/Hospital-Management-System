@@ -79,8 +79,9 @@ exports.getAllDoctors = asyncHandler(async (req, res) => {
   let query = {};
   if (search) {
     query.$or = [
-      { name: { $regex: search, $options: "i" } },
+      { name:           { $regex: search, $options: "i" } },
       { specialization: { $regex: search, $options: "i" } },
+      { hospitalId:     { $regex: search, $options: "i" } },
     ];
   }
 
@@ -316,12 +317,16 @@ exports.getDoctorByUserId = asyncHandler(async (req, res) => {
     } else {
       throw new ApiError(404, "Doctor profile not found for this user");
     }
+  } else if (!doctor.hospitalId) {
+    // 🏥 Backfill: existing record missing hospitalId — trigger pre-save hook
+    await doctor.save();
   }
 
   return res.status(200).json(
     new ApiResponse(200, doctor, "Doctor profile fetched successfully")
   );
 });
+
 
 // @desc    Get patients assigned to a specific doctor (via appointments)
 // @route   GET /api/doctors/:id/patients

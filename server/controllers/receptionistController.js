@@ -13,7 +13,8 @@ exports.getAllReceptionists = asyncHandler(async (req, res) => {
   
   for (const user of allReceptionUsers) {
     if (!existingProfileUserIds.some(id => id.toString() === user._id.toString())) {
-      await Receptionist.create({
+      // Use new + save() to ensure pre('save') hook fires and generates REC-XXXX
+      const newRec = new Receptionist({
         userId: user._id,
         name: user.fullName || "New Staff",
         email: user.email,
@@ -21,16 +22,26 @@ exports.getAllReceptionists = asyncHandler(async (req, res) => {
         status: "Active",
         shift: "Morning"
       });
+      await newRec.save();
     }
   }
+
+  // 🏥 Backfill: assign hospitalId to any existing record missing it
+  const missingId = await Receptionist.find({ hospitalId: { $exists: false } }).select('_id');
+  for (const rec of missingId) {
+    const r = await Receptionist.findById(rec._id);
+    if (r && !r.hospitalId) await r.save();
+  }
+
 
   const { search, status, shift } = req.query;
 
   let query = {};
   if (search) {
     query.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
+      { name:       { $regex: search, $options: "i" } },
+      { email:      { $regex: search, $options: "i" } },
+      { hospitalId: { $regex: search, $options: "i" } },
     ];
   }
 
@@ -168,6 +179,9 @@ exports.getReceptionistByUserId = asyncHandler(async (req, res) => {
     } else {
       throw new ApiError(404, "Receptionist profile not found for this user");
     }
+  } else if (!receptionist.hospitalId) {
+    // 🏥 Backfill: existing record missing hospitalId — trigger pre-save hook
+    await receptionist.save();
   }
 
   return res.status(200).json(

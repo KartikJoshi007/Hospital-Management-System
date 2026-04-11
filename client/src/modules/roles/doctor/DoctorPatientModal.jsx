@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { X, User, FileText, Pill, Calendar, Activity, Eye, Phone, MapPin, Mail, AlertTriangle, DollarSign, Droplets, Download, Scissors, Clock, ChevronLeft, ChevronRight, Plus, Check, Loader2 } from 'lucide-react'
+import { X, User, FileText, Pill, Calendar, Activity, Eye, Phone, MapPin, Mail, AlertTriangle, DollarSign, Droplets, Download, Scissors, Clock, ChevronLeft, ChevronRight, Plus, Check, Loader2, Edit2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useAuth from '../../../hooks/useAuth'
 import { getDoctorByUserId } from '../../doctors/doctorApi'
 import { createScheduleEvent } from './scheduleApi'
 import { getBillsByPatient } from '../../billing/billingApi'
 import { getPatientRecords, createRecord } from '../../patients/medicalRecordApi'
+import { updatePatient } from '../../patients/patientApi'
 import jsPDF from 'jspdf'
 
 const HOSPITAL = {
@@ -20,7 +21,6 @@ const TABS = [
   { key: 'reports',      label: 'Reports',      icon: FileText    },
   { key: 'prescription', label: 'Prescription', icon: Pill        },
   { key: 'vitals',       label: 'Vitals',       icon: Activity    },
-  { key: 'billing',      label: 'Billing',      icon: DollarSign  },
   { key: 'calendar',     label: 'Calendar',     icon: Calendar    },
 ]
 
@@ -950,20 +950,53 @@ function CalendarTab({ events, onBookSurgery, patient }) {
 
 function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
   const [activeTab,   setActiveTab]   = useState('overview')
-  const [viewReport,  setViewReport]  = useState(null)
-  const [bills,       setBills]       = useState([])
-  const [billsLoading, setBillsLoading] = useState(false)
-  const [billsError,  setBillsError]  = useState('')
+  const [patientData, setPatientData] = useState(patient)
+  const [isUpdating,  setIsUpdating]  = useState(false)
+  
+  // Local edit states
+  const [editField, setEditField] = useState(null) // 'age' or 'weight'
+  const [tempVal, setTempVal]     = useState('')
+
+  const startEdit = (field, val) => {
+    setEditField(field)
+    setTempVal(val)
+  }
+
+  const cancelEdit = () => {
+    setEditField(null)
+    setTempVal('')
+  }
+
+  const saveEdit = async () => {
+    if (!editField) return
+    setIsUpdating(true)
+    try {
+      const updateData = {}
+      if (editField === 'age') {
+        updateData.age = Number(tempVal)
+      } else if (editField === 'weight') {
+        updateData.vitals = { ...patientData.vitals, weight: Number(tempVal) }
+      }
+
+      const res = await updatePatient(patientData._id, updateData)
+      const updated = res?.data || res
+      setPatientData(updated)
+      setEditField(null)
+      
+      // Notify parent if needed (optional, but good for sync)
+      if (window.refreshPatients) window.refreshPatients()
+    } catch (err) {
+      console.error("Failed to update patient vital:", err)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
 
   useEffect(() => {
-    if (activeTab !== 'billing' || !patient._id) return
-    setBillsLoading(true)
-    setBillsError('')
-    getBillsByPatient(patient._id)
-      .then(data => setBills(Array.isArray(data) ? data : []))
-      .catch(() => setBillsError('Failed to load billing records'))
-      .finally(() => setBillsLoading(false))
-  }, [activeTab, patient._id])
+    setPatientData(patient)
+  }, [patient])
+
+  const p = patientData // sugar for readability
 
   return (
     <>
@@ -980,21 +1013,21 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-4">
                 <div className="h-14 w-14 rounded-2xl bg-blue-500 text-white flex items-center justify-center text-2xl font-black shadow-md shrink-0">
-                  {patient.name.charAt(0)}
+                  {p.name.charAt(0)}
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-slate-900">{patient.name}</h2>
+                  <h2 className="text-xl font-black text-slate-900">{p.name}</h2>
                   <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{patient.email || 'No Email'}</span>
+                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">{p.hospitalId || 'PAT-0000'}</span>
                     <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400">
-                      <Droplets size={10} className="text-rose-400" />{patient.blood}
+                      <Droplets size={10} className="text-rose-400" />{p.bloodGroup || p.blood}
                     </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${patient.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                      {patient.status}
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${p.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
+                      {p.status}
                     </span>
-                    {patient.nextVisit && (
+                    {p.nextVisit && (
                       <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border bg-purple-50 text-purple-600 border-purple-100">
-                        <Calendar size={9} /> Next: {patient.nextVisit}
+                        <Calendar size={9} /> Next: {p.nextVisit}
                       </span>
                     )}
                   </div>
@@ -1026,42 +1059,96 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {[
-                    { label: 'Age',    value: `${patient.age || '—'} yrs` },
-                    { label: 'Gender', value: patient.gender || '—'        },
-                    { label: 'Blood',  value: patient.bloodGroup || '—'    },
-                    { label: 'Visits', value: patient.totalVisits || '—'   },
-                  ].map((item, i) => (
-                    <div key={i} className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
-                      <p className="text-sm font-black text-slate-900">{item.value}</p>
-                    </div>
-                  ))}
+                  {/* Age Block (Editable) */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 relative group">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center justify-between">
+                      Age
+                      {editField !== 'age' && (
+                        <button onClick={() => startEdit('age', p.age)} className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-700">
+                          <Edit2 size={10} />
+                        </button>
+                      )}
+                    </p>
+                    {editField === 'age' ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          autoFocus
+                          type="number"
+                          value={tempVal}
+                          onChange={e => setTempVal(e.target.value)}
+                          className="w-full bg-white border border-blue-200 rounded-lg px-2 py-1 text-sm font-black text-slate-900 outline-none focus:ring-2 focus:ring-blue-100"
+                        />
+                        <button onClick={saveEdit} disabled={isUpdating} className="p-1 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50">
+                          {isUpdating ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                        </button>
+                        <button onClick={cancelEdit} className="p-1 rounded-lg bg-slate-200 text-slate-500 hover:bg-slate-300">
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-black text-slate-900">{p.age || '—'} yrs</p>
+                    )}
+                  </div>
+
+                  {/* Other standard info */}
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Gender</p>
+                    <p className="text-sm font-black text-slate-900">{p.gender || '—'}</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Blood</p>
+                    <p className="text-sm font-black text-slate-900">{p.bloodGroup || p.blood || '—'}</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Visits</p>
+                    <p className="text-sm font-black text-slate-900">{p.totalVisits || '—'}</p>
+                  </div>
                 </div>
 
-                {/* Quick Vitals in Overview (Height & Weight only) */}
-                {(patient.vitals?.height || patient.vitals?.weight) && (
-                   <div className="grid grid-cols-2 gap-4 max-w-sm">
-                      {patient.vitals.height ? (
-                        <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 flex items-center gap-3">
-                           <div className="h-8 w-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shrink-0 shadow-sm"><Activity size={14} /></div>
-                           <div>
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Height</p>
-                              <p className="text-sm font-black text-slate-900">{patient.vitals.height} cm</p>
-                           </div>
+                {/* Quick Vitals (Height & Weight) - Weight is Editable */}
+                <div className="grid grid-cols-2 gap-4 max-w-sm">
+                  <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-xl bg-blue-500 text-white flex items-center justify-center shrink-0 shadow-sm"><Activity size={14} /></div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Height</p>
+                      <p className="text-sm font-black text-slate-900">{p.vitals?.height || '—'} cm</p>
+                    </div>
+                  </div>
+
+                  {/* Weight Block (Editable) */}
+                  <div className="p-4 rounded-2xl bg-orange-50/50 border border-orange-100 flex items-center gap-3 relative group">
+                    <div className="h-8 w-8 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm"><Activity size={14} /></div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center justify-between">
+                        Weight
+                        {editField !== 'weight' && (
+                          <button onClick={() => startEdit('weight', p.vitals?.weight)} className="opacity-0 group-hover:opacity-100 transition-opacity text-orange-600 hover:text-orange-800">
+                            <Edit2 size={10} />
+                          </button>
+                        )}
+                      </p>
+                      {editField === 'weight' ? (
+                        <div className="flex items-center gap-1 mt-1">
+                          <input
+                            autoFocus
+                            type="number"
+                            value={tempVal}
+                            onChange={e => setTempVal(e.target.value)}
+                            className="w-full bg-white border border-orange-200 rounded-lg px-2 py-0.5 text-xs font-black text-slate-900 outline-none focus:ring-2 focus:ring-orange-100"
+                          />
+                          <button onClick={saveEdit} disabled={isUpdating} className="p-1 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50 shrink-0">
+                            {isUpdating ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
+                          </button>
+                          <button onClick={cancelEdit} className="p-1 rounded-lg bg-slate-200 text-slate-500 hover:bg-slate-300 shrink-0">
+                            <X size={10} />
+                          </button>
                         </div>
-                      ) : null}
-                      {patient.vitals.weight ? (
-                        <div className="p-4 rounded-2xl bg-orange-50/50 border border-orange-100 flex items-center gap-3">
-                           <div className="h-8 w-8 rounded-xl bg-orange-500 text-white flex items-center justify-center shrink-0 shadow-sm"><Activity size={14} /></div>
-                           <div>
-                              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Weight</p>
-                              <p className="text-sm font-black text-slate-900">{patient.vitals.weight} kg</p>
-                           </div>
-                        </div>
-                      ) : null}
-                   </div>
-                )}
+                      ) : (
+                        <p className="text-sm font-black text-slate-900">{p.vitals?.weight || '—'} kg</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
@@ -1069,28 +1156,28 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
                       <Phone size={12} className="text-slate-400" />
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Phone</p>
                     </div>
-                    <p className="text-sm font-bold text-slate-900">{patient.contact || patient.phone || '—'}</p>
+                    <p className="text-sm font-bold text-slate-900">{p.contact || p.phone || '—'}</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                     <div className="flex items-center gap-2 mb-1">
                       <Mail size={12} className="text-slate-400" />
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Email</p>
                     </div>
-                    <p className="text-sm font-bold text-slate-900 lowercase">{patient.email || patient.userId?.email || '—'}</p>
+                    <p className="text-sm font-bold text-slate-900 lowercase">{p.email || p.userId?.email || '—'}</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                     <div className="flex items-center gap-2 mb-1">
                       <MapPin size={12} className="text-slate-400" />
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Address</p>
                     </div>
-                    <p className="text-sm font-bold text-slate-900">{patient.address || '—'}</p>
+                    <p className="text-sm font-bold text-slate-900">{p.address || '—'}</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                     <div className="flex items-center gap-2 mb-1">
                       <Calendar size={12} className="text-purple-400" />
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Last Visit</p>
                     </div>
-                    <p className="text-sm font-bold text-slate-900">{patient.lastVisit}</p>
+                    <p className="text-sm font-bold text-slate-900">{p.lastVisit}</p>
                   </div>
                 </div>
 
@@ -1100,56 +1187,98 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
                     <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest">Medical History / Known Allergies</p>
                   </div>
                   <p className="text-sm font-bold text-rose-900 leading-relaxed">
-                    {patient.medicalHistory || 'No known conditions or allergies recorded.'}
+                    {p.medicalHistory || 'No known conditions or allergies recorded.'}
                   </p>
                 </div>
 
                 <div className="p-4 rounded-2xl bg-blue-50 border border-blue-100">
                   <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-1">Current Condition</p>
-                  <p className="text-sm font-black text-blue-900">{patient.status}</p>
+                  <p className="text-sm font-black text-blue-900">{p.status}</p>
                 </div>
               </div>
             )}
 
             {/* REPORTS */}
             {activeTab === 'reports' && (
-              <ReportsTab patient={patient} />
+              <ReportsTab patient={p} />
             )}
 
             {/* PRESCRIPTION */}
             {activeTab === 'prescription' && (
-              <PrescriptionTab patient={patient} />
+              <PrescriptionTab patient={p} />
             )}
 
             {/* VITALS */}
             {activeTab === 'vitals' && (() => {
-              const v = patient.vitals || {}
+              const v = p.vitals || {}
               const rows = [
-                { label: 'Height', value: v.height, unit: 'cm', icon: <Activity size={14} />, color: 'bg-blue-500' },
-                { label: 'Weight', value: v.weight, unit: 'kg', icon: <Activity size={14} />, color: 'bg-orange-500' },
-              ].filter(r => r.value && r.value !== 0)
+                { label: 'Height', value: v.height, unit: 'cm', icon: <Activity size={14} />, color: 'bg-blue-500', field: 'height' },
+                { label: 'Weight', value: v.weight, unit: 'kg', icon: <Activity size={14} />, color: 'bg-orange-500', field: 'weight' },
+              ]
+
+              const startEditVital = (row) => {
+                setEditField(row.field)
+                setTempVal(row.value)
+              }
+
+              const saveEditVital = async () => {
+                setIsUpdating(true)
+                try {
+                  const updateData = {
+                    vitals: { ...p.vitals, [editField]: Number(tempVal) }
+                  }
+                  const res = await updatePatient(p._id, updateData)
+                  setPatientData(res?.data || res)
+                  setEditField(null)
+                } catch (err) {
+                  console.error("Failed to update vital:", err)
+                } finally {
+                  setIsUpdating(false)
+                }
+              }
 
               return (
                 <div className="space-y-6">
-                  {rows.length === 0 ? (
-                    <div className="py-20 text-center space-y-3">
-                       <Activity className="h-10 w-10 text-slate-200 mx-auto" />
-                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No clinical vitals recorded yet.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto">
-                      {rows.map((row, i) => (
-                        <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                          className="p-8 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center">
-                          <div className={`h-14 w-14 rounded-3xl ${row.color} text-white flex items-center justify-center mb-4 shadow-lg shadow-black/5`}>
-                             {row.icon}
+                  <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto">
+                    {rows.map((row, i) => (
+                      <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+                        className="p-8 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center text-center relative group">
+                        
+                        {editField !== row.field && (
+                          <button onClick={() => startEditVital(row)} className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-blue-500">
+                             <Edit2 size={14} />
+                          </button>
+                        )}
+
+                        <div className={`h-14 w-14 rounded-3xl ${row.color} text-white flex items-center justify-center mb-4 shadow-lg shadow-black/5`}>
+                           {row.icon}
+                        </div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{row.label}</p>
+                        
+                        {editField === row.field ? (
+                          <div className="flex items-center gap-2 mt-1">
+                            <input
+                              autoFocus
+                              type="number"
+                              value={tempVal}
+                              onChange={e => setTempVal(e.target.value)}
+                              className="w-24 text-center bg-slate-50 border border-blue-200 rounded-xl px-2 py-1 text-xl font-black text-slate-900 outline-none focus:ring-4 focus:ring-blue-100"
+                            />
+                            <div className="flex flex-col gap-1">
+                              <button onClick={saveEditVital} disabled={isUpdating} className="p-1.5 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 disabled:opacity-50">
+                                {isUpdating ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                              </button>
+                              <button onClick={cancelEdit} className="p-1.5 rounded-lg bg-slate-100 text-slate-400 hover:bg-slate-200">
+                                <X size={12} />
+                              </button>
+                            </div>
                           </div>
-                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{row.label}</p>
-                          <p className="text-2xl font-black text-slate-900">{row.value} <span className="text-xs text-slate-400 font-bold ml-1">{row.unit}</span></p>
-                        </motion.div>
-                      ))}
-                    </div>
-                  )}
+                        ) : (
+                          <p className="text-2xl font-black text-slate-900">{row.value || '—'} <span className="text-xs text-slate-400 font-bold ml-1">{row.unit}</span></p>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
               )
             })()}
@@ -1157,7 +1286,7 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
             {/* CALENDAR */}
             {activeTab === 'calendar' && (
               <CalendarTab
-                events={(patient.appointments || []).map(a => ({
+                events={(p.appointments || []).map(a => ({
                   id:    a._id,
                   date:  new Date(a.date).toISOString().slice(0, 10),
                   type:  a.status === 'Completed' ? 'followup' : 'appointment',
@@ -1166,81 +1295,9 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
                   note:  a.reason,
                 }))
                 }
-                patient={patient}
-                onBookSurgery={(ev) => onBookSurgery && onBookSurgery({ ...ev, patient: patient.name })}
+                patient={p}
+                onBookSurgery={(ev) => onBookSurgery && onBookSurgery({ ...ev, patient: p.name })}
               />
-            )}
-
-            {/* BILLING */}
-            {activeTab === 'billing' && (
-              <div className="space-y-3">
-                {billsLoading ? (
-                  <div className="flex items-center justify-center py-16 gap-3 text-slate-400">
-                    <Loader2 size={18} className="animate-spin" />
-                    <span className="text-xs font-bold">Loading billing records...</span>
-                  </div>
-                ) : billsError ? (
-                  <div className="flex items-center justify-center py-16 gap-2 text-rose-400">
-                    <AlertTriangle size={16} />
-                    <span className="text-xs font-bold">{billsError}</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      {[
-                        {
-                          label: 'Total Paid',
-                          value: bills.filter(b => b.paymentStatus === 'Paid' || b.status === 'Paid').length,
-                          cls: 'bg-emerald-50 border-emerald-100 text-emerald-600',
-                        },
-                        {
-                          label: 'Pending / Overdue',
-                          value: bills.filter(b => b.paymentStatus !== 'Paid' && b.status !== 'Paid').length,
-                          cls: 'bg-rose-50 border-rose-100 text-rose-500',
-                        },
-                      ].map((s, i) => (
-                        <div key={i} className={`p-4 rounded-2xl border text-center ${s.cls}`}>
-                          <p className="text-2xl font-black">{s.value}</p>
-                          <p className="text-[9px] font-black uppercase tracking-widest mt-1 opacity-70">{s.label}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    {bills.length === 0 ? (
-                      <div className="py-10 text-center text-xs font-bold text-slate-400">No billing records found for this patient.</div>
-                    ) : bills.map((b, i) => {
-                      const status    = b.paymentStatus || b.status || 'Pending'
-                      const statusCls = BILL_COLORS[status] || BILL_COLORS['Pending']
-                      const desc      = b.service || b.type || 'Consultation'
-                      const date      = b.date ? new Date(b.date).toLocaleDateString('en-IN') : '—'
-                      const amount    = `₹${Number(b.amount || 0).toLocaleString('en-IN')}`
-                      return (
-                        <motion.div key={b._id || i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                          className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-blue-100 transition-all">
-                          <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0">
-                              <DollarSign size={16} className="text-slate-400" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-black text-slate-900">{desc}</p>
-                              <p className="text-[10px] font-bold text-slate-400">
-                                {b._id?.slice(-6).toUpperCase()} • {date}
-                                {b.paymentMethod ? ` • ${b.paymentMethod}` : ''}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 shrink-0">
-                            <p className="text-sm font-black text-slate-900">{amount}</p>
-                            <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${statusCls}`}>
-                              {status}
-                            </span>
-                          </div>
-                        </motion.div>
-                      )
-                    })}
-                  </>
-                )}
-              </div>
             )}
 
           </div>

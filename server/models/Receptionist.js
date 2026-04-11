@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const counter = require("../utils/counter");
 
 const receptionistSchema = new mongoose.Schema(
   {
@@ -6,6 +7,13 @@ const receptionistSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
+      index: true,
+    },
+
+    hospitalId: {
+      type: String,
+      unique: true,
+      sparse: true,
       index: true,
     },
 
@@ -58,5 +66,14 @@ const receptionistSchema = new mongoose.Schema(
 
 receptionistSchema.index({ userId: 1 });
 receptionistSchema.index({ email: 1 });
+
+// 🏥 Auto-generate REC-XXXX hospital ID on first save
+receptionistSchema.pre("save", async function (next) {
+  if (!this.hospitalId) {
+    const num = await counter.getNext("receptionist");
+    this.hospitalId = `REC-${String(num).padStart(4, "0")}`;
+  }
+  next();
+});
 
 module.exports = mongoose.model("Receptionist", receptionistSchema);

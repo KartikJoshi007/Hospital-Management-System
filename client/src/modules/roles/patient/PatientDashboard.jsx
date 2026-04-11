@@ -16,7 +16,8 @@ import {
   ArrowUpRight,
   Loader2,
   Lock,
-  Heart
+  Heart,
+  Hash
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import useAuth from '../../../hooks/useAuth'
@@ -150,6 +151,12 @@ function PatientDashboard() {
           <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 pl-5">
             Hello, {user?.fullName?.split(' ')[0] || user?.name?.split(' ')[0] || 'Patient'} • Track your clinical health
           </p>
+          {patientData?.hospitalId && (
+            <span className="ml-5 mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-100 rounded-full text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+              <Hash size={9} strokeWidth={3} />
+              {patientData.hospitalId}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <button

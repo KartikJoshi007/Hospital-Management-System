@@ -72,8 +72,9 @@ exports.getAllPatients = asyncHandler(async (req, res) => {
   let query = {};
   if (search) {
     query.$or = [
-      { name:    { $regex: search, $options: "i" } },
-      { contact: { $regex: search, $options: "i" } },
+      { name:       { $regex: search, $options: "i" } },
+      { contact:    { $regex: search, $options: "i" } },
+      { hospitalId: { $regex: search, $options: "i" } },
     ];
   }
 
@@ -150,12 +151,17 @@ exports.getPatientByUserId = asyncHandler(async (req, res) => {
     } else {
       throw new ApiError(404, "Patient profile not found for this user");
     }
+  } else if (!patient.hospitalId) {
+    // 🏥 Backfill: existing record missing hospitalId — trigger pre-save hook
+    await patient.save();
+    patient = await Patient.findById(patient._id).populate("userId", "fullName email phone");
   }
 
   return res.status(200).json(
     new ApiResponse(200, patient, "Patient profile fetched successfully")
   );
 });
+
 
 // @desc    Update patient
 // @route   PUT /api/patients/:id
@@ -244,8 +250,9 @@ exports.searchPatients = asyncHandler(async (req, res) => {
   const { query } = req.params;
   const patients = await Patient.find({
     $or: [
-      { name: { $regex: query, $options: "i" } },
-      { contact: { $regex: query, $options: "i" } }
+      { name:       { $regex: query, $options: "i" } },
+      { contact:    { $regex: query, $options: "i" } },
+      { hospitalId: { $regex: query, $options: "i" } },
     ]
   }).limit(10);
 
