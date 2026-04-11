@@ -24,6 +24,7 @@ exports.createDoctor = asyncHandler(async (req, res) => {
     rating,
     patients,
     password,
+    consultationFees,
   } = req.body;
 
   // 1. Check if user already exists
@@ -62,6 +63,7 @@ exports.createDoctor = asyncHandler(async (req, res) => {
     isOnDuty: isOnDuty || false,
     rating: rating || 0,
     patients: patients || 0,
+    consultationFees: consultationFees || 500,
   });
 
   return res.status(201).json(
@@ -171,6 +173,7 @@ exports.updateDoctor = asyncHandler(async (req, res) => {
     rating,
     patients,
     password,
+    consultationFees,
   } = req.body;
 
   let doctor = await Doctor.findById(req.params.id);
@@ -193,6 +196,7 @@ exports.updateDoctor = asyncHandler(async (req, res) => {
   if (isOnDuty !== undefined) doctor.isOnDuty = isOnDuty;
   if (rating !== undefined) doctor.rating = rating;
   if (patients !== undefined) doctor.patients = patients;
+  if (consultationFees !== undefined) doctor.consultationFees = consultationFees;
 
   doctor = await doctor.save();
 
@@ -203,7 +207,7 @@ exports.updateDoctor = asyncHandler(async (req, res) => {
     if (contact) user.phone = contact;
     if (email) user.email = email.toLowerCase();
     if (password) user.password = password; // Triggers hashing in pre-save hook
-    
+
     user.role = "doctor"; // 🛡️ Ensure role consistency
     await user.save();
   }

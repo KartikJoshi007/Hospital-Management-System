@@ -9,14 +9,17 @@ import API from "../../../api/axios";
 const BillingSupport = () => {
   const [form, setForm] = useState({
     patientName: "",
-    service: "",
+    patientId: "",
+    doctorId: "",
+    doctorName: "",
     amount: "",
-    type: "OPD",
-    status: "Pending",
+    paymentMethod: "Cash",
+    transactionId: "",
   });
 
   const [bills, setBills] = useState([]);
   const [patients, setPatients] = useState([]);
+  const [doctors, setDoctors] = useState([]);
   const [patientSearch, setPatientSearch] = useState("");
   const [showPatientList, setShowPatientList] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -51,18 +54,45 @@ const BillingSupport = () => {
     }
   };
 
+  const fetchDoctors = async () => {
+    try {
+      const res = await API.get("/doctors");
+      const dData = res.data?.data;
+      setDoctors(Array.isArray(dData) ? dData : (dData?.doctors || []));
+    } catch (err) {
+      console.error("Error fetching doctors:", err);
+    }
+  };
+
   useEffect(() => {
     fetchBills();
     fetchPatients();
+    fetchDoctors();
   }, []);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    if (name === "doctorId") {
+      const doc = doctors.find(d => d._id === value);
+      if (doc) {
+        setForm(prev => ({
+          ...prev,
+          doctorId: value,
+          doctorName: doc.name,
+          amount: doc.consultationFees || 500, // Auto-fill amount
+          service: `Consultation with Dr. ${doc.name}`
+        }));
+        return;
+      }
+    }
+    
+    setForm({ ...form, [name]: value });
   };
 
   const handleSubmit = async () => {
-    if (!form.patientName || !form.service || !form.amount) {
-      toast.warning("All basic fields are required!");
+    if (!form.patientName || !form.doctorId || !form.amount) {
+      toast.warning("Patient, Doctor and Amount are required!");
       return;
     }
 
@@ -75,7 +105,10 @@ const BillingSupport = () => {
         toast.success("Invoice generated! ✅");
       }
       
-      setForm({ patientName: "", patientId: "", service: "", amount: "", type: "OPD", status: "Pending" });
+      setForm({ 
+        patientName: "", patientId: "", doctorId: "", doctorName: "", 
+        amount: "", paymentMethod: "Cash", transactionId: "" 
+      });
       setPatientSearch("");
       setEditId(null);
       fetchBills();
@@ -89,10 +122,12 @@ const BillingSupport = () => {
     setForm({
       patientName: bill.patientName,
       patientId: bill.patientId?._id || bill.patientId || "",
-      service: bill.service || bill.notes || "Medical Service",
+      doctorId: bill.doctorId?._id || bill.doctorId || "",
+      doctorName: bill.doctorId?.name || "",
+      service: bill.service || "",
       amount: bill.amount,
-      type: bill.type || "OPD",
-      status: bill.paymentStatus || "Pending",
+      paymentMethod: bill.paymentMethod || "Cash",
+      transactionId: bill.transactionId || "",
     });
     setPatientSearch(bill.patientName || "");
     setEditId(bill._id);
@@ -167,25 +202,24 @@ const BillingSupport = () => {
     doc.setFont("helvetica", "normal");
     doc.text(bill.patientName || "Anonymous", 20, 75);
 
-    doc.setFont("helvetica", "bold");
-    doc.text("PAYMENT STATUS", pageWidth / 2, 68);
+    doc.text("PAYMENT METHOD", pageWidth / 2, 68);
     doc.setFont("helvetica", "normal");
-    
-    // Fix: Pass separate RGB arguments instead of an array
-    if (bill.paymentStatus === "Paid") {
-      doc.setTextColor(16, 185, 129);
-    } else {
-      doc.setTextColor(249, 115, 22);
+    const methodText = (bill.paymentMethod || "Cash").toUpperCase();
+    doc.text(methodText, pageWidth / 2, 75);
+
+    // If UPI/Card ID exists, show it below method
+    if (bill.transactionId) {
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text(`Ref: ${bill.transactionId}`, pageWidth / 2, 79);
     }
-    
-    const statusText = (bill.paymentStatus || "PENDING").toString().toUpperCase();
-    doc.text(statusText, pageWidth / 2, 75);
 
     doc.setTextColor(30, 41, 59);
+    doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text("DEPARTMENT", pageWidth - 60, 68);
+    doc.text("DOCTOR", pageWidth - 60, 68);
     doc.setFont("helvetica", "normal");
-    doc.text(bill.type || "General", pageWidth - 60, 75);
+    doc.text(bill.doctorId?.name || "Consultant", pageWidth - 60, 75);
 
     // -- Bill Table --
     autoTable(doc, {
@@ -360,35 +394,24 @@ const BillingSupport = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Description</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Select Doctor</label>
               <div className="relative group">
                 <Activity className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-purple-500 transition-colors" size={14} />
-                <input
-                  type="text"
-                  name="service"
-                  placeholder="Service description"
-                  value={form.service}
+                <select
+                  name="doctorId"
+                  value={form.doctorId}
                   onChange={handleChange}
-                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50"
-                />
+                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 appearance-none"
+                >
+                  <option value="">Choose a Doctor</option>
+                  {doctors.map(d => (
+                    <option key={d._id} value={d._id}>{d.name} ({d.specialization})</option>
+                  ))}
+                </select>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-               <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Dept/Type</label>
-                <select
-                  name="type"
-                  value={form.type}
-                  onChange={handleChange}
-                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 px-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 appearance-none"
-                >
-                  <option value="OPD">OPD</option>
-                  <option value="IPD">IPD</option>
-                  <option value="Lab">Lab</option>
-                  <option value="Pharmacy">Pharmacy</option>
-                </select>
-              </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Amount</label>
                 <div className="relative group">
@@ -396,6 +419,7 @@ const BillingSupport = () => {
                   <input
                     type="number"
                     name="amount"
+                    min="0"
                     placeholder="0.00"
                     value={form.amount}
                     onChange={handleChange}
@@ -403,25 +427,33 @@ const BillingSupport = () => {
                   />
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Status</label>
-              <div className="flex gap-2">
-                 {["Pending", "Paid"].map(s => (
-                   <button
-                    key={s}
-                    type="button"
-                    onClick={() => setForm({...form, status: s})}
-                    className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
-                      form.status === s ? 'bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-500/20' : 'bg-slate-50 text-slate-400 border-transparent hover:bg-slate-100'
-                    }`}
-                   >
-                     {s}
-                   </button>
-                 ))}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Payment Type</label>
+                <select
+                  name="paymentMethod"
+                  value={form.paymentMethod}
+                  onChange={handleChange}
+                  className="w-full bg-slate-50 border border-transparent rounded-xl py-2.5 px-4 text-xs font-bold text-slate-900 outline-none transition-all focus:bg-white focus:border-purple-200 focus:ring-4 focus:ring-purple-50 appearance-none"
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Debit/Credit Card">Debit/Credit Card</option>
+                </select>
               </div>
             </div>
+
+            {(form.paymentMethod === "UPI" || form.paymentMethod === "Debit/Credit Card") && (
+              <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="pt-1">
+                <input
+                  type="text"
+                  name="transactionId"
+                  placeholder={form.paymentMethod === "UPI" ? "Enter UPI ID (e.g. name@okaxis)" : "Enter Card Number / Ref ID"}
+                  value={form.transactionId}
+                  onChange={handleChange}
+                  className="w-full bg-purple-50 border border-purple-100 rounded-xl py-3 px-4 text-xs font-bold text-purple-900 placeholder:text-purple-300 outline-none transition-all focus:bg-white focus:border-purple-300 focus:ring-4 focus:ring-purple-50"
+                />
+              </motion.div>
+            )}
 
             <button
               onClick={handleSubmit}
@@ -433,10 +465,11 @@ const BillingSupport = () => {
               {editId !== null ? "Update Invoice" : "Generate Invoice"}
             </button>
             {editId !== null && (
-              <button 
+              <button
                 onClick={() => {
                   setEditId(null);
-                  setForm({ patientName: "", service: "", amount: "", type: "OPD", status: "Pending" });
+                  setForm({ patientName: "", patientId: "", doctorId: "", doctorName: "", amount: "", paymentMethod: "Cash", transactionId: "" });
+                  setPatientSearch("");
                 }}
                 className="w-full py-3 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50"
               >
@@ -498,9 +531,9 @@ const BillingSupport = () => {
                       <div className="min-w-0">
                         <p className="text-[13px] font-black text-slate-900 truncate">{bill.patientName || "Anonymous"}</p>
                         <div className="flex items-center gap-2 mt-0.5">
-                           <span className="text-[9px] px-1.5 py-0.5 bg-slate-200 rounded text-slate-500 font-black uppercase tracking-widest">{bill.type || "OPD"}</span>
+                           <span className="text-[9px] px-1.5 py-0.5 bg-slate-200 rounded text-slate-500 font-black uppercase tracking-widest">{bill.paymentMethod || "Cash"}</span>
                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-[150px]">
-                            {bill.service || "General Care"}
+                            {bill.doctorId?.name || bill.service || "General Care"}
                           </p>
                         </div>
                       </div>

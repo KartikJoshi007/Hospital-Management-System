@@ -27,11 +27,9 @@ import Pharmacy from '../modules/pharmacy/Pharmacy'
 import AdminLayout from '../modules/roles/admin/AdminLayout'
 import AdminDashboard from '../modules/roles/admin/AdminDashboard'
 import UserManagement from '../modules/roles/admin/UserManagement'
-import RoleAssign from '../modules/roles/admin/RoleAssign'
 import DoctorManagement from '../modules/roles/admin/DoctorManagement'
 import ReceptionManagement from '../modules/roles/admin/ReceptionManagement'
 import PatientManagement from '../modules/roles/admin/PatientManagement'
-import AppointmentManagement from '../modules/roles/admin/AppointmentManagement'
 import RevenueDashboard from '../modules/roles/admin/RevenueDashboard'
 import AdminProfile from '../modules/roles/admin/AdminProfile'
 
@@ -84,12 +82,10 @@ function AppRoutes() {
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/users" element={<UserManagement />} />
-          <Route path="/admin/roles" element={<RoleAssign />} />
           <Route path="/admin/doctors" element={<DoctorManagement />} />
           <Route path="/admin/doctors/add" element={<DoctorManagement view="add" />} />
           <Route path="/admin/reception" element={<ReceptionManagement />} />
           <Route path="/admin/patients" element={<PatientManagement />} />
-          <Route path="/admin/appointments" element={<AppointmentManagement />} />
           <Route path="/admin/billing" element={<RevenueDashboard />} />
           <Route path="/admin/profile" element={<AdminProfile />} />
           <Route path="/admin/notifications" element={<NotificationsPage />} />

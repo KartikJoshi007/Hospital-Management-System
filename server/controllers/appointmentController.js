@@ -161,7 +161,18 @@ exports.updateAppointment = asyncHandler(async (req, res) => {
   const statusChanged = (status && status !== appointment.status);
   const doctorChanged = (doctorId && doctorId !== appointment.doctorId?.toString());
 
-  if (status) appointment.status = status;
+  if (status) {
+    // Prevent marking future appointments as completed
+    if (status === "Completed") {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const apptDate = new Date(appointment.date);
+      if (apptDate > today) {
+        throw new ApiError(400, "Cannot mark an upcoming appointment as completed");
+      }
+    }
+    appointment.status = status;
+  }
   if (reason) appointment.reason = reason;
   if (type) appointment.type = type;
   if (priority) appointment.priority = priority;

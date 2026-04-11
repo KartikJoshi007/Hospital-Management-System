@@ -219,9 +219,12 @@ function ActionMenu({ appointment, onView, onMarkComplete, onReschedule, onCance
             <button onClick={() => { setOpen(false); onView(appointment) }} className="w-full flex items-center gap-2 px-4 py-2.5 text-[10px] font-black uppercase text-slate-600 hover:bg-slate-50 border-b">
               <Eye size={12} /> View Details
             </button>
-            <button onClick={() => { setOpen(false); onMarkComplete(appointment._id) }} className="w-full flex items-center gap-2 px-4 py-2.5 text-[10px] font-black uppercase text-emerald-600 hover:bg-emerald-50 border-b">
-              <CheckCircle2 size={12} /> Mark Completed
-            </button>
+            {/* Only allow marking completed if appointment date is today or past */}
+            {new Date(appointment.date).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0) && (
+              <button onClick={() => { setOpen(false); onMarkComplete(appointment._id) }} className="w-full flex items-center gap-2 px-4 py-2.5 text-[10px] font-black uppercase text-emerald-600 hover:bg-emerald-50 border-b">
+                <CheckCircle2 size={12} /> Mark Completed
+              </button>
+            )}
             <button onClick={() => { setOpen(false); onReschedule(appointment) }} className="w-full flex items-center gap-2 px-4 py-2.5 text-[10px] font-black uppercase text-amber-600 hover:bg-amber-50 border-b">
               <CalendarClock size={12} /> Reschedule
             </button>
