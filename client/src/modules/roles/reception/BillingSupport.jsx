@@ -350,7 +350,7 @@ const BillingSupport = () => {
                         className="w-full text-left px-4 py-3 text-xs font-bold text-slate-700 hover:bg-purple-50 hover:text-purple-600 border-b border-slate-50 last:border-0 transition-colors flex items-center justify-between"
                       >
                         <span>{p.name}</span>
-                        <span className="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded uppercase">ID: {p._id.slice(-6)}</span>
+                        <span className="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded lowercase">{p.email || "No Email"}</span>
                       </button>
                     ))
                   ) : (
