@@ -20,7 +20,8 @@ const normalizeBill = (billDoc) => {
 exports.createBill = asyncHandler(async (req, res) => {
   const payload = {
     ...req.body,
-    paymentStatus: req.body.paymentStatus || req.body.status,
+    paymentStatus: req.body.paymentMethod ? "Paid" : (req.body.paymentStatus || req.body.status || "Pending"),
+    paymentDate: req.body.paymentMethod ? new Date() : null
   };
 
   const bill = await Billing.create(payload);

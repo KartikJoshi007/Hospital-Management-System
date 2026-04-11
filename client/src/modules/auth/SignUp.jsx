@@ -146,7 +146,7 @@ function SignUp() {
                   value={formData.email} onChange={handleChange} className={inp} />
               </div>
             </div>
-            
+
             <div>
               <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Phone Number</label>
               <div className="relative">
@@ -167,15 +167,7 @@ function SignUp() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Age (Auto-calculated)</label>
-              <div className="relative">
-                <Activity className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                <input type="text" name="age" disabled placeholder="Select DOB first"
-                  value={formData.age ? `${formData.age} Years` : ''} 
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-500 cursor-not-allowed" />
-              </div>
-            </div>
+
 
             <div>
               <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1.5 ml-1">Password</label>

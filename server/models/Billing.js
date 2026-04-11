@@ -61,8 +61,14 @@ const billingSchema = new mongoose.Schema(
 
     paymentMethod: {
       type: String,
-      enum: ["cash", "card", "upi", "other"],
-      default: undefined,
+      enum: ["Cash", "UPI", "Debit/Credit Card"],
+      default: "Cash",
+    },
+
+    transactionId: {
+      type: String,
+      trim: true,
+      default: "", // UPI ID or Card ID
     },
 
     paymentDate: {

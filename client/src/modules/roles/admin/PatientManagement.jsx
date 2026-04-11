@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Edit, Eye, X, AlertCircle, Loader2, EyeOff, Lock } from 'lucide-react'
+import { Search, Eye, X, AlertCircle, Loader2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import PatientProfileModal from './PatientProfileModal'
 import { getAllPatients, updatePatient } from '../../patients/patientApi'
@@ -18,12 +18,8 @@ function PatientManagement() {
   const [genderFilter, setGenderFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [viewPatient, setViewPatient] = useState(null)
-  const [editPatient, setEditPatient] = useState(null)
-  const [formData, setFormData] = useState({})
-  const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [isError,  setIsError]  = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
 
   const showMsg = (msg, error = false) => {
     setMessage(msg)
@@ -55,33 +51,6 @@ function PatientManagement() {
   // client-side filter only used as fallback if backend doesn't filter
   const filtered = patients
 
-  const openEdit = (p) => {
-    setEditPatient(p)
-    setFormData({ 
-      name: p.name, 
-      email: p.email || p.userId?.email || '', 
-      dob: p.dob ? new Date(p.dob).toISOString().split('T')[0] : '', 
-      contact: p.contact, 
-      address: p.address, 
-      medicalHistory: p.medicalHistory 
-    })
-  }
-
-  const handleSave = async (e) => {
-    e.preventDefault()
-    setSaving(true)
-    try {
-      const res     = await updatePatient(editPatient._id, formData)
-      const updated = res?.data?.data ?? res?.data ?? {}
-      setPatients(prev => prev.map(p => p._id === editPatient._id ? { ...p, ...updated } : p))
-      setEditPatient(null)
-      showMsg('Patient updated successfully')
-    } catch (err) {
-      showMsg(err?.message || 'Update failed', true)
-    } finally {
-      setSaving(false)
-    }
-  }
 
 
 
@@ -91,7 +60,7 @@ function PatientManagement() {
       {/* Header */}
       <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
         <h1 className="text-2xl font-black tracking-tight text-slate-900 border-l-4 border-emerald-500 pl-4">Patient Management</h1>
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 pl-5">View, edit and manage all patient records</p>
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 pl-5">View and manage all patient records</p>
       </div>
 
       {message && (
@@ -182,8 +151,6 @@ function PatientManagement() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <button onClick={() => setViewPatient(p)} className="p-2 rounded-lg text-slate-400 hover:bg-blue-50 hover:text-blue-500 transition-all"><Eye size={14} /></button>
-                        <button onClick={() => openEdit(p)} className="p-2 rounded-lg text-slate-400 hover:bg-emerald-50 hover:text-emerald-600 transition-all"><Edit size={14} /></button>
-
                       </div>
                     </td>
                   </motion.tr>
@@ -198,64 +165,6 @@ function PatientManagement() {
         <PatientProfileModal patient={viewPatient} onClose={() => setViewPatient(null)} />
       )}
 
-      {/* Edit Modal */}
-      <AnimatePresence>
-        {editPatient && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-lg bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden">
-              <div className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-black text-slate-900">Edit Patient</h3>
-                  <button onClick={() => setEditPatient(null)} className="h-10 w-10 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all border border-slate-100"><X size={18} /></button>
-                </div>
-                <form onSubmit={handleSave} className="space-y-4">
-                  {[
-                    { label: 'Full Name', key: 'name', type: 'text' },
-                    { label: 'Email', key: 'email', type: 'email' },
-                    { label: 'Date of Birth', key: 'dob', type: 'date' },
-                    { label: 'Contact', key: 'contact', type: 'tel' },
-                    { label: 'Address', key: 'address', type: 'text' },
-                    { label: 'Medical History', key: 'medicalHistory', type: 'text' },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{f.label}</label>
-                      <input type={f.type} value={formData[f.key] || ''} onChange={e => setFormData({ ...formData, [f.key]: e.target.value })}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 transition-all" />
-                    </div>
-                  ))}
-
-                  <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Reset Password (Optional)</label>
-                    <div className="relative border border-slate-200 rounded-xl overflow-hidden focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-50 transition-all bg-slate-50">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                      <input 
-                        type={showPassword ? "text" : "password"} 
-                        placeholder="Leave blank to keep current" 
-                        value={formData.password || ''}
-                        onChange={e => setFormData({ ...formData, password: e.target.value })}
-                        className="w-full pl-11 pr-11 py-3 bg-transparent text-sm font-bold text-slate-900 outline-none" 
-                      />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-emerald-500 transition-colors">
-                        {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                    <button type="button" onClick={() => setEditPatient(null)} className="px-6 py-3 rounded-xl border border-slate-200 text-xs font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 transition-all">Cancel</button>
-                    <button type="submit" disabled={saving}
-                      className="px-8 py-3 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-emerald-500 transition-all active:scale-95 disabled:opacity-60 flex items-center gap-2">
-                      {saving && <Loader2 size={13} className="animate-spin" />}
-                      Update
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
 
     </div>

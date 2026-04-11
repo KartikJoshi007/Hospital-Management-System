@@ -6,11 +6,9 @@ import AdminNavbar from './AdminNavbar'
 const PAGE_TITLES = {
   '/admin/dashboard': 'Admin Dashboard',
   '/admin/users': 'User Management',
-  '/admin/roles': 'Role Management',
   '/admin/doctors': 'Doctor Management',
   '/admin/doctors/add': 'Add Doctor',
   '/admin/patients': 'Patient Management',
-  '/admin/appointments': 'Appointment Management',
   '/admin/billing': 'Billing & Finance',
   '/admin/profile': 'My Profile',
   '/admin/notifications': 'Notification Center',
@@ -34,9 +32,8 @@ function AdminLayout() {
     <div className="flex h-screen w-full overflow-hidden bg-[#F8FAFC]">
       {/* Sidebar */}
       <aside
-        className={`shrink-0 border-r border-slate-200 bg-white hidden lg:block transition-all duration-300 ${
-          collapsed ? 'w-16' : 'w-72'
-        }`}
+        className={`shrink-0 border-r border-slate-200 bg-white hidden lg:block transition-all duration-300 ${collapsed ? 'w-16' : 'w-72'
+          }`}
       >
         <AdminSidebar collapsed={collapsed} onToggle={() => setCollapsed(prev => !prev)} />
       </aside>

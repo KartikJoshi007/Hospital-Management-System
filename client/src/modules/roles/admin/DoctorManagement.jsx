@@ -1,13 +1,14 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Search, Plus, Edit, Trash2, X, Clock, Star, AlertCircle, Loader2, Eye, EyeOff, Lock } from 'lucide-react'
+import { Search, Plus, Edit, Trash2, X, Clock, Star, AlertCircle, Loader2, Eye, EyeOff, Lock, IndianRupee, ShieldCheck } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import DoctorProfileModal from './DoctorProfileModal'
 import { getAllDoctors, createDoctor, updateDoctor, deleteDoctor } from '../../doctors/doctorApi'
+import api from '../../../api/axios'
 
 const SPECIALIZATIONS = ['Cardiology', 'Neurology', 'Orthopedics', 'Dermatology', 'Pediatrics', 'General Medicine']
 
-const emptyForm = { name: '', specialization: '', experience: '', availability: [], contact: '', email: '', status: 'Active', password: '' }
+const emptyForm = { name: '', specialization: '', experience: '', consultationFees: 500, availability: [], contact: '', email: '', status: 'Active', password: '' }
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
 function DoctorManagement({ view }) {
@@ -26,6 +27,9 @@ function DoctorManagement({ view }) {
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [roleEditId, setRoleEditId] = useState(null)
+  const [editRoleLevel, setEditRoleLevel] = useState('')
+  const [isUpdatingRole, setIsUpdatingRole] = useState(false)
 
   const notify = (text, error = false) => {
     setMessage({ text, error })
@@ -66,14 +70,14 @@ function DoctorManagement({ view }) {
   }), [doctors, search, specFilter])
 
   const openAdd = () => { setEditingDoc(null); setFormData(emptyForm); setIsFormOpen(true) }
-  const openEdit = (doc) => { 
-    setEditingDoc(doc); 
-    setFormData({ 
-      ...doc, 
+  const openEdit = (doc) => {
+    setEditingDoc(doc);
+    setFormData({
+      ...doc,
       email: doc.email || doc.userId?.email || '',
-      availability: Array.isArray(doc.availability) ? doc.availability : [] 
-    }); 
-    setIsFormOpen(true) 
+      availability: Array.isArray(doc.availability) ? doc.availability : []
+    });
+    setIsFormOpen(true)
   }
 
   const handleSave = async (e) => {
@@ -109,6 +113,20 @@ function DoctorManagement({ view }) {
       notify(err?.message || 'Error removing doctor', true)
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  const handleInlineRoleUpdate = async (docId) => {
+    setIsUpdatingRole(true)
+    try {
+      const res = await api.patch(`/doctors/${docId}/role-level`, { roleLevel: editRoleLevel })
+      setDoctors(prev => prev.map(d => d._id === docId ? { ...d, roleLevel: editRoleLevel } : d))
+      setRoleEditId(null)
+      notify('Role updated successfully')
+    } catch (err) {
+      notify('Failed to update role', true)
+    } finally {
+      setIsUpdatingRole(false)
     }
   }
 
@@ -156,7 +174,7 @@ function DoctorManagement({ view }) {
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50/50">
-                {['Doctor', 'Specialization', 'Experience', 'Availability', 'Status', 'Actions'].map(h => (
+                {['Doctor', 'Specialization', 'Role', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-6 py-4 text-left text-[9px] font-black text-slate-400 uppercase tracking-widest">{h}</th>
                 ))}
               </tr>
@@ -200,20 +218,46 @@ function DoctorManagement({ view }) {
                     <span className="px-3 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-wider border border-emerald-100">{doc.specialization}</span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-1.5">
-                      <Star size={11} className="text-amber-400 fill-current" />
-                      <span className="text-xs font-bold text-slate-700">{doc.experience}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1.5">
-                      <Clock size={11} className="text-slate-400" />
-                      <span className="text-[10px] font-bold text-slate-600 max-w-[140px] truncate">
-                        {Array.isArray(doc.availability) && doc.availability.length > 0
-                          ? doc.availability.map(a => `${(a.day || 'Day').slice(0, 3)} ${a.startTime || ''}`).join(', ')
-                          : typeof doc.availability === 'string' ? doc.availability : 'No slots set'}
-                      </span>
-                    </div>
+                    {roleEditId === doc._id ? (
+                      <div className="flex items-center gap-1.5 animate-in slide-in-from-left-2 duration-300">
+                        <select 
+                          value={editRoleLevel} 
+                          onChange={e => setEditRoleLevel(e.target.value)}
+                          className="bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest px-2 py-1.5 rounded-lg outline-none ring-2 ring-emerald-500/20"
+                        >
+                          <option value="junior doctor">Junior</option>
+                          <option value="senior doctor">Senior</option>
+                          <option value="consultant">Consultant</option>
+                          <option value="resident doctor">Resident</option>
+                          <option value="intern">Intern</option>
+                          <option value="other">Other</option>
+                        </select>
+                        <button 
+                          onClick={() => handleInlineRoleUpdate(doc._id)}
+                          disabled={isUpdatingRole}
+                          className="p-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all shadow-lg"
+                        >
+                          {isUpdatingRole ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+                        </button>
+                        <button 
+                          onClick={() => setRoleEditId(null)}
+                          className="p-1.5 bg-slate-100 text-slate-400 rounded-lg hover:bg-rose-50 hover:text-rose-500 transition-all"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => {
+                          setRoleEditId(doc._id)
+                          setEditRoleLevel(doc.roleLevel || 'other')
+                        }}
+                        className="group/role px-3 py-1 rounded-full bg-slate-50 text-slate-500 text-[9px] font-black uppercase tracking-widest border border-slate-100 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 transition-all flex items-center gap-1.5"
+                      >
+                        <ShieldCheck size={10} className="text-slate-300 group-hover/role:text-emerald-500 transition-colors" />
+                        {doc.roleLevel || 'Other'}
+                      </button>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border flex items-center gap-1.5 w-fit ${doc.status === 'Active' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
@@ -262,34 +306,56 @@ function DoctorManagement({ view }) {
                 <form onSubmit={handleSave} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
                     { label: 'Full Name', key: 'name', type: 'text', placeholder: 'Dr. Jane Doe' },
-                    { label: 'Experience', key: 'experience', type: 'text', placeholder: '5 Years' },
-                    { label: 'Contact', key: 'contact', type: 'tel', placeholder: '10-digit Phone No.' },
                     { label: 'Email', key: 'email', type: 'email', placeholder: 'doctor@domain.com' },
+                    { label: 'Contact', key: 'contact', type: 'tel', placeholder: '10-digit number' },
+                    { label: 'Experience', key: 'experience', type: 'text', placeholder: '5 Years' },
                   ].map(f => (
                     <div key={f.key}>
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{f.label}</label>
-                      <input required type={f.type} placeholder={f.placeholder} value={formData[f.key]}
+                      <input 
+                        required 
+                        type={f.type} 
+                        placeholder={f.placeholder} 
+                        value={formData[f.key]}
                         onChange={e => setFormData({ ...formData, [f.key]: e.target.value })}
-                        pattern={f.type === 'tel' ? "\\d{10}" : undefined}
-                        minLength={f.type === 'tel' ? 10 : undefined}
+                        onInput={f.type === 'tel' ? e => e.target.value = e.target.value.replace(/\D/g, '') : undefined}
                         maxLength={f.type === 'tel' ? 10 : undefined}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" />
+                        pattern={f.type === 'tel' ? "\\d{10}" : undefined}
+                        title={f.type === 'tel' ? "Please enter exactly 10 digits" : undefined}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all" 
+                      />
                     </div>
                   ))}
 
                   <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Consultation Fees</label>
+                    <div className="relative group">
+                      <IndianRupee className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-3.5 w-3.5" />
+                      <input
+                        required
+                        type="number"
+                        min="0"
+                        placeholder="500"
+                        value={formData.consultationFees || ''}
+                        onChange={e => setFormData({ ...formData, consultationFees: e.target.value })}
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-50 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                      {editingDoc ? 'Reset Password (Optional)' : 'Login Password'}
+                      {editingDoc ? 'Reset Password' : 'Login Password'}
                     </label>
                     <div className="relative border border-slate-200 rounded-xl overflow-hidden focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-50 transition-all bg-slate-50">
                       <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 h-4 w-4" />
-                      <input 
-                        required={!editingDoc} 
-                        type={showPassword ? "text" : "password"} 
-                        placeholder={editingDoc ? "Leave blank to keep current" : "••••••••"} 
+                      <input
+                        required={!editingDoc}
+                        type={showPassword ? "text" : "password"}
+                        placeholder={editingDoc ? "Leave blank" : "••••••••"}
                         value={formData.password || ''}
                         onChange={e => setFormData({ ...formData, password: e.target.value })}
-                        className="w-full pl-11 pr-11 py-3 bg-transparent text-sm font-bold text-slate-900 outline-none" 
+                        className="w-full pl-11 pr-11 py-3 bg-transparent text-sm font-bold text-slate-900 outline-none"
                       />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-emerald-500 transition-colors">
@@ -302,8 +368,8 @@ function DoctorManagement({ view }) {
                   <div className="sm:col-span-2 space-y-4">
                     <div className="flex items-center justify-between">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Weekly Availability</label>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => {
                           setFormData({ ...formData, availability: [...(formData.availability || []), { day: 'Monday', startTime: '09:00', endTime: '17:00' }] })
                         }}
@@ -312,44 +378,44 @@ function DoctorManagement({ view }) {
                         <Plus size={12} /> Add Slot
                       </button>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 gap-2">
                       {(formData.availability || []).map((slot, idx) => (
                         <div key={idx} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                          <select 
-                            value={slot.day} 
+                          <select
+                            value={slot.day}
                             onChange={e => {
                               const newAvail = [...formData.availability]
                               newAvail[idx].day = e.target.value
-                              setFormData({...formData, availability: newAvail})
+                              setFormData({ ...formData, availability: newAvail })
                             }}
                             className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none focus:border-emerald-400 min-w-[90px]"
                           >
                             {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
                           </select>
-                          <input 
-                            type="time" 
-                            value={slot.startTime} 
+                          <input
+                            type="time"
+                            value={slot.startTime}
                             onChange={e => {
                               const newAvail = [...formData.availability]
                               newAvail[idx].startTime = e.target.value
-                              setFormData({...formData, availability: newAvail})
+                              setFormData({ ...formData, availability: newAvail })
                             }}
                             className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none focus:border-emerald-400"
                           />
                           <span className="text-slate-300 text-[9px] font-bold">TO</span>
-                          <input 
-                            type="time" 
-                            value={slot.endTime} 
+                          <input
+                            type="time"
+                            value={slot.endTime}
                             onChange={e => {
                               const newAvail = [...formData.availability]
                               newAvail[idx].endTime = e.target.value
-                              setFormData({...formData, availability: newAvail})
+                              setFormData({ ...formData, availability: newAvail })
                             }}
                             className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[10px] font-bold outline-none focus:border-emerald-400"
                           />
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => {
                               setFormData({ ...formData, availability: formData.availability.filter((_, i) => i !== idx) })
                             }}
