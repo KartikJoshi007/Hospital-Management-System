@@ -70,6 +70,7 @@ function DoctorManagement({ view }) {
     setEditingDoc(doc); 
     setFormData({ 
       ...doc, 
+      email: doc.email || doc.userId?.email || '',
       availability: Array.isArray(doc.availability) ? doc.availability : [] 
     }); 
     setIsFormOpen(true) 
@@ -191,7 +192,7 @@ function DoctorManagement({ view }) {
                       </div>
                       <div>
                         <p className="text-sm font-black text-slate-900">{doc.name}</p>
-                        <p className="text-[10px] font-bold text-slate-400">{doc.email}</p>
+                        <p className="text-[10px] font-bold text-slate-400">{doc.email || doc.userId?.email || 'No Email'}</p>
                       </div>
                     </div>
                   </td>

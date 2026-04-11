@@ -59,7 +59,7 @@ function PatientManagement() {
     setEditPatient(p)
     setFormData({ 
       name: p.name, 
-      email: p.email || '', 
+      email: p.email || p.userId?.email || '', 
       dob: p.dob ? new Date(p.dob).toISOString().split('T')[0] : '', 
       contact: p.contact, 
       address: p.address, 

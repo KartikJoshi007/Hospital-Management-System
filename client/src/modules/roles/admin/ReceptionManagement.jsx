@@ -52,7 +52,7 @@ function ReceptionManagement() {
   const openAdd = () => { setEditingRec(null); setFormData(emptyForm); setIsFormOpen(true) }
   const openEdit = (rec) => { 
     setEditingRec(rec); 
-    setFormData({ ...rec }); 
+    setFormData({ ...rec, email: rec.email || rec.userId?.email || '' }); 
     setIsFormOpen(true) 
   }
 
@@ -151,7 +151,7 @@ function ReceptionManagement() {
                       </div>
                       <div>
                         <p className="text-sm font-black text-slate-900">{rec.name}</p>
-                        <p className="text-[10px] font-bold text-slate-400">{rec.email}</p>
+                        <p className="text-[10px] font-bold text-slate-400">{rec.email || rec.userId?.email || 'No Email'}</p>
                       </div>
                     </div>
                   </td>

@@ -112,7 +112,7 @@ const PatientHandler = () => {
   const handleEdit = (patient) => {
     setForm({
       name: patient.name,
-      email: patient.email || "",
+      email: patient.email || patient.userId?.email || "",
       dob: patient.dob ? new Date(patient.dob).toISOString().split('T')[0] : "",
       age: patient.age || "",
       gender: patient.gender,
@@ -156,7 +156,7 @@ const PatientHandler = () => {
   }, [searchTerm]);
 
   return (
-    <div className="space-y-8 animate-in mt-10 fade-in duration-500 pb-10">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -177,13 +177,12 @@ const PatientHandler = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
 
-        {/* FORM SECTION */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="lg:col-span-4 bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 h-fit lg:sticky lg:top-24"
+          className="lg:col-span-4 bg-white rounded-[2rem] border border-slate-100 shadow-sm p-8 h-fit lg:sticky lg:top-5"
         >
           <div className="flex items-center gap-2 mb-6">
             <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
@@ -325,11 +324,10 @@ const PatientHandler = () => {
           </div>
         </motion.div>
 
-        {/* LIST SECTION */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="lg:col-span-8 bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]"
+          className="lg:col-span-8 bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col lg:max-h-[calc(100vh-180px)]"
         >
           <div className="flex items-center justify-between px-8 py-6 border-b border-slate-50">
             <div>
@@ -341,7 +339,7 @@ const PatientHandler = () => {
             </div>
           </div>
 
-          <div className="p-4 flex-1">
+          <div className="p-4 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
             {loading ? (
               <div className="py-20 text-center flex flex-col items-center">
                 <div className="h-10 w-10 border-4 border-purple-100 border-t-purple-500 rounded-full animate-spin mb-4" />
@@ -373,6 +371,10 @@ const PatientHandler = () => {
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
                           <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase">
                             {p.age} Yrs • {p.gender}
+                          </p>
+                          <span className="h-1 w-1 rounded-full bg-slate-300 hidden sm:block" />
+                          <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1 lowercase">
+                            <Mail size={10} /> {p.email || p.userId?.email || "No Email"}
                           </p>
                           <span className="h-1 w-1 rounded-full bg-slate-300 hidden sm:block" />
                           <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 uppercase tracking-tight">

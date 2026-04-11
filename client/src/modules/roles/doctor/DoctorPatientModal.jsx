@@ -1027,10 +1027,10 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
               <div className="space-y-6">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { label: 'Age',    value: `${patient.age} yrs` },
-                    { label: 'Gender', value: patient.gender        },
-                    { label: 'Blood',  value: patient.blood         },
-                    { label: 'Visits', value: patient.totalVisits   },
+                    { label: 'Age',    value: `${patient.age || '—'} yrs` },
+                    { label: 'Gender', value: patient.gender || '—'        },
+                    { label: 'Blood',  value: patient.bloodGroup || '—'    },
+                    { label: 'Visits', value: patient.totalVisits || '—'   },
                   ].map((item, i) => (
                     <div key={i} className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
@@ -1069,14 +1069,21 @@ function DoctorPatientModal({ patient, onClose, onBookSurgery }) {
                       <Phone size={12} className="text-slate-400" />
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Phone</p>
                     </div>
-                    <p className="text-sm font-bold text-slate-900">{patient.phone}</p>
+                    <p className="text-sm font-bold text-slate-900">{patient.contact || patient.phone || '—'}</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Mail size={12} className="text-slate-400" />
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Email</p>
+                    </div>
+                    <p className="text-sm font-bold text-slate-900 lowercase">{patient.email || patient.userId?.email || '—'}</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                     <div className="flex items-center gap-2 mb-1">
                       <MapPin size={12} className="text-slate-400" />
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Address</p>
                     </div>
-                    <p className="text-sm font-bold text-slate-900">{patient.address}</p>
+                    <p className="text-sm font-bold text-slate-900">{patient.address || '—'}</p>
                   </div>
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                     <div className="flex items-center gap-2 mb-1">

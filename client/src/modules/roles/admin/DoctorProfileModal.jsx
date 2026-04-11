@@ -195,7 +195,7 @@ function DoctorProfileModal({ doctor, onClose }) {
                           <Mail size={12} className="text-slate-400" />
                           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Email</p>
                         </div>
-                        <p className="text-sm font-bold text-slate-900">{doctor.email}</p>
+                        <p className="text-sm font-bold text-slate-900">{doctor.email || doctor.userId?.email || 'N/A'}</p>
                       </div>
                     </div>
 
